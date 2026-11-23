@@ -1,9 +1,8 @@
 using Xunit;
-using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
-public class GameTests : IDisposable
+public class GameTests
 {
     private readonly string _logDir = Path.Combine(
         Path.GetDirectoryName(typeof(GameTests).Assembly.Location) ?? ".",
@@ -20,8 +19,6 @@ public class GameTests : IDisposable
             try { Directory.Delete(fullPath, recursive: true); } catch { }
         }
     }
-
-    public void Dispose() { }
 
     [Fact]
     public void Game_starts_in_West_of_House()

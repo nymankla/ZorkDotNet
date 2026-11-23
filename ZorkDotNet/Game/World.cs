@@ -305,11 +305,9 @@ public class World
         AddRoom("FALLS", "", "Aragain Falls", false,
             new Dictionary<string, ExitTarget>
             {
-                ["NORTH"] = new("FANTE"),
                 ["SOUTH"] = new("CANY1"),
                 ["EAST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on."),
                 ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on."),
-                ["DOWN"] = new("FCHMP"),
                 ["ENTER"] = new("BARRE"),
                 ["DOWN"] = new ExitTarget("Oh dear, you seem to have gone over Aragain Falls.  Not a very smart thing to do, apparently."),
                 ["NORTH"] = new ExitTarget("A narrow path leads north along the falls.")

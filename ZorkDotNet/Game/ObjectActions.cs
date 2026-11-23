@@ -68,7 +68,7 @@ public static class ObjectActions
         if (verb == "THROW" && obj != null)
         {
             state.Output.WriteLine("The lamp has smashed into the floor and the light has gone out.");
-            RemoveFromWhere(state, lamp!);
+            RemoveFromWhere(lamp!);
             if (blamp != null && state.Here != null)
             {
                 blamp.InRoom = state.Here;
@@ -241,7 +241,7 @@ public static class ObjectActions
             else if (obj != null)
             {
                 state.Output.WriteLine("'That wasn't quite what I had in mind', he says, crunching the " + obj.DescriptionShort + " in his rock-hard hands.");
-                RemoveFromWhere(state, obj);
+                RemoveFromWhere(obj);
             }
             return;
         }
@@ -249,7 +249,7 @@ public static class ObjectActions
         {
             state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
             var gnome = state.World?.FindObject("GNOME");
-            if (gnome != null) RemoveFromWhere(state, gnome);
+            if (gnome != null) RemoveFromWhere(gnome);
             return;
         }
         state.Output.WriteLine("The gnome appears increasingly nervous.");
@@ -259,7 +259,7 @@ public static class ObjectActions
     /// <summary>VOLGNOME (CEVENT): when in LEDG room, gnome appears after 10 moves.</summary>
     public static void Volgnome(GameState state)
     {
-        if (state.Here?.Id?.StartsWith("LEDG") != true) return;
+        if (state.Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) != true) return;
         state.Output.WriteLine("A volcano gnome seems to walk straight out of the wall and says 'I have a very busy appointment schedule and little time to waste on tresspassers, but for a small fee, I'll show you the way out.'  You notice the gnome nervously glancing at his watch.");
         var gnome = state.World?.FindObject("GNOME");
         if (gnome != null && state.Here != null)
@@ -280,7 +280,7 @@ public static class ObjectActions
     {
         state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
         var gnome = state.World?.FindObject("GNOME");
-        if (gnome != null) RemoveFromWhere(state, gnome);
+        if (gnome != null) RemoveFromWhere(gnome);
     }
 
     /// <summary>BUCKET (CEVENT): scheduled tick toggles bucket between TWELL and BWELL. Schedule when water put in bucket in BWELL.</summary>
@@ -348,7 +348,7 @@ public static class ObjectActions
         if (verb == "THROW" && obj != null)
         {
             state.Output.WriteLine("The bottle hits the far wall and is decimated.");
-            RemoveFromWhere(state, obj);
+            RemoveFromWhere(obj);
         }
         else if (verb == "MUNG" || verb == "BREAK")
         {
@@ -374,7 +374,7 @@ public static class ObjectActions
         if (verb == "THROW")
         {
             state.Output.WriteLine("The water splashes on the walls, and evaporates immediately.");
-            RemoveFromWhere(state, obj);
+            RemoveFromWhere(obj);
         }
         else if (verb == "PUT")
         {
@@ -410,7 +410,7 @@ public static class ObjectActions
             else if (cont != null && cont != bottle)
             {
                 state.Output.WriteLine("The water leaks out of the " + cont.DescriptionShort + " and evaporates immediately.");
-                RemoveFromWhere(state, obj);
+                RemoveFromWhere(obj);
             }
             else
                 state.Output.WriteLine("The water slips through your fingers.");
@@ -492,7 +492,7 @@ public static class ObjectActions
             state.Output.WriteLine("Done.");
     }
 
-    public static void GunkFunction(GameState state, string verb, GameObject? obj)
+    public static void GunkFunction(GameState state, string _, GameObject? obj)
     {
         if (obj?.Container != null)
         {
@@ -502,7 +502,7 @@ public static class ObjectActions
         }
     }
 
-    public static void MachineFunction(GameState state, string verb, GameObject? obj)
+    public static void MachineFunction(GameState state, string verb, GameObject? _)
     {
         var mach = state.World!.FindObject("MACHI");
         if (mach == null) return;
@@ -528,7 +528,7 @@ public static class ObjectActions
         }
     }
 
-    public static void Glacier(GameState state, string verb, GameObject? _)
+    public static void Glacier(GameState _, string _1, GameObject? _2)
     {
         // Handled in Parser DoThrow: throw torch at ice in ICY.
     }
@@ -571,7 +571,7 @@ public static class ObjectActions
             if (ct) state.Output.WriteLine("It's already at the top.");
             else
             {
-                RemoveFromWhere(state, tbask); RemoveFromWhere(state, fbask);
+                RemoveFromWhere(tbask); RemoveFromWhere(fbask);
                 tbask.InRoom = top; top.Objects.Add(tbask); tbask.Carrier = null;
                 fbask.InRoom = bot; bot.Objects.Add(fbask); fbask.Carrier = null;
                 state.Output.WriteLine("The basket is raised to the top of the shaft.");
@@ -583,7 +583,7 @@ public static class ObjectActions
             if (!ct) state.Output.WriteLine("It's already at the bottom.");
             else
             {
-                RemoveFromWhere(state, tbask); RemoveFromWhere(state, fbask);
+                RemoveFromWhere(tbask); RemoveFromWhere(fbask);
                 tbask.InRoom = bot; bot.Objects.Add(tbask);
                 fbask.InRoom = top; top.Objects.Add(fbask);
                 state.Output.WriteLine("The basket is lowered to the bottom of the shaft.");
@@ -599,7 +599,7 @@ public static class ObjectActions
         }
     }
 
-    private static void RemoveFromWhere(GameState state, GameObject obj)
+    private static void RemoveFromWhere(GameObject obj)
     {
         if (obj.InRoom != null) { obj.InRoom.Objects.Remove(obj); obj.InRoom = null; }
         if (obj.Carrier != null) { obj.Carrier.Inventory.Remove(obj); obj.Carrier = null; }

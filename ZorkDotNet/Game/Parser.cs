@@ -79,7 +79,7 @@ public static class Parser
                 if (orphanSpec != null)
                     SynMatch(state, orphanSpec, obj, null, null, words);
                 else
-                    DispatchOrphanVerb(state, verb, obj, words);
+                    DispatchOrphanVerb(state, verb, obj);
                 return;
             }
             state.PendingVerb = null;
@@ -254,11 +254,11 @@ public static class Parser
         // Dispatch
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
-        Dispatch(state, chosen.Action, dobj, iobj, words);
+        Dispatch(state, chosen.Action, dobj, words);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
-    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect, string[] words)
+    private static void Dispatch(GameState state, string action, GameObject? direct, string[] words)
     {
         switch (action)
         {
@@ -401,7 +401,7 @@ public static class Parser
         state.PendingNeedsDirect = true;
     }
 
-    private static void DispatchOrphanVerb(GameState state, string verb, GameObject obj, string[] words)
+    private static void DispatchOrphanVerb(GameState state, string verb, GameObject obj)
     {
         state.LastDirectObject = obj;
         switch (verb)
@@ -512,10 +512,10 @@ public static class Parser
             if (!state.GetFlag(target.ConditionFlag))
             {
                 if (state.World != null && state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null)
-            {
-                exitAction(state, direction);
-                return;
-            }
+                {
+                    exitAction(state, direction);
+                    return;
+                }
                 state.Output.WriteLine(target.BlockedMessage ?? "You can't go that way.");
                 return;
             }
@@ -635,11 +635,11 @@ public static class Parser
         if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have that."); return; }
         if (!obj.CanTake) { state.Output.WriteLine("You can't take that."); return; }
         if (obj.Container != null && !obj.Container.Open && !obj.Container.IsTransparent)
-            { state.Output.WriteLine("You can't reach that."); return; }
+        { state.Output.WriteLine("You can't reach that."); return; }
         if (obj.InRoom != null)
         {
             if (state.Winner.CarryingSize + obj.Size > Adventurer.MaxLoad)
-                { state.Output.WriteLine("You're carrying too much."); return; }
+            { state.Output.WriteLine("You're carrying too much."); return; }
             obj.InRoom.Objects.Remove(obj);
         }
         else if (obj.Container != null)
@@ -672,7 +672,7 @@ public static class Parser
             return;
         }
         if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) == 0)
-            { state.Output.WriteLine("That's not something you can open."); return; }
+        { state.Output.WriteLine("That's not something you can open."); return; }
         if (obj.Open) state.Output.WriteLine("It is already open.");
         else { obj.Open = true; state.Output.WriteLine("Opened."); }
     }

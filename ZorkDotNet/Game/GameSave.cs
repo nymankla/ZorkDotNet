@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ZorkDotNet.Game;
 
 /// <summary>
@@ -45,8 +47,8 @@ public static class GameSave
             state.Winner.CurrentRoom = room;
             room.Seen = true;
             if (i >= lines.Count) throw new InvalidDataException("Truncated.");
-            state.Winner.Score = int.Parse(lines[i++]);
-            state.Winner.Moves = int.Parse(lines[i++]);
+            state.Winner.Score = int.Parse(lines[i++], CultureInfo.InvariantCulture);
+            state.Winner.Moves = int.Parse(lines[i++], CultureInfo.InvariantCulture);
             state.Winner.BriefMode = lines[i++] == "1";
             state.Winner.SuperBriefMode = lines[i++] == "1";
             while (i < lines.Count && lines[i] != "---")

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using ZorkDotNet.Game;
 
@@ -79,7 +80,7 @@ public sealed class GameRunner : IDisposable
     public static string GetLogPath(string testName, string baseDir = "TestLogs", bool includeTimestamp = true)
     {
         var name = testName.Replace(" ", "_");
-        var stamp = includeTimestamp ? "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") : "";
+        var stamp = includeTimestamp ? "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture) : "";
         return Path.Combine(baseDir, name + stamp + ".log");
     }
 }

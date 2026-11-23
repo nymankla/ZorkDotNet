@@ -94,7 +94,7 @@ public static class Preposition
 public static class VerbTable
 {
     private static IReadOnlyDictionary<string, VerbSpec>? _table;
-    private static IReadOnlyDictionary<string, VerbSpec>? _byAction;
+    private static Dictionary<string, VerbSpec>? _byAction;
 
     public static IReadOnlyDictionary<string, VerbSpec> Table =>
         _table ??= BuildTable();
@@ -118,7 +118,7 @@ public static class VerbTable
     private static readonly VArg ArgRoomAt = A(VArgFlags.VRBIT, Preposition.At);
     private static readonly VArg ArgRoomIn = A(VArgFlags.VRBIT, Preposition.In);
 
-    private static IReadOnlyDictionary<string, VerbSpec> BuildTable()
+    private static Dictionary<string, VerbSpec> BuildTable()
     {
         var dict = new Dictionary<string, VerbSpec>(StringComparer.OrdinalIgnoreCase);
 
