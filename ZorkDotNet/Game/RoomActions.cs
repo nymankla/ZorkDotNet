@@ -48,6 +48,13 @@ public static class RoomActions
         state.Output.WriteLine("You are in a small room which smells strongly of coal gas.");
     }
 
+    /// <summary>OVER-FALLS (act2.27, FCHMP room action): going over Aragain Falls is fatal (JIGS-UP).</summary>
+    public static void OverFalls(GameState state)
+    {
+        state.Output.WriteLine("Oh dear, you seem to have gone over Aragain Falls.  Not a very smart thing to do, apparently.");
+        state.Running = false;
+    }
+
     /// <summary>On entering BOOM room: if carrying lit candle or lit torch, JIGS-UP.</summary>
     public static void OnEnterBoom(GameState state)
     {

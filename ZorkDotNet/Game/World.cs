@@ -51,6 +51,12 @@ public class World
 
     private static string NormId(string id) => id.Length > 5 ? id[..5] : id;
 
+    /// <summary>dung.56 PSETG CURRENT (#NEXIT on every river room's UP exit).</summary>
+    private const string Current = "You cannot go upstream due to strong currents.";
+
+    /// <summary>dung.56 PSETG CLIFFS (#NEXIT on RIVR1/RIVR2 EAST).</summary>
+    private const string Cliffs = "The White Cliffs prevent your landing here.";
+
     private void BuildWorld()
     {
         // ---- Vocabulary / globals (from dung.56) ----
@@ -87,7 +93,7 @@ public class World
                 ["NORTH"] = new("NHOUS"),
                 ["SOUTH"] = new("SHOUS"),
                 ["WEST"] = new("FORE1"),
-                ["EAST"] = new ExitTarget("The door is locked, and there is evidently no key.")
+                ["EAST"] = ExitTarget.Blocked("The door is locked, and there is evidently no key.")
             },
             objectIds: new[] { "FDOOR", "MAILB" });
 
@@ -100,7 +106,7 @@ public class World
                 ["WEST"] = new("WHOUS"),
                 ["EAST"] = new("EHOUS"),
                 ["NORTH"] = new("FORE3"),
-                ["SOUTH"] = new ExitTarget("The windows are all barred.")
+                ["SOUTH"] = ExitTarget.Blocked("The windows are all barred.")
             });
 
         AddRoom("SHOUS",
@@ -112,7 +118,7 @@ public class World
                 ["WEST"] = new("WHOUS"),
                 ["EAST"] = new("EHOUS"),
                 ["SOUTH"] = new("FORE2"),
-                ["NORTH"] = new ExitTarget("The windows are all barred.")
+                ["NORTH"] = ExitTarget.Blocked("The windows are all barred.")
             });
 
         AddRoom("EHOUS",
@@ -140,7 +146,7 @@ public class World
                 ["EXIT"] = new ExitTarget("KITCHEN-WINDOW!-FLAG", "EHOUS", null),
                 ["WEST"] = new("LROOM"),
                 ["UP"] = new("ATTIC"),
-                ["DOWN"] = new ExitTarget("Only Santa Claus climbs down chimneys.")
+                ["DOWN"] = ExitTarget.Blocked("Only Santa Claus climbs down chimneys.")
             },
             objectIds: new[] { "WIND2", "SBAG", "BOTTL" },
             roomAction: RoomActions.Kitchen,
@@ -175,7 +181,7 @@ public class World
                 ["EAST"] = new("MTROL"),
                 ["SOUTH"] = new("CHAS2"),
                 ["UP"] = new ExitTarget("TRAP-DOOR!-FLAG", "LROOM", "The trap door has been barred from the other side."),
-                ["WEST"] = new ExitTarget("You try to ascend the ramp, but it is impossible, and you slide back down.")
+                ["WEST"] = ExitTarget.Blocked("You try to ascend the ramp, but it is impossible, and you slide back down.")
             },
             objectIds: new[] { "TDOOR" },
             visitScore: 25,
@@ -265,7 +271,7 @@ public class World
                 ["WEST"] = new("CELLA"),
                 ["NORTH"] = new("CRAW4"),
                 ["SOUTH"] = new("GALLE"),
-                ["DOWN"] = new ExitTarget("The chasm probably leads straight to the infernal regions.")
+                ["DOWN"] = ExitTarget.Blocked("The chasm probably leads straight to the infernal regions.")
             });
 
         AddRoom("CRAW4",
@@ -277,7 +283,7 @@ public class World
                 ["NORTH"] = new("CHAS2"),
                 ["SOUTH"] = new("STUDI"),
                 ["EAST"] = new("MTROL"),
-                ["UP"] = new ExitTarget("Not even a human fly could get up it.")
+                ["UP"] = ExitTarget.Blocked("Not even a human fly could get up it.")
             });
 
         AddRoom("CAROU", "", "Round room", false,
@@ -301,16 +307,16 @@ public class World
             "You are on the south edge of a deep canyon.  Passages lead off to the east, south, and northwest.  You can hear the sound of flowing water below.",
             "Deep Canyon",
             false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("FALLS"), ["NW"] = new("RESES"), ["EAST"] = new("DAM"), ["SOUTH"] = new("CAROU") });
+            new Dictionary<string, ExitTarget> { ["NW"] = new("RESES"), ["EAST"] = new("DAM"), ["SOUTH"] = new("CAROU") });
+        // dung.56 FALLS: the only path is north (FANTE); DOWN goes over the falls (FCHMP, OVER-FALLS).
         AddRoom("FALLS", "", "Aragain Falls", false,
             new Dictionary<string, ExitTarget>
             {
-                ["SOUTH"] = new("CANY1"),
                 ["EAST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on."),
-                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on."),
+                ["DOWN"] = new("FCHMP"),
+                ["NORTH"] = new("FANTE"),
                 ["ENTER"] = new("BARRE"),
-                ["DOWN"] = new ExitTarget("Oh dear, you seem to have gone over Aragain Falls.  Not a very smart thing to do, apparently."),
-                ["NORTH"] = new ExitTarget("A narrow path leads north along the falls.")
+                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on.")
             },
             roomAction: RoomActions.FallsRoom);
         AddRoom("RAINB",
@@ -427,7 +433,7 @@ public class World
             false,
             new Dictionary<string, ExitTarget>
             {
-                ["DOWN"] = new ExitTarget("You wouldn't fit and would die if you could."),
+                ["DOWN"] = ExitTarget.Blocked("You wouldn't fit and would die if you could."),
                 ["WEST"] = new("ENTRA"),
                 ["NORTH"] = new("TUNNE")
             },
@@ -490,7 +496,7 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["EAST"] = new("MIRR2"),
-                ["NORTH"] = new ExitTarget("You hear the whir of the carousel room but can find no entrance.")
+                ["NORTH"] = ExitTarget.Blocked("You hear the whir of the carousel room but can find no entrance.")
             });
         AddRoom("CAVE4", "", "Cave", false,
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAROU") });
@@ -519,7 +525,7 @@ public class World
             "You are at the base of Flood Control Dam #3, which looms above you and to the north.  The river Frigid is flowing by here.  Across the river are the White Cliffs which seem to form a giant wall stretching from north to south along the east shore of the river as it winds its way downstream.",
             "Dam Base",
             false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("DAM"), ["UP"] = new("DAM"), ["SOUTH"] = new("RIVR1") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("DAM"), ["UP"] = new("DAM"), ["LAUNC"] = new("RIVR1") });
         AddRoom("TEMP1",
             "You are in the west end of a large temple.  On the south wall is an ancient inscription, probably a prayer in a long-forgotten language. The north wall is solid granite.  The entrance at the west end of the room is through huge marble pillars.",
             "Temple",
@@ -547,15 +553,15 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["EAST"] = new("EGYPT"),
-                ["DOWN"] = new ExitTarget("I wouldn't try that."),
-                ["CROSS"] = new ExitTarget("It is impossible to cross this distance.")
+                ["DOWN"] = ExitTarget.Blocked("I wouldn't try that."),
+                ["CROSS"] = ExitTarget.Blocked("It is impossible to cross this distance.")
             });
         AddRoom("LEDG4", "", "Wide Ledge", false,
             new Dictionary<string, ExitTarget>
             {
                 ["SOUTH"] = new("SAFE"),
                 ["UP"] = new ExitTarget("IN-BALLOON!-FLAG", "VAIR1", "You need to be in the balloon to go up."),
-                ["DOWN"] = new ExitTarget("It's a long way down."),
+                ["DOWN"] = ExitTarget.Blocked("It's a long way down."),
                 ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", "The gnome blocks your way.")
             });
         AddRoom("VAIR1",
@@ -603,12 +609,12 @@ public class World
             "You are on the shore of the River.  The river here seems somewhat treacherous.  A path travels from north to south here, the south end quickly turning around a sharp corner.",
             "Shore",
             false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("BEACH"), ["SOUTH"] = new("FALLS") });
+            new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR5"), ["NORTH"] = new("BEACH"), ["SOUTH"] = new("FALLS") });
         AddRoom("BEACH",
             "You are on a large sandy beach at the shore of the river, which is flowing quickly by.  A path runs beside the river to the south here.",
             "Sandy Beach",
             false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("FANTE") });
+            new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR4"), ["SOUTH"] = new("FANTE") });
         AddRoom("VAIR2", "You are in the basket of a hot-air balloon.  The balloon is in the air.", "Balloon (in air)", false,
             new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR3"), ["DOWN"] = new("VAIR1") });
         AddRoom("VAIR3", "You are in the basket of a hot-air balloon.  The balloon is in the air.", "Balloon (in air)", false,
@@ -640,7 +646,7 @@ public class World
                 ["NE"] = new("CMACH"), ["NW"] = new("ALICE"), ["SW"] = new("ALICE"), ["SE"] = new("ALICE")
             });
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new ExitTarget("The cage door is closed.") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("The cage door is closed.") });
         AddRoom("ALISM",
             "You are in an enormous room, in the center of which are four wooden posts delineating a rectangular area, above which is what appears to be a wooden roof.  In fact, all objects in this room appear to be abnormally large.  To the east is a passageway.  There is a large chasm on the west and the northwest.",
             "Posts Room",
@@ -652,23 +658,24 @@ public class World
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("ALISM") });
         AddRoom("RIVR1", "You are on the River Frigid in the vicinity of the Dam.  The river flows quietly here.  There is a landing on the west shore.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("DOCK"), ["DOWN"] = new("RIVR2") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["WEST"] = new("DOCK"), ["LAND"] = new("DOCK"), ["DOWN"] = new("RIVR2"), ["EAST"] = ExitTarget.Blocked(Cliffs) });
         AddRoom("RIVR2", "The River turns a corner here making it impossible to see the Dam.  The White Cliffs loom on the east bank and large rocks prevent landing on the west.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("RIVR3"), ["UP"] = new("RIVR1") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR3"), ["EAST"] = ExitTarget.Blocked(Cliffs) });
         AddRoom("RIVR3", "The river descends here into a valley.  There is a narrow beach on the east below the cliffs and there is some shore on the west which may be suitable.  In the distance a faint rumbling can be heard.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("RIVR4"), ["UP"] = new("RIVR2"), ["EAST"] = new("WCLF1"), ["WEST"] = new("RCAVE") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR4"), ["EAST"] = new("WCLF1"), ["WEST"] = new("RCAVE"), ["LAND"] = ExitTarget.Blocked("You must specify which direction here.") });
         AddRoom("RIVR4", "The river is running faster here and the sound ahead appears to be that of rushing water.  On the west shore is a sandy beach.  A small area of beach can also be seen below the Cliffs.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("RIVR5"), ["UP"] = new("RIVR3"), ["EAST"] = new("WCLF2"), ["WEST"] = new("BEACH") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR5"), ["EAST"] = new("WCLF2"), ["WEST"] = new("BEACH"), ["LAND"] = ExitTarget.Blocked("Specify the direction to land.") });
         AddRoom("RIVR5", "The sound of rushing water is nearly unbearable here.  On the west shore is a large landing area.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["UP"] = new("RIVR4"), ["WEST"] = new("FANTE") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("FCHMP"), ["LAND"] = new("FANTE") });
         AddRoom("WCLF1", "You are on a narrow strip of beach which runs along the base of the White Cliffs.  The only path here is a narrow one, heading south along the Cliffs.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("WCLF2"), ["WEST"] = new("RIVR3") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("WCLF2"), ["LAUNC"] = new("RIVR3") });
         AddRoom("WCLF2", "You are on a rocky, narrow strip of beach beside the Cliffs.  A narrow path leads north along the shore.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("WCLF1"), ["WEST"] = new("RIVR4") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("WCLF1"), ["LAUNC"] = new("RIVR4") });
         AddRoom("FCHMP", "You have gone over Aragain Falls.  Not a very smart thing to do, apparently.", "Moby lossage", false,
-            new Dictionary<string, ExitTarget>());
+            new Dictionary<string, ExitTarget>(),
+            onEnter: RoomActions.OverFalls);
         AddRoom("RCAVE", "You are on the west shore of the river.  An entrance to a cave is to the northwest.  The shore is very rocky here.", "Rocky Shore", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("RIVR3"), ["NW"] = new("TCAVE") });
+            new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR3"), ["NW"] = new("TCAVE") });
         AddRoom("BARRE", "You are in a barrel.  Congratulations.  Etched into the side of the barrel is the word 'Geronimo!'", "Barrel", false,
             new Dictionary<string, ExitTarget> { ["EXIT"] = new("FALLS"), ["OUT"] = new("FALLS") });
         AddRoom("ATLAN", "You are in an ancient room, long buried by the Reservoir.  There are exits here to the southeast and upward.", "Atlantis Room", false,
@@ -703,12 +710,12 @@ public class World
             "This is a room which is bare on all sides.  There is an exit down.  To the east is a great door made of stone.  Above the stone, the following words are written: 'No man shall enter this room without solving this riddle: What is tall as a house, round as a cup, and all the king's horses can't draw it up?'",
             "Riddle Room",
             false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("BWELL"), ["EAST"] = new ExitTarget("The stone door is locked."), ["WEST"] = new("MPEAR") });
+            new Dictionary<string, ExitTarget> { ["DOWN"] = new("BWELL"), ["EAST"] = ExitTarget.Blocked("The stone door is locked."), ["WEST"] = new("MPEAR") });
         AddRoom("TWELL",
             "You are at the top of the well.  Well done.  There are etchings on the side of the well. There is a small crack across the floor at the entrance to a room on the east, but it can be crossed easily.",
             "Top of Well",
             false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALICE"), ["DOWN"] = new ExitTarget("It's a long way down!") });
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALICE"), ["DOWN"] = ExitTarget.Blocked("It's a long way down!") });
         AddRoom("BWELL",
             "You are in a damp circular room, whose walls are made of brick and mortar.  The roof of this room is not visible, but there appear to be some etchings on the walls.  There is a passageway to the west.",
             "Circular Room",
@@ -718,7 +725,7 @@ public class World
             "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea.  It is clear from the objects on the table that the users were indeed mad.  In the eastern corner of the room is a small hole (no more than four inches high).  There are passageways leading away to the west and the northwest.",
             "Tea Room",
             false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("TWELL"), ["NW"] = new("MAGNE"), ["EAST"] = new ExitTarget("Only a mouse could get in there.") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("TWELL"), ["NW"] = new("MAGNE"), ["EAST"] = ExitTarget.Blocked("Only a mouse could get in there.") });
         AddRoom("CMACH", "", "Control Machine", false,
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAGER"), ["WEST"] = new("MAGNE") });
         AddRoom("CAGER",
@@ -770,7 +777,7 @@ public class World
             {
                 ["SOUTH"] = new("ECHO"),
                 ["EAST"] = new("DAM"),
-                ["WEST"] = new ExitTarget("It is too narrow for most insects.")
+                ["WEST"] = ExitTarget.Blocked("It is too narrow for most insects.")
             });
         const string mindesc = "You are in a non-descript part of a coal mine.";
         AddRoom("MINE1", mindesc, mindesc, false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("MINE4"), ["SW"] = new("MINE2"), ["EAST"] = new("TUNNE") });

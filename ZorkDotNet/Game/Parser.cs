@@ -248,8 +248,9 @@ public static class Parser
         // FLIP: swap o1/o2 (MDL PUT .OBJS 1 .O2> <PUT .OBJS 2 .O1>)
         var dobj = chosen.IsFlip ? o2 : o1;
         var iobj = chosen.IsFlip ? o1 : o2;
-        // TAKE-IT-OR-LEAVE-IT (np.93): if direct object has VRBIT and is in room/takeable, implicit TAKE so command can proceed
-        if (chosen.Syn1.WantsRoom && dobj != null && dobj.InRoom != null && dobj.CanTake && !chosen.Syn1.NoTake)
+        // TAKE-IT-OR-LEAVE-IT (np.93): if direct object has VRBIT and is in room/takeable, implicit TAKE so command can proceed.
+        // Not for TAKE itself: Dispatch performs that take, and taking twice printed "Taken." then "You already have that."
+        if (chosen.Action != "TAKE" && chosen.Syn1.WantsRoom && dobj != null && dobj.InRoom != null && dobj.CanTake && !chosen.Syn1.NoTake)
             DoTake(state, dobj);
         // Dispatch
         state.LastDirectObject = dobj;
