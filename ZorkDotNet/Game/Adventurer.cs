@@ -9,7 +9,10 @@ public class Adventurer
     public List<GameObject> Inventory { get; } = new();
     public int Score { get; set; }
     public GameObject? Vehicle { get; set; }
-    public int Strength { get; set; } = 100;
+    /// <summary>Strength of an unhurt adventurer.</summary>
+    public const int FullStrength = 100;
+
+    public int Strength { get; set; } = FullStrength;
     public int Moves { get; set; }
     /// <summary>MDL ASTAGGERED: can't fight this turn.</summary>
     public bool Staggered { get; set; }
