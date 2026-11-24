@@ -152,6 +152,7 @@ public class TempleTests
     {
         using var runner = new GameRunner();
         runner.Give("BOOK");
+        runner.Give("TORCH");
 
         Assert.Contains("A booming voice says 'Wrong, cretin!'", Do(runner, "BURN BOOK"));
         Assert.True(runner.State.AwaitingPatchAnswer);
@@ -161,6 +162,7 @@ public class TempleTests
     public void The_bodies_in_the_land_of_the_dead()
     {
         using var runner = WithLight("LLD2");
+        runner.Give("TORCH");
 
         Assert.Contains("A force keeps you from taking the bodies.", Do(runner, "TAKE BODIES"));
         Assert.Contains("places your head on a pole", Do(runner, "BURN BODIES"));

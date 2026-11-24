@@ -112,6 +112,13 @@ public static class ObjectActions
     /// MDL OBJECT-ACTION for one object: run its action and report whether it dealt with the verb, which here means
     /// it said something.
     /// </summary>
+    /// <summary>
+    /// rooms.99 OBJECT-ACTION: the indirect object's action is asked first, then the direct object's; each is given
+    /// the other object as its third argument. Reports whether either said anything.
+    /// </summary>
+    internal static bool ObjectAction(GameState state, string verb, GameObject? direct, GameObject? indirect) =>
+        (indirect != null && Try(state, indirect, verb, direct)) || (direct != null && Try(state, direct, verb, indirect));
+
     internal static bool Try(GameState state, GameObject obj, string verb, GameObject? indirect)
     {
         if (obj.ObjectAction == null) return false;
@@ -562,10 +569,6 @@ public static class ObjectActions
                 if (tdoor != null) tdoor.Flags |= ObjectFlags.Visible;
                 var door = state.World?.FindObject(Obj.Door);
                 if (door != null) door.Flags |= ObjectFlags.Visible;
-                // Ensure trap door in current room is visible (same ref as World, but belt-and-braces for OPEN DOOR resolution)
-                if (state.Here != null)
-                    foreach (var o in state.Here.Objects)
-                        if (o.Id == Obj.Door) o.Flags |= ObjectFlags.Visible;
             }
         }
     }
@@ -991,10 +994,12 @@ public static class ObjectActions
             state.Output.WriteLine("The skeleton is too heavy to carry.");
     }
 
+    /// <summary>act1.38 LEAF-PILE. Burning or moving the leaves marks them (ORAND), which CLEARING looks at.</summary>
     public static void LeafPile(GameState state, string verb, GameObject? _)
     {
-        // The third argument is the indirect object; this action is about the LEAVE itself.
+        // The third argument is the other object; this action is about the LEAVE itself.
         var obj = state.World?.FindObject(Obj.Leave);
+        if (verb is "BURN" or "MOVE") state.ObjectState[Obj.Leave] = 1;
         if (verb == "BURN" && obj != null)
         {
             if (obj.InRoom != null)
@@ -1046,9 +1051,36 @@ public static class ObjectActions
         }
     }
 
-    public static void Glacier(GameState _, string _1, GameObject? _2)
+    /// <summary>
+    /// act1.38 GLACIER. The torch thrown at it melts it and is carried downstream (to STREA), burned out; anything
+    /// else leaves it unmoved.
+    /// </summary>
+    public static void Glacier(GameState state, string verb, GameObject? thrown)
     {
-        // Handled in Parser DoThrow: throw torch at ice in ICY.
+        var world = state.World!;
+        if (verb == "THROW")
+        {
+            var torch = world.FindObject(Obj.Torch)!;
+            if (thrown != torch)
+            {
+                // GLACIER says this and returns false, so DROPPER goes on to say "Thrown." as well.
+                state.Output.WriteLine("The glacier is unmoved by your ridiculous attempt.");
+                state.Output.WriteLine("Thrown.");
+                return;
+            }
+            state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
+            world.FindObject(Obj.Ice)!.MoveTo(null);
+            torch.MoveTo(world.FindRoom(RoomId.Strea)!);
+            torch.DescriptionShort = "burned out ivory torch";
+            torch.DescriptionHere = "There is a burned out ivory torch here.";
+            torch.LightAmount = 0;
+            torch.Flags &= ~ObjectFlags.OnFire;
+            if (!GameState.IsLit(state))
+                state.Output.WriteLine("The melting glacier seems to have carried the torch away, leaving you in the dark.");
+            state.SetFlag(Flag.Glacier, true);
+        }
+        else if (verb == "MELT")
+            state.Output.WriteLine("How exactly are you going to melt this glacier?");
     }
 
     /// <summary>

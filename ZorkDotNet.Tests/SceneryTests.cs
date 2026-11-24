@@ -21,6 +21,7 @@ public class SceneryTests
     public void The_front_door_never_opens(string command, string expected)
     {
         using var runner = new GameRunner();
+        runner.Give("TORCH");
 
         Assert.Contains(expected, Do(runner, command));
     }

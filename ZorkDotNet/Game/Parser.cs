@@ -378,7 +378,7 @@ public static class Parser
                     state.Output.WriteLine("You can't lower that.");
                 break;
             case "BURN":
-                if (direct != null) DoBurn(state, direct);
+                if (direct != null) DoBurn(state, direct, indirect);
                 else state.Output.WriteLine("What do you want to burn?");
                 break;
             case "FILL": DoFill(state, direct); break;
@@ -510,46 +510,11 @@ public static class Parser
         {
             var w = NormWord(words[i]);
             if (string.IsNullOrEmpty(w)) continue;
-            // Trap door in LROOM: OPEN TRAP / OPEN DOOR finds it even in dark (so player can open after moving rug)
-            if (state.Here?.Id == RoomId.Lroom && (w == "TRAP" || w == "DOOR"))
-            {
-                var door = state.World?.FindObject(Obj.Door);
-                if (door != null && door.InRoom == state.Here)
-                {
-                    state.PendingAmbiguousCandidates = null;
-                    return door;
-                }
-            }
-            // Rug in LROOM: MOVE RUG must find it so RUG-MOVED gets set (check word first so we only run when resolving RUG)
-            if ((w == "RUG" || w == "CARPE") && state.Here?.Id == RoomId.Lroom)
-            {
-                var rug = state.Here.Objects.FirstOrDefault(o => o.Id == Obj.Rug) ?? state.World?.FindObject(Obj.Rug);
-                if (rug != null)
-                {
-                    state.PendingAmbiguousCandidates = null;
-                    return rug;
-                }
-            }
             var inInv = WithVisibleContents(state.Winner.Inventory).Where(o => MatchObject(o, w)).ToList();
             IEnumerable<GameObject> inRoomList = Array.Empty<GameObject>();
             if (lit && state.Here != null)
             {
-                var roomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
-                // Trap door in living room: matchable for OPEN once rug is moved
-                if (state.Here.Id == RoomId.Lroom && state.GetFlag(Flag.RugMoved))
-                {
-                    var door = state.World?.FindObject(Obj.Door);
-                    if (door != null && door.InRoom == state.Here && !roomList.Contains(door))
-                        roomList.Add(door);
-                }
-                // Rug in LROOM: ensure MOVE RUG finds it when lit (belt-and-braces)
-                if (state.Here.Id == RoomId.Lroom)
-                {
-                    var rug = state.World?.FindObject(Obj.Rug);
-                    if (rug != null && rug.InRoom == state.Here && !roomList.Contains(rug))
-                        roomList.Add(rug);
-                }
-                inRoomList = roomList;
+                inRoomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
             }
             // MDL ADD-STAR objects are within reach everywhere, light or dark.
             inRoomList = inRoomList.Concat(state.World!.Objects.Where(o => o.IsGlobal));
@@ -623,7 +588,7 @@ public static class Parser
     {
         var r = state.Here;
         if (Balloon.ReadIn(state, "WALK", null, null, direction)) return;
-        if (r.Id == RoomId.Magne && Robot.MagnetWalk(state, direction)) return;
+        if (r.OnWalk?.Invoke(state, direction) == true) return;
         // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
         // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
         if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
@@ -951,27 +916,22 @@ public static class Parser
     }
 
 
+    /// <summary>
+    /// rooms.99 DROPPER for THROW: what you carry (or hold in an open container) lands in the room, or in the
+    /// vehicle you're in; then OBJECT-ACTION (the target first: the troll catches it, the glacier melts), and
+    /// "Thrown." if nothing answered.
+    /// </summary>
     private static void DoThrow(GameState state, GameObject? obj, GameObject? atObj)
     {
         if (obj == null) { state.Output.WriteLine("What do you want to throw?"); return; }
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
+        if (obj.Carrier != state.Winner && !(obj.Container is { Open: true } c && c.Carrier == state.Winner))
+        { state.Output.WriteLine("You're not carrying that."); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = atObj;
-        if (state.Here.Id == RoomId.Icy && atObj?.Id == Obj.Ice && obj.Id == Obj.Torch && obj.LightAmount > 0)
-        {
-            state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
-            state.World!.FindObject(Obj.Ice)?.MoveTo(null);
-            var strea = state.World.FindRoom(RoomId.Strea)!;
-            obj.MoveTo(strea);
-            { obj.LightAmount = 0; obj.Flags &= ~ObjectFlags.OnFire; obj.DescriptionShort = "burned out ivory torch"; obj.DescriptionHere = "There is a burned out ivory torch here."; }
-            state.SetFlag(Flag.Glacier, true);
-            return;
-        }
-        if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
-        // OBJECT-ACTION asks the target too (the troll catches it, the thief bags it).
-        if (atObj != null && ObjectActions.Try(state, atObj, "THROW", obj)) return;
-        obj.MoveTo(state.Here);
-        state.Output.WriteLine("The " + obj.DescriptionShort + " lands on the ground.");
+        if (state.Winner.Vehicle is { } vehicle) obj.MoveTo(vehicle);
+        else obj.MoveTo(state.Here);
+        if (!ObjectActions.ObjectAction(state, "THROW", obj, atObj))
+            state.Output.WriteLine("Thrown.");
     }
 
     private static void DoWave(GameState state, GameObject obj)
@@ -1002,14 +962,6 @@ public static class Parser
     {
         state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "MOVE", null)) return;
-        if (state.Here.Id == RoomId.Clear && obj.Id == Obj.Leave && state.Here.RVars == 0)
-        {
-            state.Output.WriteLine("A grating appears on the ground.");
-            state.Here.RVars = 1;
-            var grat = state.World?.FindObject(Obj.Grat1);
-            if (grat != null) grat.Flags |= ObjectFlags.Visible;
-            return;
-        }
         state.Output.WriteLine("You can't move that.");
     }
 
@@ -1097,24 +1049,71 @@ public static class Parser
             state.Output.WriteLine("The " + toObj.DescriptionShort + " doesn't want that.");
     }
 
-    private static void DoBurn(GameState state, GameObject obj)
+    /// <summary>
+    /// act1.38 BURNER: BURN obj WITH something aflame (FLAMING?: FLAMEBIT and lit). The objects' actions come first,
+    /// then the balloon's receptacle; anything burnable burns, and kills you if you're holding it.
+    /// </summary>
+    private static void DoBurn(GameState state, GameObject obj, GameObject? flame)
     {
-        if (state.Here.Id == RoomId.Clear && obj.Id == Obj.Leave && state.Here.RVars == 0)
-        {
-            state.Output.WriteLine("A grating appears on the ground.");
-            state.Here.RVars = 1;
-            var grat = state.World?.FindObject(Obj.Grat1);
-            if (grat != null) grat.Flags |= ObjectFlags.Visible;
-            return;
-        }
-        if (obj.Container?.Id == Obj.Recep)
-        {
-            Balloon.Burn(state, obj);
-            return;
-        }
+        flame ??= Gwim(state, ObjectFlags.OnFire, noTake: false);
+        if (flame == null) { state.Output.WriteLine("With what?"); return; } // np.93 ORTELL
         state.LastDirectObject = obj;
-        if (ObjectActions.Try(state, obj, "BURN", null)) return;
-        state.Output.WriteLine("You can't burn that.");
+        state.LastIndirectObject = flame;
+        if ((flame.Flags & ObjectFlags.OnFire) == 0 || flame.LightAmount != 1)
+        {
+            state.Output.WriteLine("With a " + flame.DescriptionShort + "??!?");
+            return;
+        }
+        if (ObjectActions.ObjectAction(state, "BURN", obj, flame)) return;
+        if (state.Winner.Vehicle?.Id == Obj.Ballo && obj.Container?.Id == Obj.Recep)
+        {
+            Balloon.Burn(state, obj); // act2.27 BALLOON, for BURN
+            return;
+        }
+        if ((obj.Flags & ObjectFlags.Burnable) == 0)
+            state.Output.WriteLine("I don't think you can burn a " + obj.DescriptionShort + ".");
+        else if (obj.Carrier == state.Winner)
+        {
+            state.Output.WriteLine("The " + obj.DescriptionShort + " catches fire.");
+            state.JigsUp("Unfortunately, you were holding it at the time.");
+        }
+        else if (Hackable(state, obj))
+        {
+            state.Output.WriteLine("The " + obj.DescriptionShort + " catches fire and is consumed.");
+            obj.MoveTo(null);
+        }
+        else
+            state.Output.WriteLine("You don't have that.");
+    }
+
+    /// <summary>act1.38 HACKABLE?: on the floor here, or in the vehicle you're in.</summary>
+    private static bool Hackable(GameState state, GameObject obj) =>
+        state.Winner.Vehicle is { } vehicle ? obj.Container == vehicle : obj.InRoom == state.Here;
+
+    /// <summary>
+    /// np.93 GWIM for a missing object: the one visible object with <paramref name="bit"/> you carry, or else the one
+    /// here (which you pick up first, unless <paramref name="noTake"/>). Two candidates, or none, find nothing.
+    /// </summary>
+    private static GameObject? Gwim(GameState state, ObjectFlags bit, bool noTake)
+    {
+        var carried = Fwim(state.Winner.Inventory, bit, noTake);
+        var here = GameState.IsLit(state) ? Fwim(state.Here.Objects, bit, noTake) : [];
+        if (here.Count == 0) return carried.Count == 1 ? carried[0] : null;
+        if (here.Count > 1 || carried.Count > 0) return null;
+        return noTake || DoTake(state, here[0], tell: false) ? here[0] : null;
+    }
+
+    /// <summary>np.93 FWIM: visible objects with the bit (takeable ones unless no-take), and those in open containers.</summary>
+    private static List<GameObject> Fwim(IEnumerable<GameObject> objects, ObjectFlags bit, bool noTake)
+    {
+        var found = new List<GameObject>();
+        foreach (var o in objects)
+        {
+            if (o.IsVisible && (noTake || o.CanTake) && (o.Flags & bit) != 0) found.Add(o);
+            if (o.IsVisible && o.Open)
+                found.AddRange(o.Contents.Where(c => c.IsVisible && (c.Flags & bit) != 0));
+        }
+        return found;
     }
 
     private static void DoFill(GameState state, GameObject? obj)

@@ -21,6 +21,7 @@ public class BalloonTests
         var runner = new GameRunner();
         runner.Give("LAMP").LightAmount = 1;
         runner.Give("GUIDE");
+        runner.Give("TORCH"); // the flame for BURN
         runner.Teleport("VLBOT");
         runner.Run("BOARD BASKET", "OPEN RECEPTACLE", "PUT GUIDEBOOK IN RECEPTACLE");
         return runner;

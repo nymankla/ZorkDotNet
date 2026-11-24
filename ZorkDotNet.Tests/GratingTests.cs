@@ -128,4 +128,26 @@ public class GratingTests
 
         Assert.Contains(reply, Do(runner, command));
     }
+
+    [Theory]
+    [InlineData("MOVE LEAVES", "Done.")]
+    [InlineData("TAKE LEAVES", "Taken.")]
+    [InlineData("BURN LEAVES", "The leaves burn and the neighbors start to complain.")]
+    public void Disturbing_the_leaves_reveals_the_grating(string command, string reply)
+    {
+        // act1.38 CLEARING: after TAKE, MOVE or BURN on the leaves, the grating appears (once).
+        using var runner = new GameRunner();
+        runner.Give("TORCH"); // the flame for BURN
+        runner.Teleport("CLEAR");
+        var grating = runner.State.World!.FindObject("GRAT1")!;
+        Assert.False(grating.IsVisible);
+
+        var output = Do(runner, command);
+
+        Assert.Contains(reply, output);
+        Assert.Contains("A grating appears on the ground.", output);
+        Assert.True(grating.IsVisible);
+        Assert.Contains("There is a grating securely fastened into the ground.", Do(runner, "LOOK"));
+        Assert.DoesNotContain("A grating appears", Do(runner, "DROP LEAVES"));
+    }
 }

@@ -137,14 +137,30 @@ public static class RoomActions
     }
 
     /// <summary>CLEARING: LOOK with grating; leaves can be burned/moved to reveal grating.</summary>
+    /// <summary>
+    /// act1.38 CLEARING: the room, and the grating under the leaves, which appears (RVARS 1) once you take or move
+    /// the leaves, or burn them.
+    /// </summary>
     public static void Clearing(GameState state, string verb)
     {
-        if (verb != "LOOK") return;
-        state.Output.WriteLine("You are in a clearing, with a forest surrounding you on the west and south.");
-        if (state.GetFlag(Flag.Key))
-            state.Output.WriteLine("There is an open grating, descending into darkness.");
-        else if (state.Here.RVars != 0)
-            state.Output.WriteLine("There is a grating securely fastened into the ground.");
+        var room = state.Here;
+        if (verb == "LOOK")
+        {
+            state.Output.WriteLine("You are in a clearing, with a forest surrounding you on the west and south.");
+            if (state.GetFlag(Flag.Key))
+                state.Output.WriteLine("There is an open grating, descending into darkness.");
+            else if (room.RVars != 0)
+                state.Output.WriteLine("There is a grating securely fastened into the ground.");
+            return;
+        }
+        var leaves = state.World!.FindObject(Obj.Leave)!;
+        var burned = verb == "BURN" && state.ObjectState.GetValueOrDefault(Obj.Leave) != 0; // the leaves' ORAND
+        if (room.RVars == 0 && (burned || verb is "TAKE" or "MOVE") && state.LastDirectObject == leaves)
+        {
+            state.Output.WriteLine("A grating appears on the ground.");
+            state.World.FindObject(Obj.Grat1)!.Flags |= ObjectFlags.Visible;
+            room.RVars = 1;
+        }
     }
 
     /// <summary>DAM: LOOK text (Flood Control Dam #3).</summary>

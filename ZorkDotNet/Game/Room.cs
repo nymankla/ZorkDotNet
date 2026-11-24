@@ -33,6 +33,11 @@ public class Room
     public Action<GameState, string>? RoomAction { get; set; }
     /// <summary>Optional action when player enters room (e.g. BOOM, BATS, CELLAR door).</summary>
     public Action<GameState>? OnEnter { get; set; }
+    /// <summary>
+    /// The room action's WALK branch (MDL: the room's action is asked before the move, as MAGNET-ROOM is): given the
+    /// direction, returns true when it has dealt with the move.
+    /// </summary>
+    public Func<GameState, string, bool>? OnWalk { get; set; }
     public int VisitScore { get; set; }
     /// <summary>Room-specific var (e.g. CLEAR RVARS for grating revealed).</summary>
     public int RVars { get; set; }

@@ -684,7 +684,7 @@ public class World
             "",
             "Low Room",
             false,
-            // dung.56 MAGCMACH / MAGALICE: FROBOZZ exits, which never open; MAGNET-ROOM moves you (Robot.MagnetWalk).
+            // dung.56 MAGCMACH / MAGALICE: FROBOZZ exits, which never open; MAGNET-ROOM moves you (Room.OnWalk).
             new Dictionary<string, ExitTarget>
             {
                 ["NORTH"] = new(Flag.Frobozz, "CMACH", ""), ["SOUTH"] = new(Flag.Frobozz, "CMACH", ""),
@@ -693,6 +693,7 @@ public class World
                 ["SE"] = new(Flag.Frobozz, "ALICE", ""), ["EAST"] = new(Flag.Frobozz, "CMACH", "")
             },
             roomAction: Robot.MagnetRoom, onEnter: Robot.MagnetEnter);
+        FindRoom(RoomId.Magne)!.OnWalk = Robot.MagnetWalk;
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
             roomAction: Robot.CagedRoom);

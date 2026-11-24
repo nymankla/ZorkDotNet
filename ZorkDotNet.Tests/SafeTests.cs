@@ -21,6 +21,7 @@ public class SafeTests
         runner.Give("LAMP").LightAmount = 1;
         runner.Give("BRICK");
         runner.Give("FUSE");
+        runner.Give("TORCH"); // BURN needs a flame (dung.56 BURN ... WITH a FLAMEBIT object)
         runner.Teleport("SAFE");
         return runner;
     }
