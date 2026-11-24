@@ -253,6 +253,26 @@ public static class ObjectActions
         }
     }
 
+    // act1.38 DOORMUNGS
+    private static readonly string[] DoorMungs = ["The door is invulnerable.", "You cannot damage this door.", "The door is still under warranty."];
+
+    /// <summary>act1.38 DDOOR-FUNCTION: the doors that never open (front door, wooden door, stone door).</summary>
+    public static void DdoorFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "OPEN") state.Output.WriteLine("The door cannot be opened.");
+        else if (verb == "BURN") state.Output.WriteLine("You cannot burn this door.");
+        else if (verb == "MUNG") state.Output.WriteLine(DoorMungs[state.Random.Next(DoorMungs.Length)]);
+    }
+
+    /// <summary>act3.13 GRUE-FUNCTION: the grue you never see.</summary>
+    public static void GrueFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "EXAMINE")
+            state.Output.WriteLine("The grue is a sinister, lurking presence in the dark places of the earth.  Its favorite diet is adventurers, but its insatiable appetite is tempered by its fear of light.  No grue has ever been seen by the light of day, and few have survived its fearsome jaws to tell the tale.");
+        else if (verb == "FIND")
+            state.Output.WriteLine("There is no grue here, but I'm sure there is at least one lurking in the darkness nearby.  I wouldn't let my light go out if I were you!");
+    }
+
     /// <summary>act1.38 BOLT-FUNCTION: TURN BOLT WITH WRENCH opens or closes the sluice gates, once the yellow button is pushed.</summary>
     public static void BoltFunction(GameState state, string verb, GameObject? tool)
     {

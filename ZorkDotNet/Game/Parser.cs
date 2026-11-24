@@ -83,9 +83,14 @@ public static class Parser
         if (state.Running) state.ProcessClocks();
     }
 
+    /// <summary>dung.56 ADD-BUZZ: words the parser skips ("WHERE IS THE GRUE", "GO NORTH").</summary>
+    private static readonly HashSet<string> BuzzWords = new(StringComparer.Ordinal)
+        { "BY", "IS", "ONE", "IT", "A", "THE", "AN", "THIS", "OVER", "RUN", "GO", "PROCE" };
+
     public static void Execute(GameState state, string input)
     {
-        var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => !BuzzWords.Contains(NormWord(w))).ToArray();
         if (words.Length == 0)
         {
             state.Output.WriteLine("Huh?");
@@ -539,6 +544,8 @@ public static class Parser
                 }
                 inRoomList = roomList;
             }
+            // MDL ADD-STAR objects are within reach everywhere, light or dark.
+            inRoomList = inRoomList.Concat(state.World!.Objects.Where(o => o.IsGlobal));
             var inRoom = inRoomList.Where(o => MatchObject(o, w)).ToList();
             var all = inInv.Concat(inRoom).Distinct().ToList();
             // An adjective (MDL OADJS) narrows the noun that follows it: "PUSH YELLOW BUTTON".

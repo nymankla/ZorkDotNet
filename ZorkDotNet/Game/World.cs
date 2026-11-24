@@ -831,12 +831,12 @@ public class World
         AddRoom("MINE7", mindesc, mindesc, false, new Dictionary<string, ExitTarget> { ["EAST"] = new("MINE1"), ["WEST"] = new("MINE5"), ["DOWN"] = new("TLADD"), ["SOUTH"] = new("MINE6") });
 
         // ---- Objects (from dung.56 #OBJECT / ADD-OBJECT) ----
-        AddObject("FDOOR", "The door is closed.", "door", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "DOOR" });
+        AddObject("FDOOR", "The door is closed.", "door", null, ObjectActions.DdoorFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "DOOR" });
         AddObject("MAILB", "There is a small mailbox here.", "mailbox", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 10, new[] { "BOX" });
         AddObject("ADVER", "There is a small leaflet here.", "leaflet", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "PAMPH", "LEAFL", "BOOKL" });
-        AddObject("WIND1", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "WINDO" });
-        AddObject("WIND2", "", "window", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "WINDO" });
-        AddObject("SBAG", "A sandwich bag is here.", "sandwich bag", "On the table is an elongated brown sack, smelling of hot peppers.", null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Burnable, 0, 0, 0, 3, 15,
+        AddObject("WIND1", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "WINDO" });
+        AddObject("WIND2", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 5, 0, new[] { "WINDO" });
+        AddObject("SBAG", "A sandwich bag is here.", "sandwich bag", "On the table is an elongated brown sack, smelling of hot peppers.", null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.OnFire, 0, 0, 0, 3, 15,
             synonyms: new[] { "BAG", "SACK", "BAGGI" });
         AddObject("GARLI", "There is a clove of garlic here.", "clove of garlic", null, null, ObjectFlags.Take | ObjectFlags.Food | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "CLOVE" });
         AddObject("FOOD", "A hot pepper sandwich is here.", "lunch", null, null, ObjectFlags.Food | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "SANDW", "LUNCH", "PEPPE", "DINNE", "SNACK" });
@@ -844,7 +844,7 @@ public class World
         AddObject("WATER", "Water", "quantity of water", "There is some water here", ObjectActions.WaterFunction, ObjectFlags.Drinkable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 4, 0, new[] { "LIQUI", "H2O" });
         AddObject("ROPE", "There is a large coil of rope here.", "rope", "A large coil of rope is lying in the corner.", ObjectActions.RopeFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 0, new[] { "HEMP", "COIL" });
         AddObject("KNIFE", "There is a nasty-looking knife lying here.", "knife", "On a table is a nasty-looking knife.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 5, 0, new[] { "BLADE" });
-        AddObject("BRICK", "There is a square brick here which feels like clay.", "brick", null, ObjectActions.BrickFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 9, 2, new[] { "BRICK" });
+        AddObject("BRICK", "There is a square brick here which feels like clay.", "brick", null, ObjectActions.BrickFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Burnable, 0, 0, 0, 9, 2, new[] { "BRICK" });
         AddObject("SWORD", "There is an elvish sword here.", "sword", "On hooks above the mantelpiece hangs an elvish sword of great antiquity.", null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 30, 0, new[] { "ORCRI", "GLAMD", "BLADE" });
         AddObject("LAMP", "There is a brass lantern (battery-powered) here.", "lamp", "A battery-powered brass lantern is on the trophy case.", ObjectActions.Lantern, ObjectFlags.Take | ObjectFlags.Visible, -1, 0, 0, 15, 0, new[] { "LANTE" });
         AddObject("BLAMP", "There is a broken brass lantern here.", "broken lamp", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "LAMP", "LANTE" });
@@ -853,7 +853,7 @@ public class World
         AddObject("RUG", "", "carpet", null, ObjectActions.Rug, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "CARPE" });
         AddObject("TCASE", "There is a trophy case here.", "trophy case", null, ObjectActions.TrophyCase, ObjectFlags.Container | ObjectFlags.Transparent | ObjectFlags.Visible, 0, 0, 0, 100, 100, new[] { "CASE" });
         AddObject("PAPER", "", "newspaper", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "NEWSP", "ISSUE", "REPOR", "MAGAZ", "NEWS" });
-        AddObject("WDOOR", "", "door", null, null, ObjectFlags.Door | ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "DOOR" });
+        AddObject("WDOOR", "", "door", null, ObjectActions.DdoorFunction, ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "DOOR" });
         AddObject("DOOR", "The trap door is closed.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
         AddObject("TDOOR", "The trap door is open.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" });
         AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 2);
@@ -864,11 +864,11 @@ public class World
         AddObject("BONES", "A skeleton, probably the remains of a luckless adventurer, lies here.", "", null, ObjectActions.Skeleton, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SKELE", "BODY" });
         AddObject("BAGCO", "An old leather bag, bulging with coins, is here.", "bag of coins", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 5, 15, 0, new[] { "BAG", "COINS" });
         AddObject("BAR", "There is a large platinum bar here.", "platinum bar", null, null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 12, 10, 20, 0, new[] { "PLATI" });
-        AddObject("GRAT1", "A grating is here.", "grating", null, ObjectActions.Grating1Function, ObjectFlags.None, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" }); // visible when leaves moved/burned
-        AddObject("GRAT2", "A grating is here.", "grating", null, ObjectActions.Grating2Function, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" });
+        AddObject("GRAT1", "A grating is here.", "grating", null, ObjectActions.Grating1Function, ObjectFlags.None | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" }); // visible when leaves moved/burned
+        AddObject("GRAT2", "A grating is here.", "grating", null, ObjectActions.Grating2Function, ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" });
         AddObject("LEAVE", "There is a pile of leaves on the ground.", "pile of leaves", null, ObjectActions.LeafPile, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 25, 0, new[] { "LEAF", "PILE" });
         AddObject("JADE", "There is an exquisite jade figurine here.", "jade figurine", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 5, 5, 10, 0, new[] { "FIGUR" });
-        AddObject("BAT", "", "bat", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "VAMPI" });
+        AddObject("BAT", "", "bat", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 5, 0, new[] { "VAMPI" });
         AddObject("BRACE", "There is a sapphire-encrusted bracelet here.", "sapphire bracelet", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 5, 3, 10, 0, new[] { "JEWEL" });
         AddObject("COAL", "There is a small heap of coal here.", "small pile of coal", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 20, 0, new[] { "HEAP", "CHARC" });
         AddObject("MACHI", "", "machine", null, ObjectActions.MachineFunction, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 50, new[] { "PDP10", "DRYER", "LID" });
@@ -882,12 +882,12 @@ public class World
         AddObject("IRBOX", "There is a dented iron box here.", "iron box", null, ObjectActions.IronBoxFunction, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Container, 0, 0, 0, 40, 20, new[] { "BOX", "IRON", "DENTE" });
         AddObject("CYCLO", "", "cyclops", null, ObjectActions.CyclopsFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 10000, new[] { "ONE-E", "MONST" });
         AddObject("TRUNK", "There is an old trunk here, bulging with assorted jewels.", "trunk with jewels", "Lying half buried in the mud is an old trunk, bulging with jewels.", null, ObjectFlags.Take, 0, 15, 8, 35, 0, new[] { "CHEST" });
-        AddObject("FUSE", "There is a coil of thin shiny wire here.", "wire coil", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0, new[] { "COIL", "WIRE" });
+        AddObject("FUSE", "There is a coil of thin shiny wire here.", "wire coil", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Burnable, 0, 0, 0, 1, 0, new[] { "COIL", "WIRE" });
         AddObject("COFFI", "There is a solid-gold coffin, used for the burial of Ramses II, here.", "gold coffin", null, null, ObjectFlags.Container | ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 3, 7, 55, 35, new[] { "CASKE" });
         AddObject("TRIDE", "Neptune's own crystal trident is here.", "crystal trident", "On the shore lies Neptune's own crystal trident.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 4, 11, 20, 0, new[] { "FORK" });
         AddObject("TBASK", "At the end of the chain is a basket.", "basket", null, ObjectActions.Dumbwaiter, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Transparent, 0, 0, 0, 100, 50, new[] { "CAGE", "DUMBW", "BASKE" });
         AddObject("FBASK", "", "", null, ObjectActions.Dumbwaiter, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "CAGE", "DUMBW", "BASKE" });
-        AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "RAIL" });
+        AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "RAIL" });
         AddObject("PUMP", "There is a small pump here.", "hand-held air pump", null, null, ObjectFlags.Tool | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 5, 0, new[] { "AIR-P", "AIRPU" });
 
         // The river trip (dung.56)
@@ -900,8 +900,27 @@ public class World
         AddObject("SHOVE", "There is a large shovel here.", "shovel", null, null, ObjectFlags.Tool | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 15, 0);
         AddObject("GUANO", "There is a hunk of bat guano here.", "hunk of bat guano", null, null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "CRAP", "SHIT", "HUNK" });
         AddObject("STATU", "There is a beautiful statue here.", "statue", null, null, ObjectFlags.Take, 0, 10, 13, 8, 0, new[] { "SCULP", "ROCK" });
-        AddObject("MSWIT", "A screw is here.", "switch", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 1, 0, new[] { "SWITC" });
+        AddObject("MSWIT", "A screw is here.", "switch", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe | ObjectFlags.Turnable, 0, 0, 0, 1, 0, new[] { "SWITC" });
         AddObject("SCREW", "There is a screwdriver here.", "screwdriver", null, null, ObjectFlags.Tool | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+
+        // Scenery and global objects (dung.56 SOBJECT / ADD-STAR)
+        AddObject("HANDS", "", "pair of hands", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe | ObjectFlags.Tool, 0, 0, 0, 0, 0, new[] { "HAND" }, new[] { "BARE" });
+        AddObject("LUNGS", "", "breath", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe | ObjectFlags.Tool, 0, 0, 0, 0, 0, new[] { "LUNG", "AIR" });
+        AddObject("AVIAT", "", "flyer", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("WALL", "", "wall", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("SAILO", "", "sailor", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("TEETH", "", "set of teeth", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("GRUE", "", "lurking grue", null, ObjectActions.GrueFunction, ObjectFlags.Visible, 0, 0, 0, 0, 0, adjectives: new[] { "LURKI" });
+        AddObject("RAINB", "", "rainbow", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("ENGRA", "", "wall with engravings", null, null, ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Sacred, 0, 0, 0, 0, 0, new[] { "INSCR" }, new[] { "OLD", "ANCIE" });
+        AddObject("PRAYE", "", "prayer", null, null, ObjectFlags.Readable | ObjectFlags.Sacred | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "INSCR" }, new[] { "ANCIE", "OLD" });
+        AddObject("ETCH1", "", "wall with etchings", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe | ObjectFlags.Readable, 0, 0, 0, 0, 0, new[] { "ETCHI", "WALLS", "WALL" });
+        AddObject("ETCH2", "", "wall with etchings", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe | ObjectFlags.Readable, 0, 0, 0, 0, 0, new[] { "ETCHI", "WALLS", "WALL" });
+        AddObject("POOL", "The leak has submerged the depressed area in a pool of sewage.", "pool of sewage", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "SEWAG" }, new[] { "LARGE" });
+        AddObject("POSTS", "", "wooden posts", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "POST" }, new[] { "WOODE" });
+        AddObject("BARRE", "", "barrel", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0);
+        AddObject("SDOOR", "", "door", null, ObjectActions.DdoorFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "DOOR" }, new[] { "STONE" });
+        AddObject("HPOLE", "", "head on a pole", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "HEAD" });
 
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
@@ -927,16 +946,16 @@ public class World
         AddObject("GATES", "", "gate", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "GATE" });
         AddObject("CORPS", "A pile of mangled corpses lies in one corner.", "corpses", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MANGL" });
         AddObject("BELL", "There is a small brass bell here.", "bell", "Lying in a corner of the room is a small brass bell.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
-        AddObject("BOOK", "There is a large black book here.", "book", "On the altar is a large black book, open to page 569.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK", "PRAYE", "GOODB" });
-        AddObject("STICK", "There is a broken sharp stick here.", "broken sharp stick", "A sharp stick, which appears to have been broken at one end, is here.", ObjectActions.StickFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 3, 0, new[] { "WAND", "MAGIC" });
-        AddObject("GRAIL", "There is an extremely valuable (perhaps original) grail here.", "grail", null, null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 2, 5, 10, 5, new[] { "CUP" });
+        AddObject("BOOK", "There is a large black book here.", "book", "On the altar is a large black book, open to page 569.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK", "PRAYE", "GOODB" });
+        AddObject("STICK", "There is a broken sharp stick here.", "broken sharp stick", "A sharp stick, which appears to have been broken at one end, is here.", ObjectActions.StickFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 3, 0, new[] { "WAND", "MAGIC" });
+        AddObject("GRAIL", "There is an extremely valuable (perhaps original) grail here.", "grail", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Container, 0, 2, 5, 10, 5, new[] { "CUP" });
         AddObject("PEARL", "There is a pearl necklace here with hundreds of large pearls.", "pearl necklace", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 9, 5, 10, 0, new[] { "NECKL" });
         AddObject("ZORKM", "There is an engraved zorkmid coin here.", "priceless zorkmid", "On the floor is a gold zorkmid coin (a valuable collector's item).", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 10, 12, 10, 0, new[] { "COIN", "GOLD" });
         AddObject("HOOK1", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("HOOK2", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("POT", "There is a pot of gold here.", "pot filled with gold", "At the end of the rainbow is a pot of gold.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 10, 15, 0, new[] { "GOLD" });
         AddObject("SPHER", "There is a beautiful crystal sphere here.", "crystal sphere", null, null, ObjectFlags.Sacred | ObjectFlags.Visible | ObjectFlags.Take, 0, 6, 6, 10, 0, new[] { "BALL", "CRYST", "GLASS" });
-        AddObject("CAGE", "There is a mangled cage here.", "mangled cage", null, null, ObjectFlags.Visible, 0, 0, 0, 60, 0, new[] { "IRON" });
+        AddObject("CAGE", "There is a mangled cage here.", "mangled cage", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 60, 0, new[] { "IRON" });
         AddObject("RCAGE", "There is an iron cage in the middle of the room.", "iron cage", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "CAGE", "IRON" });
 
         // Place objects in starting rooms
@@ -945,6 +964,17 @@ public class World
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH", "GUIDE");
         PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PlaceInRoom("FALLS", "RAINB", "BARRE");
+        FindRoom("POG")!.Objects.Add(FindObject("RAINB")!); // scenery in two rooms, as in dung.56
+        PlaceInRoom("CAVE4", "ENGRA");
+        PlaceInRoom("TEMP1", "PRAYE");
+        PlaceInRoom("BWELL", "ETCH1");
+        PlaceInRoom("TWELL", "ETCH2");
+        PlaceInRoom("ALITR", "POOL");
+        PlaceInRoom("ALISM", "POSTS");
+        PlaceInRoom("RIDDL", "SDOOR");
+        foreach (var id in new[] { "HANDS", "LUNGS", "AVIAT", "WALL", "SAILO", "TEETH", "GRUE" })
+            FindObject(id)!.IsGlobal = true;
         PlaceInRoom("MAINT", "LEAK", "TUBE", "WRENC", "BLBUT", "RBUTT", "BRBUT", "YBUTT", "SCREW");
         PutInContainer("TUBE", "PUTTY");
         PlaceInRoom("CYCLO", "CYCLO");
