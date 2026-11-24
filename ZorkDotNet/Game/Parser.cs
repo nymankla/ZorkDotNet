@@ -42,6 +42,23 @@ public static class Parser
         return w.Length > 5 ? w[..5] : w;
     }
 
+    /// <summary>
+    /// One turn of rooms.99 RDCOM for a line the player typed: count the move, run the command, then the clocks
+    /// and demons. An answer to QUIT's "Do you wish to leave the game?" is read by FINISH itself, so it is
+    /// neither a move nor a turn.
+    /// </summary>
+    public static void PlayTurn(GameState state, string input)
+    {
+        if (state.AwaitingQuitConfirmation)
+        {
+            Scoring.AnswerQuit(state, input.Trim());
+            return;
+        }
+        state.Winner.Moves++;
+        Execute(state, input);
+        state.ProcessClocks();
+    }
+
     public static void Execute(GameState state, string input)
     {
         var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
@@ -367,8 +384,8 @@ public static class Parser
                 }
                 else state.Output.WriteLine("What do you want to turn?");
                 break;
-            case "QUIT": DoQuit(state); break;
-            case "SCORE": DoScore(state); break;
+            case "QUIT": Scoring.Quit(state); break;
+            case "SCORE": Scoring.PrintScore(state, ask: true); break;
             case "BRIEF": state.Winner.BriefMode = true; state.Output.WriteLine("Brief mode is now on."); break;
             case "UNBRIEF": state.Winner.BriefMode = false; state.Output.WriteLine("Brief mode is now off."); break;
             case "SUPERBRIEF": state.Winner.SuperBriefMode = true; state.Output.WriteLine("Super-brief mode is now on."); break;
@@ -708,19 +725,6 @@ public static class Parser
             state.Output.WriteLine("You are carrying:" + Environment.NewLine + "  " + string.Join(Environment.NewLine + "  ", state.Winner.Inventory.Select(o => o.DescriptionShort)));
     }
 
-    private const int MaxScore = 350;
-
-    private static void DoScore(GameState state)
-    {
-        state.Output.WriteLine($"Your score is {state.Winner.Score} (total possible {MaxScore}).");
-    }
-
-    private static void DoQuit(GameState state)
-    {
-        state.Output.WriteLine("Your score is " + state.Winner.Score + " (total 350).");
-        state.Output.WriteLine("Do you want to continue? ");
-        state.Running = false;
-    }
 
     private static void DoThrow(GameState state, string[] words)
     {

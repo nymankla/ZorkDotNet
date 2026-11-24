@@ -922,6 +922,7 @@ public class World
         _state.Winner.CurrentRoom = start;
         _state.Rooms.AddRange(_rooms.Values);
         _state.AllObjects.AddRange(_objects.Values);
+        _state.MaxScore = Scoring.ComputeMaxScore(_rooms.Values, _objects.Values);
         _state.World = this;
     }
 

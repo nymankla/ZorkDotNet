@@ -37,6 +37,10 @@ public class GameState
     /// <summary>Villain health in melee (e.g. TROLL -> 2 hits to kill).</summary>
     public Dictionary<string, int> VillainStrength { get; } = new();
     public TextWriter Output { get; set; } = Console.Out;
+    /// <summary>SCORE-MAX, computed by World from room and object values (see Scoring.ComputeMaxScore).</summary>
+    public int MaxScore { get; set; }
+    /// <summary>QUIT asked "Do you wish to leave the game?"; the next input line is the answer (rooms.99 FINISH).</summary>
+    public bool AwaitingQuitConfirmation { get; set; }
 
     /// <summary>Run each move after parser (CEVENTs: lantern burn, match/fuse/candles, MAINT leak, etc.).</summary>
     public void ProcessClocks()

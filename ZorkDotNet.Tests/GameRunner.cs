@@ -41,14 +41,12 @@ public sealed class GameRunner : IDisposable
     }
 
     /// <summary>
-    /// Run a single command: increment moves, execute, process clocks. Logs "> command" then game output.
+    /// Run a single command exactly like the game loop (Parser.PlayTurn). Logs "> command" then game output.
     /// </summary>
     public void Execute(string command)
     {
         _tee.WriteLine("> " + command);
-        _state.Winner.Moves++;
-        Parser.Execute(_state, command);
-        _state.ProcessClocks();
+        Parser.PlayTurn(_state, command);
         _tee.Flush();
     }
 
