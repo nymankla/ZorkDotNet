@@ -106,7 +106,7 @@ public static class Parser
         if (input.TrimStart().StartsWith("ECHO", StringComparison.OrdinalIgnoreCase))
         {
             state.Output.WriteLine("The acoustics of the room change subtly.");
-            state.SetFlag("ECHO-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Echo, true);
             state.EchoListening = false;
             RoomActions.EchoRestore(state);
         }
@@ -302,7 +302,7 @@ public static class Parser
                 break;
             case "TAKE":
                 if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
-                if (direct?.Id is "EVERY" or "VALUA") { DoLots(state, "TAKE", direct, null); break; }
+                if (direct?.Id is Obj.Every or Obj.Valua) { DoLots(state, "TAKE", direct, null); break; }
                 if (direct != null)
                 {
                     // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
@@ -316,7 +316,7 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to take?");
                 break;
             case "DROP":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "DROP", direct, null);
+                if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "DROP", direct, null);
                 else if (direct != null) DoDrop(state, direct);
                 else state.Output.WriteLine("What do you want to drop?");
                 break;
@@ -365,7 +365,7 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to lift?");
                 break;
             case "PUT":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "PUT", direct, indirect);
+                if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "PUT", direct, indirect);
                 else DoPut(state, direct, indirect);
                 break;
             case "GIVE": DoGive(state, direct, indirect); break;
@@ -511,9 +511,9 @@ public static class Parser
             var w = NormWord(words[i]);
             if (string.IsNullOrEmpty(w)) continue;
             // Trap door in LROOM: OPEN TRAP / OPEN DOOR finds it even in dark (so player can open after moving rug)
-            if (state.Here?.Id == "LROOM" && (w == "TRAP" || w == "DOOR"))
+            if (state.Here?.Id == RoomId.Lroom && (w == "TRAP" || w == "DOOR"))
             {
-                var door = state.World?.FindObject("DOOR");
+                var door = state.World?.FindObject(Obj.Door);
                 if (door != null && door.InRoom == state.Here)
                 {
                     state.PendingAmbiguousCandidates = null;
@@ -521,9 +521,9 @@ public static class Parser
                 }
             }
             // Rug in LROOM: MOVE RUG must find it so RUG-MOVED gets set (check word first so we only run when resolving RUG)
-            if ((w == "RUG" || w == "CARPE") && state.Here?.Id == "LROOM")
+            if ((w == "RUG" || w == "CARPE") && state.Here?.Id == RoomId.Lroom)
             {
-                var rug = state.Here.Objects.FirstOrDefault(o => o.Id == "RUG") ?? state.World?.FindObject("RUG");
+                var rug = state.Here.Objects.FirstOrDefault(o => o.Id == Obj.Rug) ?? state.World?.FindObject(Obj.Rug);
                 if (rug != null)
                 {
                     state.PendingAmbiguousCandidates = null;
@@ -536,16 +536,16 @@ public static class Parser
             {
                 var roomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
                 // Trap door in living room: matchable for OPEN once rug is moved
-                if (state.Here.Id == "LROOM" && state.GetFlag("RUG-MOVED!-FLAG"))
+                if (state.Here.Id == RoomId.Lroom && state.GetFlag(Flag.RugMoved))
                 {
-                    var door = state.World?.FindObject("DOOR");
+                    var door = state.World?.FindObject(Obj.Door);
                     if (door != null && door.InRoom == state.Here && !roomList.Contains(door))
                         roomList.Add(door);
                 }
                 // Rug in LROOM: ensure MOVE RUG finds it when lit (belt-and-braces)
-                if (state.Here.Id == "LROOM")
+                if (state.Here.Id == RoomId.Lroom)
                 {
-                    var rug = state.World?.FindObject("RUG");
+                    var rug = state.World?.FindObject(Obj.Rug);
                     if (rug != null && rug.InRoom == state.Here && !roomList.Contains(rug))
                         roomList.Add(rug);
                 }
@@ -606,10 +606,10 @@ public static class Parser
     {
         var vehicle = state.Winner.Vehicle;
         // The vehicle's ORAND: the boat goes on water (RWATERBIT), the balloon in the air (RAIRBIT).
-        var boat = vehicle?.Id == "RBOAT";
-        var balloon = vehicle?.Id == "BALLO";
+        var boat = vehicle?.Id == Obj.Rboat;
+        var balloon = vehicle?.Id == Obj.Ballo;
         static bool Land(Room r) => !r.IsWater && !r.IsAir;
-        var bucket = vehicle?.Id == "BUCKE"; // RBUCKBIT: up and down the well only
+        var bucket = vehicle?.Id == Obj.Bucke; // RBUCKBIT: up and down the well only
         var fits = to.IsWater ? boat : !to.IsAir || balloon;
         if (!fits || (Land(from) && Land(to) && (boat || balloon || (bucket && !to.IsBucket))))
         {
@@ -623,7 +623,7 @@ public static class Parser
     {
         var r = state.Here;
         if (Balloon.ReadIn(state, "WALK", null, null, direction)) return;
-        if (r.Id == "MAGNE" && Robot.MagnetWalk(state, direction)) return;
+        if (r.Id == RoomId.Magne && Robot.MagnetWalk(state, direction)) return;
         // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
         // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
         if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
@@ -759,7 +759,7 @@ public static class Parser
     private static void PrintContents(GameState state, GameObject container, string indent, bool showCase)
     {
         if (container.Contents.Count == 0) return;
-        if (container.Id == "TCASE")
+        if (container.Id == Obj.Tcase)
         {
             if (!showCase) return;
             state.Output.WriteLine("Your collection of treasures consists of:");
@@ -842,7 +842,7 @@ public static class Parser
         obj.MoveTo(state.Winner);
         // TAKE calls the object's action (rooms.99 APPLY-OBJECT): the candles start their clock, the rusty knife
         // makes the sword pulse.
-        if (obj.Id is "CANDL" or "RKNIF") obj.ObjectAction?.Invoke(state, "TAKE", null);
+        if (obj.Id is Obj.Candl or Obj.Rknif) obj.ObjectAction?.Invoke(state, "TAKE", null);
         // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
         if (!obj.Touched) state.Winner.Score += obj.FindScore;
         obj.Touched = true;
@@ -957,14 +957,14 @@ public static class Parser
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = atObj;
-        if (state.Here.Id == "ICY" && atObj?.Id == "ICE" && obj.Id == "TORCH" && obj.LightAmount > 0)
+        if (state.Here.Id == RoomId.Icy && atObj?.Id == Obj.Ice && obj.Id == Obj.Torch && obj.LightAmount > 0)
         {
             state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
-            state.World!.FindObject("ICE")?.MoveTo(null);
-            var strea = state.World.FindRoom("STREA")!;
+            state.World!.FindObject(Obj.Ice)?.MoveTo(null);
+            var strea = state.World.FindRoom(RoomId.Strea)!;
             obj.MoveTo(strea);
             { obj.LightAmount = 0; obj.Flags &= ~ObjectFlags.OnFire; obj.DescriptionShort = "burned out ivory torch"; obj.DescriptionHere = "There is a burned out ivory torch here."; }
-            state.SetFlag("GLACIER-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Glacier, true);
             return;
         }
         if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
@@ -986,10 +986,10 @@ public static class Parser
         state.LastDirectObject = obj;
         state.LastIndirectObject = withObj;
         // OBJECT-ACTION asks the weapon too: the rusty knife turns on its owner.
-        if (withObj?.Id == "RKNIF") { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
+        if (withObj?.Id == Obj.Rknif) { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
         if (obj == null) { state.Output.WriteLine("What do you want to attack?"); return; }
         withObj ??= state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0);
-        if (obj.Id is "TROLL" or "THIEF" && obj.InRoom == state.Here)
+        if (obj.Id is Obj.Troll or Obj.Thief && obj.InRoom == state.Here)
         {
             Combat.Attack(state, obj, withObj);
             return;
@@ -1002,11 +1002,11 @@ public static class Parser
     {
         state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "MOVE", null)) return;
-        if (state.Here.Id == "CLEAR" && obj.Id == "LEAVE" && state.Here.RVars == 0)
+        if (state.Here.Id == RoomId.Clear && obj.Id == Obj.Leave && state.Here.RVars == 0)
         {
             state.Output.WriteLine("A grating appears on the ground.");
             state.Here.RVars = 1;
-            var grat = state.World?.FindObject("GRAT1");
+            var grat = state.World?.FindObject(Obj.Grat1);
             if (grat != null) grat.Flags |= ObjectFlags.Visible;
             return;
         }
@@ -1026,7 +1026,7 @@ public static class Parser
     /// </summary>
     private static void DoLots(GameState state, string action, GameObject which, GameObject? into)
     {
-        var valuablesOnly = which.Id == "VALUA";
+        var valuablesOnly = which.Id == Obj.Valua;
         bool Counts(GameObject o) => !valuablesOnly || o.TrophyScore != 0;
         bool InRoom(GameObject o) => o.IsVisible && !o.IsActor && !o.IsGlobal && (o.Flags & ObjectFlags.NoDescribe) == 0 && Counts(o);
         List<GameObject> lots = action switch
@@ -1080,7 +1080,7 @@ public static class Parser
         if (ObjectActions.Try(state, obj, "PUT", cont)) return;
         if (ObjectActions.Try(state, cont, "PUT", obj)) return;
         obj.MoveTo(cont);
-        if (cont.Id == "TCASE" && obj.TrophyScore > 0)
+        if (cont.Id == Obj.Tcase && obj.TrophyScore > 0)
             state.Winner.Score += obj.TrophyScore;
         state.Output.WriteLine("Done.");
     }
@@ -1099,15 +1099,15 @@ public static class Parser
 
     private static void DoBurn(GameState state, GameObject obj)
     {
-        if (state.Here.Id == "CLEAR" && obj.Id == "LEAVE" && state.Here.RVars == 0)
+        if (state.Here.Id == RoomId.Clear && obj.Id == Obj.Leave && state.Here.RVars == 0)
         {
             state.Output.WriteLine("A grating appears on the ground.");
             state.Here.RVars = 1;
-            var grat = state.World?.FindObject("GRAT1");
+            var grat = state.World?.FindObject(Obj.Grat1);
             if (grat != null) grat.Flags |= ObjectFlags.Visible;
             return;
         }
-        if (obj.Container?.Id == "RECEP")
+        if (obj.Container?.Id == Obj.Recep)
         {
             Balloon.Burn(state, obj);
             return;
@@ -1122,12 +1122,12 @@ public static class Parser
         if (obj == null) { state.Output.WriteLine("What do you want to fill?"); return; }
         var fillableRooms = new[] { "RESES", "STREA" };
         if (!fillableRooms.Contains(state.Here.Id)) { state.Output.WriteLine("I can't find any water here."); return; }
-        var bottle = state.World?.FindObject("BOTTL");
+        var bottle = state.World?.FindObject(Obj.Bottl);
         if (obj != bottle) { state.Output.WriteLine("You can only fill the bottle with water."); return; }
         if (bottle == null || !state.Winner.Inventory.Contains(bottle)) { state.Output.WriteLine("You're not carrying the bottle."); return; }
         if (!bottle.Open) { state.Output.WriteLine("The bottle is closed."); return; }
         if (bottle.Contents.Count > 0) { state.Output.WriteLine("The bottle is already full."); return; }
-        var water = state.World?.FindObject("WATER");
+        var water = state.World?.FindObject(Obj.Water);
         if (water == null) { state.Output.WriteLine("I can't find any water here."); return; }
         water.MoveTo(bottle);
         state.Output.WriteLine("The bottle is now full of water.");

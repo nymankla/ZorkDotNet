@@ -15,14 +15,14 @@ public static class Robot
     /// <summary>The robot's body, if it still exists in some room.</summary>
     private static GameObject? Body(GameState state)
     {
-        var robot = state.World?.FindObject("ROBOT");
+        var robot = state.World?.FindObject(Obj.Robot);
         return robot?.InRoom != null ? robot : null;
     }
 
     /// <summary>rooms.99 COMMAND: TELL obj '...'. Only an actor can be told anything.</summary>
     public static void Tell(GameState state, GameObject? actor, string[] command)
     {
-        if (actor?.Id != "ROBOT" || Body(state) == null)
+        if (actor?.Id != Obj.Robot || Body(state) == null)
         {
             state.Output.WriteLine("You cannot talk to that!");
             return;
@@ -68,7 +68,7 @@ public static class Robot
         }
 
         // act3.13 ROBOT-ACTOR
-        if (action is "RAISE" or "LIFT" && direct?.Id == "CAGE") { RaiseCage(state); return; }
+        if (action is "RAISE" or "LIFT" && direct?.Id == Obj.Cage) { RaiseCage(state); return; }
         if (action is "EAT" or "DRINK") { state.Output.WriteLine("\"I am sorry but that action is difficult in the absence of a mouth.\""); return; }
         if (action == "READ") { state.Output.WriteLine("\"My vision is not that good without eyes.\""); return; }
         if (!Actions.Contains(action)) { state.Output.WriteLine(Stupid); return; }
@@ -150,7 +150,7 @@ public static class Robot
             state.Output.WriteLine("There is no way to go in that direction.");
             return;
         }
-        var magnet = here.Id == "MAGNE" && direction is "SE" or "EAST"; // MAGNET-ROOM
+        var magnet = here.Id == RoomId.Magne && direction is "SE" or "EAST"; // MAGNET-ROOM
         if (exit.IsBlocked)
         {
             state.Output.WriteLine(exit.BlockedMessage);
@@ -181,7 +181,7 @@ public static class Robot
 
     private static void MoveTo(GameState state, Room to)
     {
-        var body = state.World!.FindObject("ROBOT")!;
+        var body = state.World!.FindObject(Obj.Robot)!;
         body.MoveTo(to);
         state.Robot.CurrentRoom = to;
     }
@@ -192,22 +192,22 @@ public static class Robot
         var world = state.World!;
         state.Output.WriteLine("The cage shakes and is hurled across the room.");
         state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Sphere);
-        var closet = world.FindRoom("CAGER")!;
+        var closet = world.FindRoom(RoomId.Cager)!;
         Parser.Goto(state, closet);
-        var cage = world.FindObject("CAGE")!;
+        var cage = world.FindObject(Obj.Cage)!;
         cage.MoveTo(closet);
         cage.Flags = (cage.Flags | ObjectFlags.Take) & ~ObjectFlags.NoDescribe;
-        var body = world.FindObject("ROBOT")!;
+        var body = world.FindObject(Obj.Robot)!;
         body.Flags &= ~ObjectFlags.NoDescribe;
-        world.FindObject("SPHER")!.Flags |= ObjectFlags.Take;
+        world.FindObject(Obj.Spher)!.Flags |= ObjectFlags.Take;
         MoveTo(state, closet);
-        state.SetFlag("CAGE-SOLVE!-FLAG", true);
+        state.SetFlag(Flag.CageSolve, true);
     }
 
     /// <summary>act3.13 ROBOT-FUNCTION: what is done to the robot. It takes gifts; thrown at or broken, it's destroyed.</summary>
     public static void RobotFunction(GameState state, string verb, GameObject? other)
     {
-        var body = state.World!.FindObject("ROBOT")!;
+        var body = state.World!.FindObject(Obj.Robot)!;
         if (verb == "GIVE" && other != null)
         {
             other.MoveTo(state.Robot, first: true);
@@ -235,26 +235,26 @@ public static class Robot
         }
         switch (state.LastDirectObject?.Id)
         {
-            case "SQBUT":
-                if (state.GetFlag("CAROUSEL-ZOOM!-FLAG")) state.Output.WriteLine("Nothing seems to happen.");
+            case Obj.Sqbut:
+                if (state.GetFlag(Flag.CarouselZoom)) state.Output.WriteLine("Nothing seems to happen.");
                 else
                 {
-                    state.SetFlag("CAROUSEL-ZOOM!-FLAG", true);
+                    state.SetFlag(Flag.CarouselZoom, true);
                     state.Output.WriteLine("The whirring increases in intensity slightly.");
                 }
                 break;
-            case "RNBUT":
-                if (state.GetFlag("CAROUSEL-ZOOM!-FLAG"))
+            case Obj.Rnbut:
+                if (state.GetFlag(Flag.CarouselZoom))
                 {
-                    state.SetFlag("CAROUSEL-ZOOM!-FLAG", false);
+                    state.SetFlag(Flag.CarouselZoom, false);
                     state.Output.WriteLine("The whirring decreases in intensity slightly.");
                 }
                 else state.Output.WriteLine("Nothing seems to happen.");
                 break;
-            case "TRBUT":
-                state.SetFlag("CAROUSEL-FLIP!-FLAG", !state.GetFlag("CAROUSEL-FLIP!-FLAG"));
-                var box = state.World!.FindObject("IRBOX")!;
-                if (box.InRoom?.Id == "CAROU")
+            case Obj.Trbut:
+                state.SetFlag(Flag.CarouselFlip, !state.GetFlag(Flag.CarouselFlip));
+                var box = state.World!.FindObject(Obj.Irbox)!;
+                if (box.InRoom?.Id == RoomId.Carou)
                 {
                     state.Output.WriteLine("A dull thump is heard in the distance.");
                     box.Flags ^= ObjectFlags.Visible;
@@ -272,25 +272,25 @@ public static class Robot
     /// </summary>
     public static void SphereFunction(GameState state, string verb, GameObject? _)
     {
-        if (verb != "TAKE" || state.GetFlag("CAGE-SOLVE!-FLAG")) return;
+        if (verb != "TAKE" || state.GetFlag(Flag.CageSolve)) return;
         var world = state.World!;
-        var sphere = world.FindObject("SPHER")!;
-        var body = world.FindObject("ROBOT")!;
-        var closet = world.FindRoom("CAGER")!;
+        var sphere = world.FindObject(Obj.Spher)!;
+        var body = world.FindObject(Obj.Robot)!;
+        var closet = world.FindRoom(RoomId.Cager)!;
         if (state.RobotActing)
         {
             state.Output.WriteLine("As the robot reaches for the sphere, an iron cage falls from the ceiling.  The robot attempts to fend it off, but is trapped below it. Alas, the robot short-circuits in his vain attempt to escape, and crushes the sphere beneath him as he falls to the floor.");
             state.Output.WriteLine("The robot has died."); // JIGS-UP for an actor
             Detach(body);
             sphere.Flags &= ~ObjectFlags.Visible;
-            var rcage = world.FindObject("RCAGE")!;
+            var rcage = world.FindObject(Obj.Rcage)!;
             rcage.MoveTo(state.Robot.CurrentRoom);
             return;
         }
         state.Output.WriteLine("As you reach for the sphere, an iron cage falls from the ceiling to entrap you.  To make matters worse, poisonous gas starts coming into the room.");
         if (body.InRoom == state.Here)
         {
-            var caged = world.FindRoom("CAGED")!;
+            var caged = world.FindRoom(RoomId.Caged)!;
             Parser.Goto(state, caged);
             MoveTo(state, caged);
             body.Flags |= ObjectFlags.NoDescribe;
@@ -314,8 +314,8 @@ public static class Robot
     /// <summary>act3.13 CAGED-ROOM: once the robot has thrown the cage off, you are in the closet.</summary>
     public static void CagedRoom(GameState state, string _)
     {
-        if (state.GetFlag("CAGE-SOLVE!-FLAG") && state.Here.Id == "CAGED")
-            state.Winner.CurrentRoom = state.World!.FindRoom("CAGER")!;
+        if (state.GetFlag(Flag.CageSolve) && state.Here.Id == RoomId.Caged)
+            state.Winner.CurrentRoom = state.World!.FindRoom(RoomId.Cager)!;
     }
 
     /// <summary>act3.13 CMACH-ROOM</summary>
@@ -333,9 +333,9 @@ public static class Robot
     {
         if (verb == "LOOK")
             state.Output.WriteLine("You are in a room with a low ceiling which is circular in shape.  There are exits to the east and the southeast.");
-        else if (verb == "WALK-IN" && state.GetFlag("CAROUSEL-FLIP!-FLAG"))
+        else if (verb == "WALK-IN" && state.GetFlag(Flag.CarouselFlip))
         {
-            if (state.GetFlag("CAROUSEL-ZOOM!-FLAG")) state.JigsUp(SpinDizzy);
+            if (state.GetFlag(Flag.CarouselZoom)) state.JigsUp(SpinDizzy);
             else state.Output.WriteLine("As you enter, your compass starts spinning wildly.");
         }
     }
@@ -349,7 +349,7 @@ public static class Robot
     public static bool MagnetWalk(GameState state, string direction)
     {
         var here = state.Here;
-        if (state.GetFlag("CAROUSEL-FLIP!-FLAG"))
+        if (state.GetFlag(Flag.CarouselFlip))
         {
             state.Output.WriteLine("You cannot get your bearings...");
             var exits = here.Exits.Values.ToList();

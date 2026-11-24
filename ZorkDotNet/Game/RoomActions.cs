@@ -8,7 +8,7 @@ public static class RoomActions
     public static void EastHouse(GameState state, string verb)
     {
         if (verb != "LOOK") return;
-        var windowOpen = state.GetFlag("KITCHEN-WINDOW!-FLAG");
+        var windowOpen = state.GetFlag(Flag.KitchenWindow);
         state.Output.WriteLine(
             "You are behind the white house.  In one corner of the house there is a small window which is " +
             (windowOpen ? "open." : "slightly ajar."));
@@ -19,15 +19,15 @@ public static class RoomActions
         if (verb != "LOOK") return;
         state.Output.WriteLine(
             "You are in the kitchen of the white house.  A table seems to have been used recently for the preparation of food.  A passage leads to the west and a dark staircase can be seen leading upward.  To the east is a small window which is " +
-            (state.GetFlag("KITCHEN-WINDOW!-FLAG") ? "open." : "slightly ajar."));
+            (state.GetFlag(Flag.KitchenWindow) ? "open." : "slightly ajar."));
     }
 
     public static void LivingRoom(GameState state, string verb)
     {
         if (verb != "LOOK") return;
-        var magic = state.GetFlag("MAGIC-FLAG!-FLAG");
-        var trap = state.GetFlag("TRAP-DOOR!-FLAG");
-        var rugMoved = state.GetFlag("RUG-MOVED!-FLAG");
+        var magic = state.GetFlag(Flag.Magic);
+        var trap = state.GetFlag(Flag.TrapDoor);
+        var rugMoved = state.GetFlag(Flag.RugMoved);
         state.Output.Write(
             magic
                 ? "You are in the living room.  There is a door to the east.  To the west is a cyclops-shaped hole in an old wooden door, above which is some strange gothic lettering "
@@ -61,8 +61,8 @@ public static class RoomActions
     /// <summary>On entering BOOM room: if carrying lit candle or lit torch, JIGS-UP.</summary>
     public static void OnEnterBoom(GameState state)
     {
-        var torch = state.World?.FindObject("TORCH");
-        var candl = state.World?.FindObject("CANDL");
+        var torch = state.World?.FindObject(Obj.Torch);
+        var candl = state.World?.FindObject(Obj.Candl);
         var lit = (torch != null && state.Winner.Inventory.Contains(torch) && torch.LightAmount > 0) ||
                   (candl != null && state.Winner.Inventory.Contains(candl) && candl.LightAmount > 0);
         if (!lit) return;
@@ -75,15 +75,15 @@ public static class RoomActions
     /// <summary>On entering BATS room without garlic: bat flies player to random room.</summary>
     public static void OnEnterBats(GameState state)
     {
-        if (!state.Winner.Inventory.Any(o => o.Id == "GARLI")) FlyMe(state);
+        if (!state.Winner.Inventory.Any(o => o.Id == Obj.Garli)) FlyMe(state);
     }
 
     /// <summary>act1.38 WELL: answering the riddle in the Riddle Room opens its east door.</summary>
     public static void Well(GameState state)
     {
-        if (!state.GetFlag("RIDDLE-FLAG!-FLAG") && state.Here?.Id == "RIDDL")
+        if (!state.GetFlag(Flag.Riddle) && state.Here?.Id == RoomId.Riddl)
         {
-            state.SetFlag("RIDDLE-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Riddle, true);
             state.Output.WriteLine("There is a clap of thunder and the east door opens.");
         }
         else
@@ -100,10 +100,10 @@ public static class RoomActions
     /// <summary>act1.38 CELLAR on WALK-IN: the first time you come down an open trap door, it slams shut.</summary>
     public static void OnEnterCellar(GameState state)
     {
-        if (!state.GetFlag("TRAP-DOOR!-FLAG")) return;
-        var door = state.World?.FindObject("DOOR");
+        if (!state.GetFlag(Flag.TrapDoor)) return;
+        var door = state.World?.FindObject(Obj.Door);
         if (door != null && door.Touched) return;
-        state.SetFlag("TRAP-DOOR!-FLAG", false);
+        state.SetFlag(Flag.TrapDoor, false);
         if (door != null) door.Touched = true;
         state.Output.WriteLine("The trap door crashes shut, and you hear someone barring it.");
     }
@@ -113,7 +113,7 @@ public static class RoomActions
         if (verb == "LOOK")
         {
             state.Output.WriteLine("You are in a small room which has only one door, to the east.");
-            var hasGarlic = state.Winner.Inventory.Any(o => o.Id == "GARLI");
+            var hasGarlic = state.Winner.Inventory.Any(o => o.Id == Obj.Garli);
             if (hasGarlic)
                 state.Output.WriteLine("In the corner of the room on the ceiling is a large vampire bat who is obviously deranged and holding his nose.");
         }
@@ -122,7 +122,7 @@ public static class RoomActions
     public static void GlacierRoom(GameState state, string verb)
     {
         if (verb != "LOOK") return;
-        var flag = state.GetFlag("GLACIER-FLAG!-FLAG");
+        var flag = state.GetFlag(Flag.Glacier);
         state.Output.WriteLine("You are in a large room, with giant icicles hanging from the walls and ceiling.  There are passages to the north and east." +
             (flag ? " There is a large passageway leading westward." : ""));
     }
@@ -131,7 +131,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a large room which seems to be air-conditioned.  In one corner there is a machine (?) which is shaped somewhat like a clothes dryer.  On the 'panel' there is a switch which is labelled in a dialect of Swahili.  Fortunately, I know this dialect and the label translates to START.  The switch does not appear to be manipulable by any human hand (unless the fingers are about 1/16 by 1/4 inch).  On the front of the machine is a large lid.");
-        var mach = state.World?.FindObject("MACHI");
+        var mach = state.World?.FindObject(Obj.Machi);
         if (mach != null)
             state.Output.WriteLine(mach.Open ? "The lid on the machine is open." : "The lid on the machine is closed.");
     }
@@ -141,7 +141,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a clearing, with a forest surrounding you on the west and south.");
-        if (state.GetFlag("KEY-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Key))
             state.Output.WriteLine("There is an open grating, descending into darkness.");
         else if (state.Here.RVars != 0)
             state.Output.WriteLine("There is a grating securely fastened into the ground.");
@@ -152,13 +152,13 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are standing on the top of the Flood Control Dam #3, which was quite a tourist attraction in times far distant.  There are paths to the north, south, east, and down.");
-        var lowTide = state.GetFlag("LOW-TIDE!-FLAG");
+        var lowTide = state.GetFlag(Flag.LowTide);
         if (lowTide)
             state.Output.WriteLine("It appears that the dam has been opened since the water level behind it is low and the sluice gate has been opened.  Water is rushing downstream through the gates.");
         else
             state.Output.WriteLine("The sluice gates on the dam are closed.  Behind the dam, there can be seen a wide lake.  A small stream is formed by the runoff from the lake.");
         state.Output.WriteLine("There is a control panel here.  There is a large metal bolt on the panel. Above the bolt is a small green plastic bubble.");
-        if (state.GetFlag("GATE-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Gate))
             state.Output.WriteLine("The green bubble is glowing.");
     }
 
@@ -169,7 +169,7 @@ public static class RoomActions
     public static void ReservoirSouth(GameState state, string verb)
     {
         if (verb != "LOOK") return;
-        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        if (state.GetFlag(Flag.LowTide))
         {
             state.Output.WriteLine("You are in the south end of a large cavernous room which was formerly a reservoir.");
             state.Output.WriteLine(ResDesc);
@@ -183,7 +183,7 @@ public static class RoomActions
     public static void ReservoirNorth(GameState state, string verb)
     {
         if (verb != "LOOK") return;
-        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        if (state.GetFlag(Flag.LowTide))
         {
             state.Output.WriteLine("You are in the north end of a large cavernous room which was formerly a reservoir.");
             state.Output.WriteLine(ResDesc);
@@ -210,7 +210,7 @@ public static class RoomActions
         var here = state.Here;
         switch (state.LastDirectObject?.Id)
         {
-            case "BLBUT":
+            case Obj.Blbut:
                 if (here.RVars == 0)
                 {
                     state.Output.WriteLine("There is a rumbling sound and a stream of water appears to burst from the east wall of the room (apparently, a leak has occurred in a pipe.)");
@@ -220,16 +220,16 @@ public static class RoomActions
                 else
                     state.Output.WriteLine("The blue button appears to be jammed.");
                 break;
-            case "RBUTT":
+            case Obj.Rbutt:
                 here.HasLight = !here.HasLight;
                 state.Output.WriteLine(here.HasLight ? "The lights within the room come on." : "The lights within the room shut off.");
                 break;
-            case "BRBUT":
-                state.SetFlag("GATE-FLAG!-FLAG", false);
+            case Obj.Brbut:
+                state.SetFlag(Flag.Gate, false);
                 state.Output.WriteLine("Click.");
                 break;
-            case "YBUTT":
-                state.SetFlag("GATE-FLAG!-FLAG", true);
+            case Obj.Ybutt:
+                state.SetFlag(Flag.Gate, true);
                 state.Output.WriteLine("Click.");
                 break;
         }
@@ -238,7 +238,7 @@ public static class RoomActions
     /// <summary>act1.38 MAINT-ROOM clock (C-INT): the water rises; at 16 the room is flooded for good.</summary>
     public static void MaintRoomRising(GameState state)
     {
-        var maint = state.World?.FindRoom("MAINT");
+        var maint = state.World?.FindRoom(RoomId.Maint);
         if (maint == null || maint.RVars <= 0) return;
         maint.RVars++;
         var here = state.Here == maint;
@@ -260,7 +260,7 @@ public static class RoomActions
         ["You are digging into a pile of bat guano.", "You seem to be getting knee deep in guano.", "You are covered with bat turds, cretin."];
 
     /// <summary>The shovel was the thing dug with (DIG WITH SHOVEL makes it the direct object).</summary>
-    private static bool DugWithShovel(GameState state, string verb) => verb == "DIG" && state.LastDirectObject?.Id == "SHOVE";
+    private static bool DugWithShovel(GameState state, string verb) => verb == "DIG" && state.LastDirectObject?.Id == Obj.Shove;
 
     /// <summary>act2.27 BEACH-ROOM: the fourth spadeful uncovers the statue; the fifth buries you.</summary>
     public static void BeachRoom(GameState state, string verb)
@@ -276,7 +276,7 @@ public static class RoomActions
         else if (count == 4)
         {
             state.Output.WriteLine("You can see a small statue here in the sand.");
-            var statue = state.World?.FindObject("STATU");
+            var statue = state.World?.FindObject(Obj.Statu);
             if (statue != null) statue.Flags |= ObjectFlags.Visible;
         }
         else if (count > 0)
@@ -288,7 +288,7 @@ public static class RoomActions
     {
         if (!DugWithShovel(state, verb)) return;
         var here = state.Here;
-        if (!here.Objects.Any(o => o.Id == "GUANO"))
+        if (!here.Objects.Any(o => o.Id == Obj.Guano))
         {
             state.Output.WriteLine("There's nothing to dig into here.");
             return;
@@ -304,15 +304,15 @@ public static class RoomActions
     public static void CliffFunction(GameState state, string _) => CliffPath(state);
 
     public static void CliffPath(GameState state) =>
-        state.SetFlag("DEFLATE!-FLAG", !state.Winner.Inventory.Any(o => o.Id == "RBOAT"));
+        state.SetFlag(Flag.Deflate, !state.Winner.Inventory.Any(o => o.Id == Obj.Rboat));
 
     /// <summary>act2.27 RIVR4-ROOM: carrying the buoy here, you notice it is heavier than it should be (the emerald).</summary>
     public static void Rivr4Room(GameState state, string _)
     {
-        if (state.Winner.Inventory.Any(o => o.Id == "BUOY") && state.GetFlag("BUOY-FLAG!-FLAG"))
+        if (state.Winner.Inventory.Any(o => o.Id == Obj.Buoy) && state.GetFlag(Flag.Buoy))
         {
             state.Output.WriteLine("Something seems funny about the feel of the buoy.");
-            state.SetFlag("BUOY-FLAG!-FLAG", false);
+            state.SetFlag(Flag.Buoy, false);
         }
     }
 
@@ -324,7 +324,7 @@ public static class RoomActions
     /// </summary>
     public static void EchoRoom(GameState state, string _)
     {
-        if (state.GetFlag("ECHO-FLAG!-FLAG") || state.EchoListening) return;
+        if (state.GetFlag(Flag.Echo) || state.EchoListening) return;
         foreach (var o in state.Here.Objects.Where(o => o.IsVisible))
         {
             o.Flags &= ~ObjectFlags.Visible;
@@ -351,7 +351,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are at the periphery of a large dome, which forms the ceiling of another room below.  Protecting you from a precipitous drop is a wooden railing which circles the dome.");
-        if (state.GetFlag("DOME-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Dome))
             state.Output.WriteLine("Hanging down from the railing is a rope which ends about ten feet from the floor below.");
     }
 
@@ -360,7 +360,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a large room with a prominent doorway leading to a down staircase. To the west is a narrow twisting tunnel.  Above you is a large dome painted with scenes depicting elfin hacking rites. Up around the edge of the dome (20 feet up) is a wooden railing. In the center of the room there is a white marble pedestal.");
-        if (state.GetFlag("DOME-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Dome))
             state.Output.WriteLine("A large piece of rope descends from the railing above, ending some five feet above your head.");
     }
 
@@ -369,9 +369,9 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a small room near the maze. There are twisty passages in the immediate vicinity.");
-        if (state.GetFlag("KEY-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Key))
             state.Output.WriteLine("Above you is an open grating with sunlight pouring in.");
-        else if (state.GetFlag("GRUNLOCK!-FLAG"))
+        else if (state.GetFlag(Flag.Grunlock))
             state.Output.WriteLine("Above you is a grating.");
         else
             state.Output.WriteLine("Above you is a grating locked with a skull-and-crossbones lock.");
@@ -387,7 +387,7 @@ public static class RoomActions
     public static void NoObjs(GameState state, string _)
     {
         EmptyHanded(state);
-        if (state.Here.Id == "BSHAF" && !state.LightShaftScored && GameState.IsLit(state))
+        if (state.Here.Id == RoomId.Bshaf && !state.LightShaftScored && GameState.IsLit(state))
         {
             state.Winner.Score += Scoring.LightShaftPoints;
             state.LightShaftScored = true;
@@ -397,7 +397,7 @@ public static class RoomActions
     public static void NoObjsEnter(GameState state) => NoObjs(state, "WALK-IN");
 
     public static void EmptyHanded(GameState state) =>
-        state.SetFlag("EMPTY-HANDED!-FLAG", state.Winner.Inventory.Count == 0);
+        state.SetFlag(Flag.EmptyHanded, state.Winner.Inventory.Count == 0);
 
     /// <summary>act2.27 FLY-ME: the bat carries you to a random room of BAT-DROPS, which is then described.</summary>
     public static void FlyMe(GameState state)
@@ -413,7 +413,7 @@ public static class RoomActions
     public static void Cave2Room(GameState state, string verb)
     {
         if (verb != "WALK-IN") return;
-        var candles = state.Winner.Inventory.FirstOrDefault(o => o.Id == "CANDL");
+        var candles = state.Winner.Inventory.FirstOrDefault(o => o.Id == Obj.Candl);
         if (candles != null && candles.LightAmount > 0 && state.Random.Next(100) < 50)
         {
             candles.LightAmount = -1;
@@ -432,21 +432,21 @@ public static class RoomActions
         if (verb == "LOOK")
         {
             state.Output.WriteLine("You are outside a large gateway, on which is inscribed \"Abandon every hope, all ye who enter here.\"  The gate is open; through it you can see a desolation, with a pile of mangled corpses in one corner.  Thousands of voices, lamenting some hideous fate, can be heard.");
-            if (!state.GetFlag("LLD-FLAG!-FLAG"))
+            if (!state.GetFlag(Flag.Lld))
                 state.Output.WriteLine("The way through the gate is barred by evil spirits, who jeer at your attempts to pass.");
         }
         else if (verb == "EXORCISE")
         {
-            var ghost = state.World?.FindObject("GHOST");
+            var ghost = state.World?.FindObject(Obj.Ghost);
             if (ghost != null && ghost.InRoom == state.Here)
             {
                 var inv = state.Winner.Inventory;
-                var candles = inv.FirstOrDefault(o => o.Id == "CANDL");
-                if (inv.Any(o => o.Id == "BELL") && inv.Any(o => o.Id == "BOOK") && candles != null && candles.LightAmount > 0)
+                var candles = inv.FirstOrDefault(o => o.Id == Obj.Candl);
+                if (inv.Any(o => o.Id == Obj.Bell) && inv.Any(o => o.Id == Obj.Book) && candles != null && candles.LightAmount > 0)
                 {
                     state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, fiends!\"  The spirits, sensing the presence of a greater power, flee through the walls.");
                     ghost.MoveTo(null);
-                    state.SetFlag("LLD-FLAG!-FLAG", true);
+                    state.SetFlag(Flag.Lld, true);
                 }
                 else
                     state.Output.WriteLine("You are not equipped for an exorcism.");
@@ -460,14 +460,14 @@ public static class RoomActions
     /// <summary>act1.38 CAROUSEL-ROOM on WALK-IN: with the carousel at full speed (CAROUSEL-ZOOM), it kills you.</summary>
     public static void CarouselEnter(GameState state)
     {
-        if (state.GetFlag("CAROUSEL-ZOOM!-FLAG")) state.JigsUp(Robot.SpinDizzy);
+        if (state.GetFlag(Flag.CarouselZoom)) state.JigsUp(Robot.SpinDizzy);
     }
 
     public static void CarouselRoom(GameState state, string verb)
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a circular room with passages off in eight directions.");
-        if (!state.GetFlag("CAROUSEL-FLIP!-FLAG"))
+        if (!state.GetFlag(Flag.CarouselFlip))
             state.Output.WriteLine("Your compass needle spins wildly, and you can't get your bearings.");
     }
 
@@ -476,7 +476,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a dusty old room which is virtually featureless, except for an exit on the north side.");
-        state.Output.WriteLine(state.GetFlag("SAFE-FLAG!-FLAG")
+        state.Output.WriteLine(state.GetFlag(Flag.Safe)
             ? "On the far wall is a rusty box, whose door has been blown off."
             : "Imbedded in the far wall, there is a rusty old box.  It appears that the box is somewhat damaged, since an oblong hole has been chipped out of the front of it.");
     }
@@ -486,7 +486,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a large square room with tall ceilings.  On the south wall is an enormous mirror which fills the entire wall.  There are exits on the other three sides of the room.");
-        if (state.GetFlag("MIRROR-MUNG!-FLAG"))
+        if (state.GetFlag(Flag.MirrorMung))
             state.Output.WriteLine("Unfortunately, you have managed to destroy it by your reckless actions.");
     }
 
@@ -495,8 +495,8 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         var vars = state.Here.RVars;
-        var asleep = state.GetFlag("CYCLOPS-FLAG!-FLAG");
-        var gone = state.GetFlag("MAGIC-FLAG!-FLAG");
+        var asleep = state.GetFlag(Flag.Cyclops);
+        var gone = state.GetFlag(Flag.Magic);
         state.Output.WriteLine("You are in a room with an exit on the west side, and a staircase leading up.");
         if (asleep && !gone)
             state.Output.WriteLine("The cyclops, perhaps affected by a drug in your drink, is sleeping blissfully at the foot of the stairs.");
@@ -517,7 +517,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are at the top of Aragain Falls, an enormous waterfall with a drop of about 450 feet.  The only path here is on the north end.");
-        state.Output.WriteLine(state.GetFlag("RAINBOW!-FLAG")
+        state.Output.WriteLine(state.GetFlag(Flag.Rainbow)
             ? "A solid rainbow spans the falls."
             : "A beautiful rainbow can be seen over the falls and to the east.");
     }
@@ -527,7 +527,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You have entered the Land of the Living Dead, a large desolate room. Although it is apparently uninhabited, you can hear the sounds of thousands of lost souls weeping and moaning.  In the east corner are stacked the remains of dozens of previous adventurers who were less fortunate than yourself.  To the east is an ornate passage, apparently recently constructed.");
-        if (state.GetFlag("ON-POLE!-FLAG"))
+        if (state.GetFlag(Flag.OnPole))
             state.Output.WriteLine("Amid the desolation, you spot what appears to be your head, at the end of a long pole.");
     }
 }

@@ -68,7 +68,7 @@ public static class Thief
         foreach (var o in room.Objects.ToList())
         {
             if (Valuable(o) && o.IsVisible && Prob(state, percent)) Bag(state, o);
-            else if (o.Id == "ROBOT") RobAdventurer(state, state.Robot);
+            else if (o.Id == Obj.Robot) RobAdventurer(state, state.Robot);
         }
     }
 
@@ -90,9 +90,9 @@ public static class Thief
     {
         if (!state.ThiefActive || state.World == null) return;
         var world = state.World;
-        var thief = world.FindObject("THIEF")!;
-        var still = world.FindObject("STILL")!;
-        var treas = world.FindRoom("TREAS")!;
+        var thief = world.FindObject(Obj.Thief)!;
+        var still = world.FindObject(Obj.Still)!;
+        var treas = world.FindRoom(RoomId.Treas)!;
         var wroom = state.Here;
         var rm = world.FindRoom(state.ThiefRoom)!;
         var seen = rm.Seen;
@@ -180,7 +180,7 @@ public static class Thief
                     if (!Prob(state, 30)) return;
                     RobRoom(state, rm, 100);
                     RobAdventurer(state, state.Winner);
-                    if (state.ThiefBag.Contains("ROPE")) state.SetFlag("DOME-FLAG!-FLAG", false);
+                    if (state.ThiefBag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
                     state.Output.WriteLine(Robbed()
                         ? "The other occupant just left, still carrying his large bag.  You may not have noticed that he robbed you blind first."
                         : "The other occupant (he of the large bag), finding nothing of value, left disgusted.");
@@ -252,15 +252,15 @@ public static class Thief
             if (rm == wroom) state.Output.WriteLine("You suddenly notice that the " + o.DescriptionShort + " vanished.");
             break;
         }
-        if (state.ThiefBag.Contains("ROPE")) state.SetFlag("DOME-FLAG!-FLAG", false);
+        if (state.ThiefBag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
     }
 
     /// <summary>act1.38 ROBBER-FUNCTION: what is done to the thief himself (his melee hooks are in <see cref="Combat"/>).</summary>
     public static void ThiefFunction(GameState state, string verb, GameObject? other)
     {
         var world = state.World!;
-        var thief = world.FindObject("THIEF")!;
-        if (verb == "THROW" && other?.Id == "KNIFE" && !thief.Fighting)
+        var thief = world.FindObject(Obj.Thief)!;
+        if (verb == "THROW" && other?.Id == Obj.Knife && !thief.Fighting)
         {
             if (Prob(state, 10))
             {
@@ -284,8 +284,8 @@ public static class Thief
         }
         else if (verb is "THROW" or "GIVE" && other != null && other != thief)
         {
-            var fuse = world.FindObject("FUSE")!;
-            if (other.Id == "BRICK" && fuse.Container == other && state.ScheduledEvents.Exists(e => e.Name == Clocks.Fuse))
+            var fuse = world.FindObject(Obj.Fuse)!;
+            if (other.Id == Obj.Brick && fuse.Container == other && state.ScheduledEvents.Exists(e => e.Name == Clocks.Fuse))
                 state.Output.WriteLine("The thief seems rather offended by your offer.  Do you think he's as stupid as you are?");
             else
             {
@@ -306,8 +306,8 @@ public static class Thief
     {
         var world = state.World!;
         var here = state.Here;
-        var chalice = world.FindObject("CHALI")!;
-        var thief = world.FindObject("THIEF")!;
+        var chalice = world.FindObject(Obj.Chali)!;
+        var thief = world.FindObject(Obj.Thief)!;
         var booty = new HashSet<string>(state.ThiefBag);
         if (booty.Count > 0)
         {
@@ -316,7 +316,7 @@ public static class Thief
             state.ThiefBag.Clear();
         }
         chalice.Flags |= ObjectFlags.Take;
-        if (here.Id == "TREAS")
+        if (here.Id == RoomId.Treas)
         {
             var told = false;
             foreach (var o in here.Objects.Where(o => o != chalice && o != thief && !booty.Contains(o.Id) && !o.IsVisible))
@@ -338,9 +338,9 @@ public static class Thief
     {
         if (verb != "TAKE") return;
         var world = state.World!;
-        var chalice = world.FindObject("CHALI")!;
-        var thief = world.FindObject("THIEF")!;
-        if (chalice.Container == null && chalice.InRoom?.Id == "TREAS" && thief.InRoom?.Id == "TREAS" && thief.Fighting && state.ThiefActive)
+        var chalice = world.FindObject(Obj.Chali)!;
+        var thief = world.FindObject(Obj.Thief)!;
+        if (chalice.Container == null && chalice.InRoom?.Id == RoomId.Treas && thief.InRoom?.Id == RoomId.Treas && thief.Fighting && state.ThiefActive)
             state.Output.WriteLine("Realizing just in time that you'd be stabbed in the back if you attempted to take the chalice, you return to the fray.");
     }
 
@@ -353,7 +353,7 @@ public static class Thief
         if (verb != "WALK-IN" || !state.ThiefActive) return;
         var world = state.World!;
         var here = state.Here;
-        var thief = world.FindObject("THIEF")!;
+        var thief = world.FindObject(Obj.Thief)!;
         if (thief.InRoom != here)
         {
             state.Output.WriteLine("You hear a scream of anguish as you violate the robber's hideaway.  Using passages unknown to you, he rushes to its defense.");
@@ -364,7 +364,7 @@ public static class Thief
         }
         thief.Flags |= ObjectFlags.Fighting;
         state.VillainStrength.TryAdd("THIEF", Combat.ThiefStrength);
-        var chalice = world.FindObject("CHALI")!;
+        var chalice = world.FindObject(Obj.Chali)!;
         if (chalice.Container == null && chalice.InRoom == here) chalice.Flags &= ~ObjectFlags.Take;
         if (here.Objects.Count > 2)
             state.Output.WriteLine("The thief gestures mysteriously, and the treasures in the room suddenly vanish.");

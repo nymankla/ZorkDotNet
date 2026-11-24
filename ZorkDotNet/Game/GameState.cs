@@ -118,11 +118,11 @@ public class GameState
     {
         if (World == null) return;
         // Lamp clock: enabled while the lamp is on (LANTERN CLOCK-ENABLE / CLOCK-DISABLE), wherever the lamp is.
-        var lamp = World.FindObject("LAMP");
+        var lamp = World.FindObject(Obj.Lamp);
         if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
             LampLightInt(lamp);
         // Candle clock: runs while the candles burn, once they have been touched (act1.38 CANDLES).
-        var candles = World.FindObject("CANDL");
+        var candles = World.FindObject(Obj.Candl);
         if (candles != null && candles.LightAmount > 0 && CandleTicks > 0 && --CandleTicks <= 0)
             CandleLightInt(candles);
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
@@ -163,7 +163,7 @@ public class GameState
     {
         if (World == null) return false;
         var fired = false;
-        var lamp = World.FindObject("LAMP");
+        var lamp = World.FindObject(Obj.Lamp);
         if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
         {
             LampLightInt(lamp);

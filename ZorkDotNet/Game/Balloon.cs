@@ -8,11 +8,11 @@ namespace ZorkDotNet.Game;
 /// </summary>
 public static class Balloon
 {
-    private static bool InIt(GameState state) => state.Winner.Vehicle?.Id == "BALLO";
+    private static bool InIt(GameState state) => state.Winner.Vehicle?.Id == Obj.Ballo;
 
     /// <summary>The object burning in the receptacle (MDL BINF), if any.</summary>
     public static GameObject? Fuel(GameState state) =>
-        state.GetFlag("BINF!-FLAG") && state.World?.FindObject("RECEP")?.Contents is [var fuel, ..] ? fuel : null;
+        state.GetFlag(Flag.Binf) && state.World?.FindObject(Obj.Recep)?.Contents is [var fuel, ..] ? fuel : null;
 
     /// <summary>
     /// BALLOON with READ-IN, before a verb while you're in the basket: walking only chooses where it goes (or is
@@ -26,7 +26,7 @@ public static class Balloon
         {
             if (direction != null && state.Here.Exits.TryGetValue(direction, out var exit))
             {
-                if (state.GetFlag("BTIE!-FLAG"))
+                if (state.GetFlag(Flag.Btie))
                 {
                     state.Output.WriteLine("You are tied to the ledge.");
                     return true;
@@ -43,7 +43,7 @@ public static class Balloon
             state.Output.WriteLine("You don't really want to hold a burning " + direct.DescriptionShort + ".");
             return true;
         }
-        if (action == "PUT" && indirect?.Id == "RECEP" && indirect.Contents.Count > 0)
+        if (action == "PUT" && indirect?.Id == Obj.Recep && indirect.Contents.Count > 0)
         {
             state.Output.WriteLine("The receptacle is already occupied.");
             return true;
@@ -59,7 +59,7 @@ public static class Balloon
         state.Output.WriteLine(fuel != null
             ? "The cloth bag is inflated and there is a " + fuel.DescriptionShort + " burning in the receptacle."
             : "The cloth bag is draped over the the basket.");
-        if (state.GetFlag("BTIE!-FLAG")) state.Output.WriteLine("The balloon is tied to the hook.");
+        if (state.GetFlag(Flag.Btie)) state.Output.WriteLine("The balloon is tied to the hook.");
     }
 
     /// <summary>BALLOON for BURN: something in the receptacle burns, the bag inflates and the balloon's clock starts.</summary>
@@ -70,16 +70,16 @@ public static class Balloon
         state.Schedule(obj.Size * 20, Clocks.Burnup);
         obj.Flags = (obj.Flags | ObjectFlags.OnFire) & ~(ObjectFlags.Take | ObjectFlags.Readable);
         obj.LightAmount = 1;
-        if (state.GetFlag("BINF!-FLAG")) return;
+        if (state.GetFlag(Flag.Binf)) return;
         state.Output.WriteLine("The cloth bag inflates as it fills with hot air.");
-        if (!state.GetFlag("BLAB!-FLAG"))
+        if (!state.GetFlag(Flag.Blab))
         {
-            var label = state.World!.FindObject("BLABE")!;
-            var ball = state.World.FindObject("BALLO")!;
+            var label = state.World!.FindObject(Obj.Blabe)!;
+            var ball = state.World.FindObject(Obj.Ballo)!;
             label.MoveTo(ball, first: true);
         }
-        state.SetFlag("BLAB!-FLAG", true);
-        state.SetFlag("BINF!-FLAG", true);
+        state.SetFlag(Flag.Blab, true);
+        state.SetFlag(Flag.Binf, true);
         StartClock(state);
     }
 
@@ -99,14 +99,14 @@ public static class Balloon
     /// </summary>
     public static void BalloonAction(GameState state, string verb, GameObject? _)
     {
-        if (verb == "DISEMBARK" && !state.Here.IsWater && !state.Here.IsAir && state.GetFlag("BINF!-FLAG")) StartClock(state);
+        if (verb == "DISEMBARK" && !state.Here.IsWater && !state.Here.IsAir && state.GetFlag(Flag.Binf)) StartClock(state);
     }
 
     /// <summary>BALLOON on its clock (C-INT): it rises while the receptacle is open and burning, or from a ledge; else it sinks.</summary>
     public static void Tick(GameState state)
     {
-        var recep = state.World!.FindObject("RECEP")!;
-        if ((recep.Open && state.GetFlag("BINF!-FLAG")) || state.Here.Id.StartsWith("LEDG", StringComparison.Ordinal))
+        var recep = state.World!.FindObject(Obj.Recep)!;
+        if ((recep.Open && state.GetFlag(Flag.Binf)) || state.Here.Id.StartsWith("LEDG", StringComparison.Ordinal))
             RiseAndShine(state);
         else
             DeclineAndFall(state);
@@ -115,7 +115,7 @@ public static class Balloon
     private static void RiseAndShine(GameState state)
     {
         var world = state.World!;
-        var ball = world.FindObject("BALLO")!;
+        var ball = world.FindObject(Obj.Ballo)!;
         var bl = state.BalloonLocation;
         var inIt = InIt(state);
         StartClock(state);
@@ -126,7 +126,7 @@ public static class Balloon
                 state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
                 StopClock(state);
                 Remove(ball);
-                Put(world.FindObject("DBALL")!, world.FindRoom("VLBOT")!);
+                Put(world.FindObject(Obj.Dball)!, world.FindRoom(RoomId.Vlbot)!);
                 state.BalloonLocation = "VLBOT";
                 if (inIt)
                     state.JigsUp("Your balloon has hit the rim of the volcano, ripping the cloth and causing you a 500 foot drop.  Did you get your flight insurance?");
@@ -167,17 +167,17 @@ public static class Balloon
                 return;
             }
             state.BalloonLocation = "VLBOT";
-            var bottom = world.FindRoom("VLBOT")!;
+            var bottom = world.FindRoom(RoomId.Vlbot)!;
             Parser.Goto(state, bottom);
-            if (state.GetFlag("BINF!-FLAG"))
+            if (state.GetFlag(Flag.Binf))
             {
                 state.Output.WriteLine("The balloon has landed.");
                 Parser.Describe(state);
             }
             else
             {
-                Remove(world.FindObject("BALLO")!);
-                Put(world.FindObject("DBALL")!, bottom);
+                Remove(world.FindObject(Obj.Ballo)!);
+                Put(world.FindObject(Obj.Dball)!, bottom);
                 state.Winner.Vehicle = null;
                 StopClock(state);
                 state.Output.WriteLine("You have landed, but the balloon did not survive.");
@@ -194,7 +194,7 @@ public static class Balloon
     {
         state.BalloonLocation = roomId;
         var room = state.World!.FindRoom(roomId)!;
-        var ball = state.World.FindObject("BALLO")!;
+        var ball = state.World.FindObject(Obj.Ballo)!;
         Remove(ball);
         Put(ball, room);
         Parser.Goto(state, room);
@@ -207,7 +207,7 @@ public static class Balloon
     {
         if (state.Here.Id.StartsWith("LEDG", StringComparison.Ordinal))
             state.Output.WriteLine("You watch as the balloon slowly " + how);
-        var ball = state.World!.FindObject("BALLO")!;
+        var ball = state.World!.FindObject(Obj.Ballo)!;
         Remove(ball);
         Put(ball, state.World.FindRoom(roomId)!);
         state.BalloonLocation = roomId;
@@ -222,19 +222,19 @@ public static class Balloon
     {
         if (verb == "TIE")
         {
-            if (to?.Id is "HOOK1" or "HOOK2")
+            if (to?.Id is Obj.Hook1 or Obj.Hook2)
             {
-                state.SetFlag("BTIE!-FLAG", true);
+                state.SetFlag(Flag.Btie, true);
                 StopClock(state);
                 state.Output.WriteLine("The balloon is fastened to the hook.");
             }
         }
         else if (verb == "UNTIE")
         {
-            if (state.GetFlag("BTIE!-FLAG"))
+            if (state.GetFlag(Flag.Btie))
             {
                 StartClock(state);
-                state.SetFlag("BTIE!-FLAG", false);
+                state.SetFlag(Flag.Btie, false);
                 state.Output.WriteLine("The wire falls off of the hook.");
             }
             else
@@ -245,8 +245,8 @@ public static class Balloon
     /// <summary>act2.27 BURNUP: the fuel has burned away and the bag collapses.</summary>
     public static void Burnup(GameState state)
     {
-        var recep = state.World!.FindObject("RECEP")!;
-        state.SetFlag("BINF!-FLAG", false);
+        var recep = state.World!.FindObject(Obj.Recep)!;
+        state.SetFlag(Flag.Binf, false);
         if (recep.Contents.Count == 0) return;
         var obj = recep.Contents[0];
         obj.MoveTo(null);
@@ -258,16 +258,16 @@ public static class Balloon
     {
         if (verb == "WALK-IN")
         {
-            if (state.GetFlag("SAFE-FLAG!-FLAG"))
+            if (state.GetFlag(Flag.Safe))
             {
                 state.Output.WriteLine("Behind you, the walls of the safe room collapse into rubble.");
-                state.SetFlag("SAFE-FLAG!-FLAG", false);
+                state.SetFlag(Flag.Safe, false);
             }
         }
         else if (verb == "LOOK")
         {
             state.Output.WriteLine("You are on a wide ledge high into the volcano.  The rim of the volcano is about 200 feet above and there is a precipitous drop below to the bottom.");
-            state.Output.WriteLine(state.World?.FindRoom("SAFE")?.Munged == true
+            state.Output.WriteLine(state.World?.FindRoom(RoomId.Safe)?.Munged == true
                 ? " The way to the south is blocked by rubble."
                 : " There is a small door to the south.");
         }
@@ -284,7 +284,7 @@ public static class Balloon
             return;
         }
         state.Output.WriteLine("A volcano gnome seems to walk straight out of the wall and says 'I have a very busy appointment schedule and little time to waste on tresspassers, but for a small fee, I'll show you the way out.'  You notice the gnome nervously glancing at his watch.");
-        var gnome = state.World!.FindObject("GNOME")!;
+        var gnome = state.World!.FindObject(Obj.Gnome)!;
         Put(gnome, state.Here);
     }
 
@@ -299,7 +299,7 @@ public static class Balloon
             if (gift.TrophyScore != 0)
             {
                 state.Output.WriteLine("Thank you very much for the " + gift.DescriptionShort + ".  I don't believe I've ever seen one as beautiful. 'Follow me', he says, and a door appears on the west end of the ledge.  Through the door, you can see a narrow chimney sloping steeply downward.");
-                state.SetFlag("GNOME-DOOR!-FLAG", true);
+                state.SetFlag(Flag.GnomeDoor, true);
             }
             else
             {
@@ -309,14 +309,14 @@ public static class Balloon
             return;
         }
         state.Output.WriteLine("The gnome appears increasingly nervous.");
-        if (!state.GetFlag("GNOME-FLAG!-FLAG")) state.Schedule(5, Clocks.GnomeLeave);
-        state.SetFlag("GNOME-FLAG!-FLAG", true);
+        if (!state.GetFlag(Flag.Gnome)) state.Schedule(5, Clocks.GnomeLeave);
+        state.SetFlag(Flag.Gnome, true);
     }
 
     /// <summary>GNOME-FUNCTION on its clock: he leaves.</summary>
     public static void GnomeLeave(GameState state)
     {
-        var gnome = state.World!.FindObject("GNOME")!;
+        var gnome = state.World!.FindObject(Obj.Gnome)!;
         if (gnome.InRoom == null) return;
         state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
         Remove(gnome);

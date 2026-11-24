@@ -62,18 +62,18 @@ public static class Death
         var inventory = state.Winner.Inventory;
 
         // The lamp comes back to you wherever it was, at the head of your possessions.
-        var lamp = world.FindObject("LAMP");
+        var lamp = world.FindObject(Obj.Lamp);
         if (lamp != null)
         {
             if (lamp.InRoom != null || lamp.Container != null || lamp.Carrier == state.Winner)
                 lamp.MoveTo(state.Winner, first: true);
         }
 
-        var door = world.FindObject("DOOR");
+        var door = world.FindObject(Obj.Door);
         if (door != null) door.Touched = false;
-        var forest = world.FindRoom("FORE1");
+        var forest = world.FindRoom(RoomId.Fore1);
         if (forest != null) state.Winner.CurrentRoom = forest; // GOTO: no description
-        state.SetFlag("EGYPT-FLAG!-FLAG", true);
+        state.SetFlag(Flag.Egypt, true);
 
         // defs.63 ROB-ADV: treasures (OTVAL > 0, not sacred) are taken out first.
         var valuables = inventory.Where(o => o.TrophyScore > 0 && (o.Flags & ObjectFlags.Sacred) == 0).ToList();

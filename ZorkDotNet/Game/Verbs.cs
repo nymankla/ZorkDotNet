@@ -99,7 +99,7 @@ public static class Verbs
             case "DUNGEON": output.WriteLine("At your service!"); return true;
             case "GRANITE": output.WriteLine("I think you are taking this thing for granite."); return true;
             case "BLAST": // act2.27 BLAST (the safe explosion isn't ported yet; elsewhere this is the reply)
-                if (state.Here?.Id != "SAFE") output.WriteLine("I don't really know how to do that.");
+                if (state.Here?.Id != RoomId.Safe) output.WriteLine("I don't really know how to do that.");
                 return true;
             case "TREASURE": Teleport(state, from: "TEMP1", to: "TREAS"); return true; // act1.38 TREAS
             case "TEMPLE": Teleport(state, from: "TREAS", to: "TEMP1"); return true;
@@ -121,7 +121,7 @@ public static class Verbs
             case "PUSH": Pusher(state, direct); return true;
             case "MUNG": Munger(state, direct, indirect); return true;
             case "RING": // act1.38 RING
-                output.WriteLine(direct?.Id == "BELL" ? "Ding, dong." : "How, exactly, can I ring that?");
+                output.WriteLine(direct?.Id == Obj.Bell ? "Ding, dong." : "How, exactly, can I ring that?");
                 return true;
             case "BRUSH": Brush(state, direct, indirect); return true;
             case "WAKE": Alarm(state, direct); return true;
@@ -135,14 +135,14 @@ public static class Verbs
             case "DIG": Digger(state, direct); return true;
             case "INFLATE": Inflater(state, direct, indirect); return true;
             case "DEFLATE": // act1.38 DEFLATER
-                if (direct?.Id != "RBOAT" || !ObjectAction(state, direct, "DEFLATE", null)) output.WriteLine("Come on, now!");
+                if (direct?.Id != Obj.Rboat || !ObjectAction(state, direct, "DEFLATE", null)) output.WriteLine("Come on, now!");
                 return true;
             case "TELL": // rooms.99 COMMAND: there are no actors to command yet (the robot isn't ported)
                 output.WriteLine("You cannot talk to that!");
                 return true;
             case "KNOCK": // act3.13 KNOCK
                 if (direct == null) output.WriteLine("Knock on what?");
-                else if (direct.Id == "DOOR" || direct.Synonyms.Contains("DOOR")) output.WriteLine("I don't think that anybody's home.");
+                else if (direct.Id == Obj.Door || direct.Synonyms.Contains("DOOR")) output.WriteLine("I don't think that anybody's home.");
                 else output.WriteLine("Why knock on a " + direct.DescriptionShort + "?");
                 return true;
             case "FIND": Find(state, direct); return true;
@@ -179,7 +179,7 @@ public static class Verbs
         }
         if (ObjectAction(state, obj, "PUSH", null)) return;
         // A button is left to the room's action, which RDCOM runs after every verb.
-        if (obj.Id != "BUTTO" && !obj.Synonyms.Contains("BUTTO"))
+        if (obj.Id != Obj.Butto && !obj.Synonyms.Contains("BUTTO"))
             state.Output.WriteLine("Pushing the " + obj.DescriptionShort + PickOne(HoHum));
     }
 
@@ -200,9 +200,9 @@ public static class Verbs
     /// <summary>act1.38 BRUSH (the teeth belong to the unported mirror-room puzzle).</summary>
     private static void Brush(GameState state, GameObject? obj, GameObject? with)
     {
-        if (obj?.Id != "TEETH")
+        if (obj?.Id != Obj.Teeth)
             state.Output.WriteLine("If you wish, but I can't understand why??");
-        else if (with?.Id == "PUTTY" && with.Carrier == state.Winner)
+        else if (with?.Id == Obj.Putty && with.Carrier == state.Winner)
             state.JigsUp("Well, you seem to have been brushing your teeth with some sort of glue. As a result, your mouth gets glued together (with your nose) and you die of respiratory failure.");
         else if (with == null)
             state.Output.WriteLine("Dental hygiene is highly recommended, but I'm not sure what you want to brush them with.");
@@ -214,7 +214,7 @@ public static class Verbs
     private static void Alarm(GameState state, GameObject? obj)
     {
         if (obj == null) return;
-        var asleep = obj.Id == "CYCLO" && state.GetFlag("CYCLOPS-FLAG!-FLAG") && !state.GetFlag("MAGIC-FLAG!-FLAG");
+        var asleep = obj.Id == Obj.Cyclo && state.GetFlag(Flag.Cyclops) && !state.GetFlag(Flag.Magic);
         if (!asleep || !ObjectAction(state, obj, "WAKE", null))
             state.Output.WriteLine("The " + obj.DescriptionShort + " isn't sleeping.");
     }
@@ -224,7 +224,7 @@ public static class Verbs
     {
         if (tool == null)
             state.Output.WriteLine("Dig with what?");
-        else if (tool.Id == "SHOVE")
+        else if (tool.Id == Obj.Shove)
             return;
         else if ((tool.Flags & ObjectFlags.Tool) != 0)
             state.Output.WriteLine("Digging with the " + tool.DescriptionShort + " is slow and tedious.");
@@ -236,12 +236,12 @@ public static class Verbs
     private static void Inflater(GameState state, GameObject? obj, GameObject? tool)
     {
         tool ??= ObjectActions.FindOnlyTool(state); // GWIM: INFLATE BOAT with the one tool you carry
-        if (obj?.Id == "IBOAT")
+        if (obj?.Id == Obj.Iboat)
         {
-            if (tool?.Id != "PUMP" || !ObjectAction(state, obj, "INFLATE", tool))
+            if (tool?.Id != Obj.Pump || !ObjectAction(state, obj, "INFLATE", tool))
                 state.Output.WriteLine("You would inflate it with that?");
         }
-        else if (obj?.Id == "RBOAT")
+        else if (obj?.Id == Obj.Rboat)
             state.Output.WriteLine("Inflating it further would probably burst it.");
         else
             state.Output.WriteLine("How can you inflate that?");
@@ -312,8 +312,8 @@ public static class Verbs
     /// <summary>act1.38 PRAYER: praying at the altar takes you to the forest.</summary>
     private static void Prayer(GameState state)
     {
-        var forest = state.World?.FindRoom("FORE1");
-        if (state.Here?.Id == "TEMP2" && forest != null) Parser.MoveToRoom(state, forest);
+        var forest = state.World?.FindRoom(RoomId.Fore1);
+        if (state.Here?.Id == RoomId.Temp2 && forest != null) Parser.MoveToRoom(state, forest);
         else state.Output.WriteLine("If you pray enough, your prayers may be answered.");
     }
 
@@ -337,7 +337,7 @@ public static class Verbs
     /// <summary>act2.27 GERONIMO</summary>
     private static void Geronimo(GameState state)
     {
-        if (state.Here?.Id == "BARRE")
+        if (state.Here?.Id == RoomId.Barre)
             state.JigsUp("I didn't think you would REALLY try to go over the falls in a barrel. It seems that some 450 feet below, you were met by a number of  unfriendly rocks and boulders, causing your immediate demise.  Is this what 'over a barrel' means?");
         else
             state.Output.WriteLine("Wasn't he an Indian?");
@@ -346,12 +346,12 @@ public static class Verbs
     /// <summary>act1.38 SINBAD (the words ODYSSEUS and ULYSSES): the cyclops flees through the north wall.</summary>
     private static void Sinbad(GameState state)
     {
-        var cyclops = state.World?.FindObject("CYCLO");
-        if (state.Here?.Id == "CYCLO" && cyclops != null && cyclops.InRoom == state.Here)
+        var cyclops = state.World?.FindObject(Obj.Cyclo);
+        if (state.Here?.Id == RoomId.Cyclo && cyclops != null && cyclops.InRoom == state.Here)
         {
-            state.SetFlag("CYCLOPS-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Cyclops, true);
             state.Output.WriteLine("The cyclops, hearing the name of his deadly nemesis, flees the room by knocking down the wall on the north of the room.");
-            state.SetFlag("MAGIC-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Magic, true);
             cyclops.MoveTo(null);
         }
         else
@@ -364,11 +364,11 @@ public static class Verbs
         var count = ++state.HelloCount;
         if (obj == null)
             state.Output.WriteLine(PickOne(Hellos));
-        else if (obj.Id == "SAILO")
+        else if (obj.Id == Obj.Sailo)
             state.Output.WriteLine(count % 20 == 0 ? "You seem to be repeating yourself."
                 : count % 10 == 0 ? "I think that phrase is getting a bit worn out."
                 : "Nothing happens here.");
-        else if (obj.Id == "AVIAT")
+        else if (obj.Id == Obj.Aviat)
             state.Output.WriteLine("Here, nothing happens.");
         else
             state.Output.WriteLine("I think that only schizophrenics say 'Hello' to a " + obj.DescriptionShort + ".");

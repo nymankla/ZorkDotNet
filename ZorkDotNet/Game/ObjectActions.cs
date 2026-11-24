@@ -32,8 +32,8 @@ public static class ObjectActions
     /// <summary>act1.38 GRAT1-FUNCTION: the grating seen from the clearing.</summary>
     public static void Grating1Function(GameState state, string verb, GameObject? _)
     {
-        if (state.GetFlag("GRUNLOCK!-FLAG"))
-            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens.", "The grating is closed.");
+        if (state.GetFlag(Flag.Grunlock))
+            OpenClose(state, verb, Flag.Key, "The grating opens.", "The grating is closed.");
         else
             state.Output.WriteLine("The grating is locked.");
     }
@@ -41,10 +41,10 @@ public static class ObjectActions
     /// <summary>act1.38 GRAT2-FUNCTION: the grating seen from below (MGRAT); working it makes GRAT1 visible above.</summary>
     public static void Grating2Function(GameState state, string verb, GameObject? _)
     {
-        if (state.GetFlag("GRUNLOCK!-FLAG"))
+        if (state.GetFlag(Flag.Grunlock))
         {
-            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens to reveal trees above you.", "The grating is closed.");
-            var grat1 = state.World?.FindObject("GRAT1");
+            OpenClose(state, verb, Flag.Key, "The grating opens to reveal trees above you.", "The grating is closed.");
+            var grat1 = state.World?.FindObject(Obj.Grat1);
             if (grat1 != null) grat1.Flags |= ObjectFlags.Visible;
         }
         else
@@ -65,30 +65,30 @@ public static class ObjectActions
             state.Output.WriteLine("With what?");
             return;
         }
-        if (obj.Id != "GRAT2")
+        if (obj.Id != Obj.Grat2)
         {
             state.Output.WriteLine("It doesn't seem to work.");
             return;
         }
-        if (tool.Id != "KEYS")
+        if (tool.Id != Obj.Keys)
         {
             state.Output.WriteLine("Can you unlock a grating with a " + tool.DescriptionShort + "?");
             return;
         }
-        state.SetFlag("GRUNLOCK!-FLAG", true);
+        state.SetFlag(Flag.Grunlock, true);
         state.Output.WriteLine("The grate is unlocked.");
-        SetGratingExitMessage(state.World?.FindRoom("MGRAT"), "The grate is closed.");
+        SetGratingExitMessage(state.World?.FindRoom(RoomId.Mgrat), "The grate is closed.");
     }
 
     /// <summary>act1.38 LOCKER: locks the grating from below (GRAT2).</summary>
     public static void Locker(GameState state, GameObject obj)
     {
-        if (obj.Id != "GRAT2")
+        if (obj.Id != Obj.Grat2)
         {
             state.Output.WriteLine("It doesn't seem to work.");
             return;
         }
-        state.SetFlag("GRUNLOCK!-FLAG", false);
+        state.SetFlag(Flag.Grunlock, false);
         state.Output.WriteLine("The grate is locked.");
         SetGratingExitMessage(state.Here, "The grate is locked.");
     }
@@ -99,7 +99,7 @@ public static class ObjectActions
         if (room == null) return;
         foreach (var (dir, exit) in room.Exits.ToList())
         {
-            if (exit.ConditionFlag == "KEY-FLAG!-FLAG")
+            if (exit.ConditionFlag == Flag.Key)
             {
                 room.Exits[dir] = new ExitTarget(exit.ConditionFlag, exit.RoomId!, message);
                 return;
@@ -142,20 +142,20 @@ public static class ObjectActions
     {
         if (verb == "OPEN")
         {
-            if (state.GetFlag("KITCHEN-WINDOW!-FLAG"))
+            if (state.GetFlag(Flag.KitchenWindow))
                 state.Output.WriteLine("It is already open.");
             else
             {
                 state.Output.WriteLine("With great effort, you open the window far enough to allow entry.");
-                state.SetFlag("KITCHEN-WINDOW!-FLAG", true);
+                state.SetFlag(Flag.KitchenWindow, true);
             }
         }
         else if (verb == "CLOSE")
         {
-            if (state.GetFlag("KITCHEN-WINDOW!-FLAG"))
+            if (state.GetFlag(Flag.KitchenWindow))
             {
                 state.Output.WriteLine("The window closes (more easily than it opened).");
-                state.SetFlag("KITCHEN-WINDOW!-FLAG", false);
+                state.SetFlag(Flag.KitchenWindow, false);
             }
             else
                 state.Output.WriteLine("It is already closed.");
@@ -176,14 +176,14 @@ public static class ObjectActions
     public static void IboatFunction(GameState state, string verb, GameObject? _)
     {
         if (verb != "INFLATE") return;
-        var iboat = state.World!.FindObject("IBOAT")!;
+        var iboat = state.World!.FindObject(Obj.Iboat)!;
         if (iboat.InRoom != state.Here)
             state.Output.WriteLine("The boat must be on the ground to be inflated.");
-        else if (state.Winner.Inventory.Any(o => o.Id == "PUMP"))
+        else if (state.Winner.Inventory.Any(o => o.Id == Obj.Pump))
         {
             state.Output.WriteLine("The boat inflates and appears seaworthy.");
-            state.SetFlag("DEFLATE!-FLAG", false);
-            Swap(iboat, state.World.FindObject("RBOAT")!);
+            state.SetFlag(Flag.Deflate, false);
+            Swap(iboat, state.World.FindObject(Obj.Rboat)!);
         }
         else
             state.Output.WriteLine("I don't think you have enough lung-power to inflate this boat.");
@@ -196,10 +196,10 @@ public static class ObjectActions
             state.Output.WriteLine("This boat will not inflate since some moron put a hole in it.");
         else if (verb == "PLUG")
         {
-            if (with?.Id == "PUTTY")
+            if (with?.Id == Obj.Putty)
             {
                 state.Output.WriteLine("Well done.  The boat is repaired.");
-                Swap(state.World!.FindObject("DBOAT")!, state.World.FindObject("IBOAT")!);
+                Swap(state.World!.FindObject(Obj.Dboat)!, state.World.FindObject(Obj.Iboat)!);
             }
             else if (with != null)
                 state.Output.WriteLine("With a " + with.DescriptionShort + "?");
@@ -212,14 +212,14 @@ public static class ObjectActions
     /// </summary>
     public static void RboatFunction(GameState state, string verb, GameObject? _)
     {
-        var rboat = state.World!.FindObject("RBOAT")!;
+        var rboat = state.World!.FindObject(Obj.Rboat)!;
         switch (verb)
         {
             case "BOARD":
-                if (state.Winner.Inventory.Any(o => o.Id == "STICK"))
+                if (state.Winner.Inventory.Any(o => o.Id == Obj.Stick))
                 {
                     state.Output.WriteLine("There is a hissing sound and the boat deflates.");
-                    Swap(rboat, state.World.FindObject("DBOAT")!);
+                    Swap(rboat, state.World.FindObject(Obj.Dboat)!);
                 }
                 break;
             case "DISEMBARK":
@@ -234,8 +234,8 @@ public static class ObjectActions
                 else
                 {
                     state.Output.WriteLine("The boat deflates.");
-                    state.SetFlag("DEFLATE!-FLAG", true);
-                    Swap(rboat, state.World.FindObject("IBOAT")!);
+                    state.SetFlag(Flag.Deflate, true);
+                    Swap(rboat, state.World.FindObject(Obj.Iboat)!);
                 }
                 break;
         }
@@ -269,12 +269,12 @@ public static class ObjectActions
     {
         if (verb == "TAKE")
         {
-            if (state.Winner.Inventory.Any(o => o.Id == "SWORD"))
+            if (state.Winner.Inventory.Any(o => o.Id == Obj.Sword))
                 state.Output.WriteLine("As you pick up the rusty knife, your sword gives a single pulse of blinding blue light.");
         }
         else if (verb is "ATTACK" or "SWING" or "THROW" or "KILL")
         {
-            var knife = state.World?.FindObject("RKNIF");
+            var knife = state.World?.FindObject(Obj.Rknif);
             if (knife != null) RemoveFromWhere(knife); // KILL-OBJ
             state.JigsUp("As the knife approaches its victim, your mind is submerged by an overmastering will.  Slowly, your hand turns, until the rusty blade is an inch from your neck.  The knife seems to sing as it savagely slits your throat.");
         }
@@ -323,8 +323,8 @@ public static class ObjectActions
     /// <summary>act3.13 EATME-FUNCTION: eaten in the tea room, the 'Eat Me' cake makes the room seem very large.</summary>
     public static void EatMeFunction(GameState state, string verb, GameObject? _)
     {
-        var cake = state.World!.FindObject("ECAKE")!;
-        if (verb != "EAT" || state.Here.Id != "ALICE") return;
+        var cake = state.World!.FindObject(Obj.Ecake)!;
+        if (verb != "EAT" || state.Here.Id != RoomId.Alice) return;
         state.Output.WriteLine("Suddenly, the room appears to have become very large.");
         RemoveFromWhere(cake);
         Resize(state, "ALISM", smaller: false);
@@ -343,35 +343,35 @@ public static class ObjectActions
             case "READ":
                 if (other == null)
                     state.Output.WriteLine("The only writing legible is a capital E.  The rest is too small to be clearly visible.");
-                else if (other.Id == "BOTTL")
+                else if (other.Id == Obj.Bottl)
                     state.Output.WriteLine("The letters appear larger, but still are too small to be read.");
-                else if (other.Id == "FLASK")
-                    state.Output.WriteLine("The icing, now visible, says '" + (cake.Id == "RDICE" ? "Evaporate" : cake.Id == "ORICE" ? "Explode" : "Enlarge") + "'.");
+                else if (other.Id == Obj.Flask)
+                    state.Output.WriteLine("The icing, now visible, says '" + (cake.Id == Obj.Rdice ? "Evaporate" : cake.Id == Obj.Orice ? "Explode" : "Enlarge") + "'.");
                 else
                     state.Output.WriteLine("You can't see through that!");
                 break;
             case "EAT" when InAliceRooms(state):
-                if (cake.Id == "ORICE")
+                if (cake.Id == Obj.Orice)
                 {
                     RemoveFromWhere(cake);
                     IceBoom(state);
                 }
-                else if (cake.Id == "BLICE")
+                else if (cake.Id == Obj.Blice)
                 {
                     RemoveFromWhere(cake);
                     state.Output.WriteLine("The room around you seems to be getting smaller.");
-                    if (state.Here.Id == "ALISM") Resize(state, "ALICE", smaller: true);
+                    if (state.Here.Id == RoomId.Alism) Resize(state, "ALICE", smaller: true);
                     else state.JigsUp(Crushed);
                 }
                 break;
-            case "THROW" when cake.Id == "ORICE" && InAliceRooms(state):
+            case "THROW" when cake.Id == Obj.Orice && InAliceRooms(state):
                 RemoveFromWhere(cake);
                 IceBoom(state);
                 break;
-            case "THROW" when cake.Id == "RDICE" && other?.Id == "POOL":
+            case "THROW" when cake.Id == Obj.Rdice && other?.Id == Obj.Pool:
                 RemoveFromWhere(other);
                 state.Output.WriteLine("The pool of water evaporates, revealing a tin of rare spices.");
-                var spices = state.World?.FindObject("SAFFR");
+                var spices = state.World?.FindObject(Obj.Saffr);
                 if (spices != null) spices.Flags |= ObjectFlags.Visible;
                 break;
         }
@@ -380,7 +380,7 @@ public static class ObjectActions
     /// <summary>act3.13 FLASK-FUNCTION: the poison flask kills whoever opens or breaks it.</summary>
     public static void FlaskFunction(GameState state, string verb, GameObject? _)
     {
-        var flask = state.World!.FindObject("FLASK")!;
+        var flask = state.World!.FindObject(Obj.Flask)!;
         if (verb == "OPEN")
         {
             state.Here.Munged = true;
@@ -399,7 +399,7 @@ public static class ObjectActions
     public static void Painting(GameState state, string verb, GameObject? _)
     {
         if (verb != "MUNG") return;
-        var art = state.World!.FindObject("PAINT")!;
+        var art = state.World!.FindObject(Obj.Paint)!;
         art.TrophyScore = 0;
         art.DescriptionShort = "worthless piece of canvas";
         art.DescriptionHere = "There is a worthless piece of canvas here.";
@@ -413,13 +413,13 @@ public static class ObjectActions
     /// </summary>
     public static void TrollFunction(GameState state, string verb, GameObject? other)
     {
-        var troll = state.World!.FindObject("TROLL")!;
+        var troll = state.World!.FindObject(Obj.Troll)!;
         if (verb is "THROW" or "GIVE" && other != null)
         {
             state.Output.WriteLine(verb == "THROW"
                 ? "The troll, who is remarkably coordinated, catches the " + other.DescriptionShort
                 : "The troll, who is not overly proud, graciously accepts the gift");
-            if (other.Id == "KNIFE")
+            if (other.Id == Obj.Knife)
             {
                 state.Output.WriteLine("and being for the moment sated, throws it back.  Fortunately, the troll has poor control, and the knife falls to the floor.  He does not look pleased.");
                 other.MoveTo(state.Here);
@@ -442,7 +442,7 @@ public static class ObjectActions
     public static void BlackBook(GameState state, string verb, GameObject? _)
     {
         if (verb != "BURN") return;
-        var book = state.World?.FindObject("BOOK");
+        var book = state.World?.FindObject(Obj.Book);
         if (book != null) RemoveFromWhere(book);
         state.JigsUp("A booming voice says 'Wrong, cretin!' and you notice that you have turned into a pile of dust.");
     }
@@ -454,11 +454,11 @@ public static class ObjectActions
             state.Output.WriteLine("A force keeps you from taking the bodies.");
         else if (verb is "MUNG" or "BURN")
         {
-            if (!state.GetFlag("ON-POLE!-FLAG"))
+            if (!state.GetFlag(Flag.OnPole))
             {
-                state.SetFlag("ON-POLE!-FLAG", true);
-                var pole = state.World?.FindObject("HPOLE");
-                var lld2 = state.World?.FindRoom("LLD2");
+                state.SetFlag(Flag.OnPole, true);
+                var pole = state.World?.FindObject(Obj.Hpole);
+                var lld2 = state.World?.FindRoom(RoomId.Lld2);
                 if (lld2 != null) pole?.MoveTo(lld2);
             }
             state.JigsUp("The voice of the guardian of the dungeon booms out from the darkness 'Your disrespect costs you your life!' and places your head on a pole.");
@@ -476,9 +476,9 @@ public static class ObjectActions
         static bool Valuable(GameObject o) => o.TrophyScore > 0 && (o.Flags & ObjectFlags.Sacred) == 0;
         var taken = state.Winner.Inventory.Where(Valuable).Concat(state.Here.Objects.Where(Valuable)).ToList();
         var world = state.World!;
-        var lcase = world.FindObject("LCASE")!;
+        var lcase = world.FindObject(Obj.Lcase)!;
         if (taken.Count > 0 && lcase.InRoom == null)
-            lcase.MoveTo(world.FindRoom("LROOM")!);
+            lcase.MoveTo(world.FindRoom(RoomId.Lroom)!);
         foreach (var o in taken) o.MoveTo(lcase);
         state.JigsUp("Unfortunately, we've run out of poles.  Therefore, in punishment for your most grievous sin, we shall deprive you of all your valuables, and of your life.");
     }
@@ -487,7 +487,7 @@ public static class ObjectActions
     public static void CokeBottles(GameState state, string verb, GameObject? _)
     {
         if (verb is not ("THROW" or "MUNG")) return;
-        var cokes = state.World?.FindObject("COKES");
+        var cokes = state.World?.FindObject(Obj.Cokes);
         if (cokes == null) return;
         state.Output.WriteLine("Congratulations!  You've managed to break all those bottles. Fortunately for your feet, they were made of magic glass and disappear immediately.");
         cokes.Flags &= ~ObjectFlags.Visible;
@@ -498,26 +498,26 @@ public static class ObjectActions
     public static void BoltFunction(GameState state, string verb, GameObject? tool)
     {
         if (verb != "TURN" || tool == null) return;
-        if (tool.Id != "WRENC")
+        if (tool.Id != Obj.Wrenc)
         {
             state.Output.WriteLine("The bolt won't turn using the " + tool.DescriptionShort + ".");
             return;
         }
-        if (!state.GetFlag("GATE-FLAG!-FLAG"))
+        if (!state.GetFlag(Flag.Gate))
         {
             state.Output.WriteLine("The bolt won't turn with your best effort.");
             return;
         }
-        var trunk = state.World?.FindObject("TRUNK");
-        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        var trunk = state.World?.FindObject(Obj.Trunk);
+        if (state.GetFlag(Flag.LowTide))
         {
-            state.SetFlag("LOW-TIDE!-FLAG", false);
+            state.SetFlag(Flag.LowTide, false);
             state.Output.WriteLine("The sluice gates close and water starts to collect behind the dam.");
-            if (trunk != null && trunk.InRoom?.Id == "RESES") trunk.Flags &= ~ObjectFlags.Visible;
+            if (trunk != null && trunk.InRoom?.Id == RoomId.Reses) trunk.Flags &= ~ObjectFlags.Visible;
         }
         else
         {
-            state.SetFlag("LOW-TIDE!-FLAG", true);
+            state.SetFlag(Flag.LowTide, true);
             state.Output.WriteLine("The sluice gates open and water pours through the dam.");
             if (trunk != null) trunk.Flags |= ObjectFlags.Visible;
         }
@@ -527,7 +527,7 @@ public static class ObjectActions
     public static void LeakFunction(GameState state, string verb, GameObject? with)
     {
         if (verb != "PLUG" || state.Here.RVars <= 0) return;
-        if (with?.Id == "PUTTY")
+        if (with?.Id == Obj.Putty)
         {
             state.Here.RVars = -1;
             state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MaintRoom);
@@ -540,7 +540,7 @@ public static class ObjectActions
     /// <summary>act1.38 TUBE-FUNCTION: nothing can be put into the tube.</summary>
     public static void TubeFunction(GameState state, string verb, GameObject? _)
     {
-        if (verb == "PUT" && state.LastIndirectObject?.Id == "TUBE")
+        if (verb == "PUT" && state.LastIndirectObject?.Id == Obj.Tube)
             state.Output.WriteLine("The tube refuses to accept anything.");
     }
 
@@ -552,20 +552,20 @@ public static class ObjectActions
             state.Output.WriteLine("The rug is too heavy to lift, but in trying to take it you have noticed an irregularity beneath it.");
         else if (verb == "MOVE")
         {
-            if (state.GetFlag("RUG-MOVED!-FLAG"))
+            if (state.GetFlag(Flag.RugMoved))
                 state.Output.WriteLine("Having moved the carpet previously, you find it impossible to move it again.");
             else
             {
                 state.Output.WriteLine("With a great effort, the rug is moved to one side of the room. With the rug moved, the dusty cover of a closed trap-door appears.");
-                state.SetFlag("RUG-MOVED!-FLAG", true);
-                var tdoor = state.World?.FindObject("TDOOR");
+                state.SetFlag(Flag.RugMoved, true);
+                var tdoor = state.World?.FindObject(Obj.Tdoor);
                 if (tdoor != null) tdoor.Flags |= ObjectFlags.Visible;
-                var door = state.World?.FindObject("DOOR");
+                var door = state.World?.FindObject(Obj.Door);
                 if (door != null) door.Flags |= ObjectFlags.Visible;
                 // Ensure trap door in current room is visible (same ref as World, but belt-and-braces for OPEN DOOR resolution)
                 if (state.Here != null)
                     foreach (var o in state.Here.Objects)
-                        if (o.Id == "DOOR") o.Flags |= ObjectFlags.Visible;
+                        if (o.Id == Obj.Door) o.Flags |= ObjectFlags.Visible;
             }
         }
     }
@@ -578,8 +578,8 @@ public static class ObjectActions
 
     public static void Lantern(GameState state, string verb, GameObject? _)
     {
-        var lamp = state.World?.FindObject("LAMP");
-        var blamp = state.World?.FindObject("BLAMP");
+        var lamp = state.World?.FindObject(Obj.Lamp);
+        var blamp = state.World?.FindObject(Obj.Blamp);
         if (verb == "THROW" && lamp != null)
         {
             state.Output.WriteLine("The lamp has smashed into the floor and the light has gone out.");
@@ -604,7 +604,7 @@ public static class ObjectActions
     /// </summary>
     public static void MatchFunction(GameState state, string verb, GameObject? _)
     {
-        var match = state.World?.FindObject("MATCH");
+        var match = state.World?.FindObject(Obj.Match);
         if (match == null) return;
         if (verb == "TURNON")
         {
@@ -644,7 +644,7 @@ public static class ObjectActions
     /// </summary>
     public static void CandlesFunction(GameState state, string verb, GameObject? with)
     {
-        var candles = state.World?.FindObject("CANDL");
+        var candles = state.World?.FindObject(Obj.Candl);
         if (candles == null) return;
         if (state.CandleTicks == 0 && state.CandleStage == 0) state.CandleTicks = 50; // ORAND set on first use
         if (verb == "TURNON")
@@ -653,7 +653,7 @@ public static class ObjectActions
                 state.Output.WriteLine("Alas, there's not much left of the candles.  Certainly not enough to burn.");
             else if (with == null)
                 state.Output.WriteLine("With what?");
-            else if (with.Id == "MATCH" && with.LightAmount > 0)
+            else if (with.Id == Obj.Match && with.LightAmount > 0)
             {
                 if (candles.LightAmount > 0) state.Output.WriteLine("The candles are already lighted.");
                 else
@@ -662,7 +662,7 @@ public static class ObjectActions
                     state.Output.WriteLine("The candles are lighted.");
                 }
             }
-            else if (with.Id == "TORCH")
+            else if (with.Id == Obj.Torch)
             {
                 if (candles.LightAmount > 0)
                     state.Output.WriteLine("You realize, just in time, that the candles are already lighted.");
@@ -707,8 +707,8 @@ public static class ObjectActions
     public static void FuseBurnedDown(GameState state)
     {
         var world = state.World!;
-        var fuse = world.FindObject("FUSE")!;
-        var brick = world.FindObject("BRICK")!;
+        var fuse = world.FindObject(Obj.Fuse)!;
+        var brick = world.FindObject(Obj.Brick)!;
         fuse.Flags &= ~ObjectFlags.Visible;
         if (fuse.Container != brick)
         {
@@ -727,22 +727,22 @@ public static class ObjectActions
         }
         state.Output.WriteLine("There is an explosion nearby.");
         state.Schedule(5, Clocks.SafeMung, brickRoom.Id);
-        if (brickRoom.Id == "SAFE")
+        if (brickRoom.Id == RoomId.Safe)
         {
-            var slot = world.FindObject("SSLOT")!;
+            var slot = world.FindObject(Obj.Sslot)!;
             if (slot.Contents.Contains(brick))
             {
                 slot.Flags &= ~ObjectFlags.Visible;
-                world.FindObject("SAFE")!.Open = true;
-                state.SetFlag("SAFE-FLAG!-FLAG", true);
+                world.FindObject(Obj.Safe)!.Open = true;
+                state.SetFlag(Flag.Safe, true);
             }
             return;
         }
         foreach (var o in brickRoom.Objects.Where(o => o.CanTake))
             o.Flags &= ~ObjectFlags.Visible;
-        if (brickRoom.Id == "LROOM")
+        if (brickRoom.Id == RoomId.Lroom)
         {
-            var tcase = world.FindObject("TCASE")!;
+            var tcase = world.FindObject(Obj.Tcase)!;
             foreach (var o in tcase.Contents.ToList()) o.MoveTo(null);
         }
     }
@@ -765,7 +765,7 @@ public static class ObjectActions
             state.Output.WriteLine("You may recall your recent explosion.  Well, probably as a result of that, you hear an ominous rumbling, as if one of the rooms in the dungeon had collapsed.");
             if (mungedRoomId == "SAFE") state.Schedule(8, Clocks.LedgeMung);
         }
-        var brick = world.FindObject("BRICK")!;
+        var brick = world.FindObject(Obj.Brick)!;
         var room = brick.Container?.InRoom ?? brick.InRoom ?? state.Here;
         state.MungRoom(room.Id, "The way is blocked by debris from an explosion.");
     }
@@ -774,19 +774,19 @@ public static class ObjectActions
     public static void LedgeMung(GameState state)
     {
         var world = state.World!;
-        if (state.Here.Id == "LEDG4")
+        if (state.Here.Id == RoomId.Ledg4)
         {
             if (state.Winner.Vehicle != null)
             {
-                if (state.GetFlag("BTIE!-FLAG"))
+                if (state.GetFlag(Flag.Btie))
                 {
-                    var bottom = world.FindRoom("VLBOT")!;
+                    var bottom = world.FindRoom(RoomId.Vlbot)!;
                     state.BalloonLocation = "VLBOT";
-                    var ball = world.FindObject("BALLO")!;
+                    var ball = world.FindObject(Obj.Ballo)!;
                     ball.MoveTo(null);
-                    world.FindObject("DBALL")!.MoveTo(bottom);
-                    state.SetFlag("BTIE!-FLAG", false);
-                    state.SetFlag("BINF!-FLAG", false);
+                    world.FindObject(Obj.Dball)!.MoveTo(bottom);
+                    state.SetFlag(Flag.Btie, false);
+                    state.SetFlag(Flag.Binf, false);
                     Balloon.StopClock(state);
                     state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
                     state.JigsUp("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
@@ -811,7 +811,7 @@ public static class ObjectActions
     /// <summary>act2.27 SAFE-FUNCTION: the rusty box in the wall.</summary>
     public static void SafeFunction(GameState state, string verb, GameObject? _)
     {
-        var blown = state.GetFlag("SAFE-FLAG!-FLAG");
+        var blown = state.GetFlag(Flag.Safe);
         switch (verb)
         {
             case "TAKE": state.Output.WriteLine("The box is imbedded in the wall."); break;
@@ -824,8 +824,8 @@ public static class ObjectActions
     /// <summary>act3.13 BUCKET on its clock (BCKIN, 100 moves after it rose): the water in it evaporates.</summary>
     public static void BucketTick(GameState state)
     {
-        var water = state.World!.FindObject("WATER")!;
-        if (water.Container?.Id == "BUCKE") RemoveFromWhere(water);
+        var water = state.World!.FindObject(Obj.Water)!;
+        if (water.Container?.Id == Obj.Bucke) RemoveFromWhere(water);
     }
 
     /// <summary>
@@ -835,23 +835,23 @@ public static class ObjectActions
     public static void BucketReadOut(GameState state)
     {
         var world = state.World!;
-        var bucket = world.FindObject("BUCKE")!;
+        var bucket = world.FindObject(Obj.Bucke)!;
         if (state.Winner.Vehicle != bucket) return;
-        var full = world.FindObject("WATER")!.Container == bucket;
-        var top = state.GetFlag("BUCKET-TOP!-FLAG");
+        var full = world.FindObject(Obj.Water)!.Container == bucket;
+        var top = state.GetFlag(Flag.BucketTop);
         if (full && !top)
         {
             state.Output.WriteLine("The bucket rises and comes to a stop.");
-            state.SetFlag("BUCKET-TOP!-FLAG", true);
-            PassTheBucket(state, world.FindRoom("TWELL")!, bucket);
+            state.SetFlag(Flag.BucketTop, true);
+            PassTheBucket(state, world.FindRoom(RoomId.Twell)!, bucket);
             state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Bucket);
             state.Schedule(100, Clocks.Bucket);
         }
         else if (top && !full)
         {
             state.Output.WriteLine("The bucket descends and comes to a stop.");
-            state.SetFlag("BUCKET-TOP!-FLAG", false);
-            PassTheBucket(state, world.FindRoom("BWELL")!, bucket);
+            state.SetFlag(Flag.BucketTop, false);
+            PassTheBucket(state, world.FindRoom(RoomId.Bwell)!, bucket);
         }
     }
 
@@ -876,7 +876,7 @@ public static class ObjectActions
     public static void BottleFunction(GameState state, string verb, GameObject? _)
     {
         // The third argument is the indirect object; this action is about the BOTTL itself.
-        var obj = state.World?.FindObject("BOTTL");
+        var obj = state.World?.FindObject(Obj.Bottl);
         if (verb == "THROW" && obj != null)
         {
             state.Output.WriteLine("The bottle hits the far wall and is decimated.");
@@ -900,9 +900,9 @@ public static class ObjectActions
     public static void WaterFunction(GameState state, string verb, GameObject? _)
     {
         // The third argument is the indirect object; this action is about the WATER itself.
-        var obj = state.World?.FindObject("WATER");
+        var obj = state.World?.FindObject(Obj.Water);
         if (obj == null) return;
-        var bottle = state.World?.FindObject("BOTTL");
+        var bottle = state.World?.FindObject(Obj.Bottl);
         if (verb == "THROW")
         {
             state.Output.WriteLine("The water splashes on the walls, and evaporates immediately.");
@@ -947,24 +947,24 @@ public static class ObjectActions
     public static void RopeFunction(GameState state, string verb, GameObject? _)
     {
         // The third argument is the indirect object; this action is about the ROPE itself.
-        var obj = state.World?.FindObject("ROPE");
-        var dome = state.World?.FindRoom("DOME");
-        var raili = state.World?.FindObject("RAILI");
+        var obj = state.World?.FindObject(Obj.Rope);
+        var dome = state.World?.FindRoom(RoomId.Dome);
+        var raili = state.World?.FindObject(Obj.Raili);
         if (state.Here != dome)
         {
-            state.SetFlag("DOME-FLAG!-FLAG", false);
+            state.SetFlag(Flag.Dome, false);
             if (verb == "TIE") state.Output.WriteLine("There is nothing it can be tied to.");
             else state.Output.WriteLine("It is not tied to anything.");
             return;
         }
         if (verb == "TIE" && state.LastIndirectObject == raili)
         {
-            if (state.GetFlag("DOME-FLAG!-FLAG"))
+            if (state.GetFlag(Flag.Dome))
                 state.Output.WriteLine("The rope is already attached.");
             else
             {
                 state.Output.WriteLine("The rope drops over the side and comes within ten feet of the floor.");
-                state.SetFlag("DOME-FLAG!-FLAG", true);
+                state.SetFlag(Flag.Dome, true);
                 if (obj != null && obj.Carrier == state.Winner)
                 {
                     obj.MoveTo(dome);
@@ -973,9 +973,9 @@ public static class ObjectActions
         }
         else if (verb == "UNTIE")
         {
-            if (state.GetFlag("DOME-FLAG!-FLAG"))
+            if (state.GetFlag(Flag.Dome))
             {
-                state.SetFlag("DOME-FLAG!-FLAG", false);
+                state.SetFlag(Flag.Dome, false);
                 state.Output.WriteLine("Although you tied it incorrectly, the rope becomes free.");
             }
             else
@@ -994,7 +994,7 @@ public static class ObjectActions
     public static void LeafPile(GameState state, string verb, GameObject? _)
     {
         // The third argument is the indirect object; this action is about the LEAVE itself.
-        var obj = state.World?.FindObject("LEAVE");
+        var obj = state.World?.FindObject(Obj.Leave);
         if (verb == "BURN" && obj != null)
         {
             if (obj.InRoom != null)
@@ -1024,8 +1024,8 @@ public static class ObjectActions
     /// <summary>act2.27 MACHINE-FUNCTION: the machine's lid, in the machine room.</summary>
     public static void MachineFunction(GameState state, string verb, GameObject? _)
     {
-        if (state.Here.Id != "MACHI") return;
-        var mach = state.World!.FindObject("MACHI")!;
+        if (state.Here.Id != RoomId.Machi) return;
+        var mach = state.World!.FindObject(Obj.Machi)!;
         if (verb == "OPEN")
         {
             if (mach.Open) state.Output.WriteLine(Dummy[state.Random.Next(Dummy.Length)]);
@@ -1059,8 +1059,8 @@ public static class ObjectActions
     {
         if (verb != "TURN" || tool == null) return;
         var world = state.World!;
-        var mach = world.FindObject("MACHI")!;
-        if (tool.Id != "SCREW")
+        var mach = world.FindObject(Obj.Machi)!;
+        if (tool.Id != Obj.Screw)
         {
             state.Output.WriteLine("It seems that a " + tool.DescriptionShort + " won't do.");
             return;
@@ -1071,27 +1071,27 @@ public static class ObjectActions
             return;
         }
         state.Output.WriteLine("The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises.  After a few moments, the excitement abates.");
-        var coal = world.FindObject("COAL")!;
+        var coal = world.FindObject(Obj.Coal)!;
         if (coal.Container == mach)
         {
             coal.MoveTo(null);
-            world.FindObject("DIAMO")!.MoveTo(mach, first: true);
+            world.FindObject(Obj.Diamo)!.MoveTo(mach, first: true);
         }
         else if (mach.Contents.Count > 0)
         {
             foreach (var o in mach.Contents.ToList()) o.MoveTo(null);
-            world.FindObject("GUNK")!.MoveTo(mach);
+            world.FindObject(Obj.Gunk)!.MoveTo(mach);
         }
     }
 
     public static void Dumbwaiter(GameState state, string verb, GameObject? _)
     {
-        var top = state.World?.FindRoom("TSHAF");
-        var bot = state.World?.FindRoom("BSHAF");
-        var tbask = state.World?.FindObject("TBASK");
-        var fbask = state.World?.FindObject("FBASK");
+        var top = state.World?.FindRoom(RoomId.Tshaf);
+        var bot = state.World?.FindRoom(RoomId.Bshaf);
+        var tbask = state.World?.FindObject(Obj.Tbask);
+        var fbask = state.World?.FindObject(Obj.Fbask);
         if (top == null || bot == null || tbask == null || fbask == null) return;
-        var ct = state.GetFlag("CAGE-TOP!-FLAG");
+        var ct = state.GetFlag(Flag.CageTop);
         if (verb == "RAISE")
         {
             if (ct) state.Output.WriteLine("It's already at the top.");
@@ -1100,7 +1100,7 @@ public static class ObjectActions
                 tbask.MoveTo(top);
                 fbask.MoveTo(bot);
                 state.Output.WriteLine("The basket is raised to the top of the shaft.");
-                state.SetFlag("CAGE-TOP!-FLAG", true);
+                state.SetFlag(Flag.CageTop, true);
             }
         }
         else if (verb == "LOWER")
@@ -1111,7 +1111,7 @@ public static class ObjectActions
                 tbask.MoveTo(bot);
                 fbask.MoveTo(top);
                 state.Output.WriteLine("The basket is lowered to the bottom of the shaft.");
-                state.SetFlag("CAGE-TOP!-FLAG", false);
+                state.SetFlag(Flag.CageTop, false);
             }
         }
         else if (verb == "TAKE")
@@ -1127,30 +1127,30 @@ public static class ObjectActions
 
     public static void TrapDoor(GameState state, string verb, GameObject? _)
     {
-        if (state.Here.Id == "LROOM")
+        if (state.Here.Id == RoomId.Lroom)
         {
             if (verb == "OPEN")
             {
-                if (state.GetFlag("TRAP-DOOR!-FLAG"))
+                if (state.GetFlag(Flag.TrapDoor))
                     state.Output.WriteLine("It's open.");
                 else
                 {
                     state.Output.WriteLine("The door reluctantly opens to reveal a rickety staircase descending into darkness.");
-                    state.SetFlag("TRAP-DOOR!-FLAG", true);
+                    state.SetFlag(Flag.TrapDoor, true);
                 }
             }
             else if (verb == "CLOSE")
             {
-                if (state.GetFlag("TRAP-DOOR!-FLAG"))
+                if (state.GetFlag(Flag.TrapDoor))
                 {
                     state.Output.WriteLine("The door swings shut and closes.");
-                    state.SetFlag("TRAP-DOOR!-FLAG", false);
+                    state.SetFlag(Flag.TrapDoor, false);
                 }
                 else
                     state.Output.WriteLine("It's closed.");
             }
         }
-        else if (state.Here.Id == "CELLA")
+        else if (state.Here.Id == RoomId.Cella)
         {
             if (verb == "OPEN")
                 state.Output.WriteLine("The door is locked from above.");
@@ -1198,18 +1198,18 @@ public static class ObjectActions
     {
         var here = state.Here;
         if (here == null || state.World == null) return;
-        var m1 = state.World.FindRoom("MIRR1");
-        var m2 = state.World.FindRoom("MIRR2");
+        var m1 = state.World.FindRoom(RoomId.Mirr1);
+        var m2 = state.World.FindRoom(RoomId.Mirr2);
         if (m1 == null || m2 == null) return;
         if (verb == "RUB" || verb == "RUBB")
         {
-            if (state.GetFlag("MIRROR-MUNG!-FLAG"))
+            if (state.GetFlag(Flag.MirrorMung))
             {
                 state.Output.WriteLine("Haven't you done enough already?");
                 return;
             }
-            var from = here.Id == "MIRR1" ? m1 : m2;
-            var to = here.Id == "MIRR1" ? m2 : m1;
+            var from = here.Id == RoomId.Mirr1 ? m1 : m2;
+            var to = here.Id == RoomId.Mirr1 ? m2 : m1;
             var objsFrom = from.Objects.Where(o => o.InRoom == from).ToList();
             var objsTo = to.Objects.Where(o => o.InRoom == to).ToList();
             foreach (var o in objsFrom) o.MoveTo(null);
@@ -1221,18 +1221,18 @@ public static class ObjectActions
         }
         if (verb == "MUNG" || verb == "BREAK" || verb == "THROW")
         {
-            if (state.GetFlag("MIRROR-MUNG!-FLAG"))
+            if (state.GetFlag(Flag.MirrorMung))
             {
                 state.Output.WriteLine("Haven't you done enough already?");
                 return;
             }
-            state.SetFlag("MIRROR-MUNG!-FLAG", true);
+            state.SetFlag(Flag.MirrorMung, true);
             state.Output.WriteLine("You have broken the mirror.  I hope you have a seven years supply of good luck handy.");
         }
         if (verb == "TAKE")
             state.Output.WriteLine("Nobody but a greedy surgeon would allow you to attempt that trick.");
         if (verb == "LOOK" || verb == "EXAMI")
-            state.Output.WriteLine(state.GetFlag("MIRROR-MUNG!-FLAG") ? "The mirror is broken into many pieces." : "There is an ugly person staring at you.");
+            state.Output.WriteLine(state.GetFlag(Flag.MirrorMung) ? "The mirror is broken into many pieces." : "There is an ugly person staring at you.");
     }
 
     /// <summary>
@@ -1245,22 +1245,22 @@ public static class ObjectActions
         var here = state.Here.Id;
         if (here is "FALLS" or "POG")
         {
-            if (!state.GetFlag("RAINBOW!-FLAG"))
+            if (!state.GetFlag(Flag.Rainbow))
             {
-                var pot = state.World?.FindObject("POT");
+                var pot = state.World?.FindObject(Obj.Pot);
                 if (pot != null) pot.Flags |= ObjectFlags.Visible;
                 state.Output.WriteLine("Suddenly, the rainbow appears to become solid and, I venture, walkable (I think the giveaway was the stairs and bannister).");
-                state.SetFlag("RAINBOW!-FLAG", true);
+                state.SetFlag(Flag.Rainbow, true);
             }
             else
             {
                 state.Output.WriteLine("The rainbow seems to have become somewhat run-of-the-mill.");
-                state.SetFlag("RAINBOW!-FLAG", false);
+                state.SetFlag(Flag.Rainbow, false);
             }
         }
         else if (here == "RAINB")
         {
-            state.SetFlag("RAINBOW!-FLAG", false);
+            state.SetFlag(Flag.Rainbow, false);
             state.JigsUp("The structural integrity of the rainbow seems to have left it, leaving you about 450 feet in the air, supported by water vapor.");
         }
         else
@@ -1286,7 +1286,7 @@ public static class ObjectActions
     private static int AosSos(GameState state, int count)
     {
         count = count < 0 ? count - 1 : count + 1;
-        if (!state.GetFlag("CYCLOPS-FLAG!-FLAG"))
+        if (!state.GetFlag(Flag.Cyclops))
             state.Output.WriteLine(CycloMad[Math.Min(Math.Abs(count), CycloMad.Length) - 1]);
         return count;
     }
@@ -1300,14 +1300,14 @@ public static class ObjectActions
     {
         var world = state.World!;
         var room = state.Here;
-        var cyclops = world.FindObject("CYCLO")!;
+        var cyclops = world.FindObject(Obj.Cyclo)!;
         var count = room.RVars;
-        if (state.GetFlag("CYCLOPS-FLAG!-FLAG"))
+        if (state.GetFlag(Flag.Cyclops))
         {
             if (verb is "WAKE" or "MUNG" or "BURN" or "ATTACK")
             {
                 state.Output.WriteLine("The cyclops yawns and stares at the thing that woke him up.");
-                state.SetFlag("CYCLOPS-FLAG!-FLAG", false);
+                state.SetFlag(Flag.Cyclops, false);
                 cyclops.Flags |= ObjectFlags.Fighting;
                 room.RVars = Math.Abs(room.RVars);
             }
@@ -1322,7 +1322,7 @@ public static class ObjectActions
         {
             switch (gift.Id)
             {
-                case "FOOD":
+                case Obj.Food:
                     if (count >= 0)
                     {
                         RemoveFromWhere(gift);
@@ -1330,18 +1330,18 @@ public static class ObjectActions
                         room.RVars = Math.Min(-1, -count);
                     }
                     break;
-                case "WATER":
+                case Obj.Water:
                     if (count < 0)
                     {
                         RemoveFromWhere(gift);
                         cyclops.Flags &= ~ObjectFlags.Fighting;
                         state.Output.WriteLine("The cyclops looks tired and quickly falls fast asleep (what did you put in that drink, anyway?).");
-                        state.SetFlag("CYCLOPS-FLAG!-FLAG", true);
+                        state.SetFlag(Flag.Cyclops, true);
                     }
                     else
                         state.Output.WriteLine("The cyclops apparently was not thirsty at the time and refuses your generous gesture.");
                     break;
-                case "GARLI":
+                case Obj.Garli:
                     state.Output.WriteLine("The cyclops may be hungry, but there is a limit.");
                     room.RVars = AosSos(state, count);
                     break;
