@@ -501,20 +501,6 @@ public class GameTests
     }
 
     [Fact]
-    public void Walkthrough_open_mailbox_and_read_paper()
-    {
-        using var runner = new GameRunner(GameRunner.GetLogPath("Walkthrough_mailbox_paper", _logDir));
-        runner.Execute("OPEN MAILBOX");
-        var out1 = runner.GetOutput();
-        runner.Run("SOUTH", "EAST", "OPEN WINDOW", "ENTER", "WEST");
-        runner.Execute("TAKE PAPER");
-        runner.Execute("READ PAPER");
-        var out2 = runner.GetOutput();
-        Assert.Contains("ZORK", out2, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Infocom", out2, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void Walkthrough_INFO_shows_tagline()
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Walkthrough_INFO", _logDir));
@@ -648,9 +634,11 @@ public class GameTests
     public void TAKE_reports_once()
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("TAKE_reports_once", _logDir));
-        runner.Execute("TAKE MAILBOX");
+        runner.Execute("OPEN MAILBOX");
+        var mark = runner.GetOutput().Length;
+        runner.Execute("TAKE LEAFLET");
 
-        var output = runner.GetOutput();
+        var output = runner.GetOutputSince(mark);
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(output, "Taken\\."));
         Assert.DoesNotContain("You already have that.", output);
     }
@@ -675,10 +663,25 @@ public class GameTests
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Going_down_over_the_falls_" + fromRoom, _logDir));
         runner.Teleport(fromRoom);
+        runner.Give("LAMP").LightAmount = 1;
         runner.Execute("DOWN");
 
         Assert.Contains("gone over Aragain Falls", runner.GetOutput());
         Assert.False(runner.State.Running);
+    }
+
+    [Fact]
+    public void Going_over_the_falls_in_the_dark_leaves_you_in_the_dark()
+    {
+        // FCHMP is dark, and rooms.99 ROOM-INFO stops at "It is pitch black" before the room's WALK-IN action.
+        using var runner = new GameRunner(GameRunner.GetLogPath("Going_over_the_falls_in_the_dark", _logDir));
+        runner.Teleport("FALLS");
+        var mark = runner.GetOutput().Length;
+        runner.Execute("DOWN");
+
+        Assert.Equal("FCHMP", runner.State.Here?.Id);
+        Assert.Contains("It is pitch black.", runner.GetOutputSince(mark));
+        Assert.True(runner.State.Running);
     }
 
     [Theory]

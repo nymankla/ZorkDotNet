@@ -30,7 +30,6 @@ Exit missing: CHAS1 EAST -> PASS5
 Exit missing: CHAS1 SOUTH -> RAVI1
 Exit missing: DOME CLIMB -> MTORC if DOME-FLAG
 Exit missing: DOME DOWN -> MTORC if DOME-FLAG
-Exit missing: FCHMP NORTH -> blocked ""
 Exit missing: GALLE SOUTH -> STUDI
 Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
 Exit missing: LEDG2 LAUNC -> VAIR2
@@ -103,7 +102,6 @@ Object bit not modelled: TROLL: VICBIT
 Object capacity: BRICK: original 2, port 0
 Object capacity: CYCLO: original 10000, port 0
 Object capacity: GRAIL: original 5, port 0
-Object capacity: MAILB: original 10, port 0
 Object capacity: RECEP: original 6, port 0
 Object capacity: THIEF: original 4, port 0
 Object capacity: TRUNK: original 0, port 30
@@ -114,9 +112,6 @@ Object description: CANDL: original "There are two candles here.", port "Some ca
 Object description: FUSE: original "There is a coil of thin shiny wire here.", port "A fuse is here."
 Object description: GNOME: original "There is a nervous Volcano Gnome here.", port ""
 Object description: GRAIL: original "There is an extremely valuable (perhaps original) grail here.", port "The Holy Grail is here."
-Object description: MAILB: original "There is a small mailbox here.", port "The small mailbox is here."
-Object description: MATCH: original "There is a matchbook whose cover says 'Visit Beautiful FCD#3' here.", port "A match is here."
-Object description: PAPER: original "", port "There is a leaflet here."
 Object description: PEARL: original "There is a pearl necklace here with hundreds of large pearls.", port "A large, glowing pearl is here."
 Object description: PUMP: original "There is a small pump here.", port "A pump is here."
 Object description: SCREW: original "There is a screwdriver here.", port "A tiny screw is here."
@@ -132,17 +127,13 @@ Object flags: BRICK: missing Burnable
 Object flags: BUCKE: missing Vehicle extra Take Container
 Object flags: CAGE: missing NoDescribe
 Object flags: CANDL: missing OnFire
-Object flags: DOOR: missing NoDescribe
 Object flags: FDOOR: missing NoDescribe
 Object flags: FUSE: missing Burnable
 Object flags: GRAIL: missing Container extra Sacred
 Object flags: GRAT1: missing Door NoDescribe
 Object flags: GRAT2: missing Door NoDescribe
 Object flags: IRBOX: extra Visible
-Object flags: MAILB: missing Container extra Take
-Object flags: MATCH: missing Readable
 Object flags: MSWIT: missing NoDescribe Turnable extra Tool
-Object flags: PAPER: missing Burnable
 Object flags: POT: extra Visible
 Object flags: PUMP: missing Take Tool
 Object flags: RAILI: missing NoDescribe
@@ -150,15 +141,12 @@ Object flags: SBAG: missing OnFire extra Burnable
 Object flags: SCREW: missing Tool
 Object flags: SPHER: extra Take
 Object flags: STICK: extra Tool
-Object flags: TDOOR: missing Door NoDescribe extra Visible
-Object flags: TROLL: missing Villain
 Object flags: TRUNK: missing Take extra Visible Container
 Object flags: WDOOR: missing Readable NoDescribe extra Door
 Object flags: WIND1: missing Door NoDescribe
 Object flags: WIND2: missing Door NoDescribe
 Object light: CANDL: original 1, port 0
 Object missing: ##### (cretin)
-Object missing: ADVER (leaflet)
 Object missing: ATABL (large oblong table)
 Object missing: AVIAT (flyer)
 Object missing: BARRE (barrel)
@@ -248,9 +236,7 @@ Object name: FUSE: original "wire coil", port "fuse"
 Object name: GHOST: original "", port "evil spirits"
 Object name: GNOME: original "Volcano Gnome", port "volcano gnome"
 Object name: GRAIL: original "grail", port "Holy Grail"
-Object name: MATCH: original "matchbook", port "match"
 Object name: MSWIT: original "switch", port "screw"
-Object name: PAPER: original "newspaper", port "leaflet"
 Object name: PEARL: original "pearl necklace", port "large pearl"
 Object name: PUMP: original "hand-held air pump", port "pump"
 Object name: SCREW: original "screwdriver", port "screw"
@@ -265,9 +251,6 @@ Object size: BRICK: original 9, port 20
 Object size: CANDL: original 10, port 5
 Object size: FUSE: original 1, port 5
 Object size: GRAIL: original 10, port 5
-Object size: MAILB: original BIGFIX, port 5
-Object size: MATCH: original 2, port 1
-Object size: PAPER: original 2, port 1
 Object size: PEARL: original 10, port 5
 Object size: PUMP: original 5, port 100
 Object size: RCAGE: original 0, port 100
@@ -283,7 +266,6 @@ Object start location: CYCLO: original room CYCLO, port nowhere
 Object start location: FBASK: original room BSHAF, port nowhere
 Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
-Object start location: MATCH: original room LOBBY, port room KITCH
 Object start location: MSWIT: original room MACHI, port nowhere
 Object start location: RCAGE: original nowhere, port room CAGED
 Object start location: SCREW: original room MAINT, port nowhere
@@ -299,10 +281,7 @@ Object synonyms missing: FUSE: COIL WIRE
 Object synonyms missing: GNOME: TROLL
 Object synonyms missing: GRAT1: GRATI GRATE
 Object synonyms missing: GRAT2: GRATI GRATE
-Object synonyms missing: MAILB: BOX
-Object synonyms missing: MATCH: FLINT
 Object synonyms missing: MSWIT: SWITC
-Object synonyms missing: PAPER: NEWSP ISSUE REPOR MAGAZ NEWS
 Object synonyms missing: PEARL: NECKL
 Object synonyms missing: PUMP: AIR-P AIRPU
 Object synonyms missing: RAILI: RAIL
@@ -319,7 +298,6 @@ Object untouched description: BELL: original "Lying in a corner of the room is a
 Object untouched description: BOOK: original "On the altar is a large black book, open to page 569.", port ""
 Object untouched description: CANDL: original "On the two ends of the altar are burning candles.", port ""
 Object untouched description: GRAIL: original "", port "The Holy Grail is on the pedestal."
-Object untouched description: MAILB: original "", port "The small mailbox is here."
 Object untouched description: STICK: original "A sharp stick, which appears to have been broken at one end, is here.", port ""
 Object untouched description: TRUNK: original "Lying half buried in the mud is an old trunk, bulging with jewels.", port ""
 Room action missing: BEACH: BEACH-ROOM
@@ -351,7 +329,6 @@ Room light: DOCK: original lit, port dark
 Room light: GALLE: original lit, port dark
 Room light: LLD1: original lit, port dark
 Room light: LLD2: original lit, port dark
-Room light: LOBBY: original lit, port dark
 Room light: POG: original lit, port dark
 Room light: RAINB: original lit, port dark
 Room light: TEMP1: original lit, port dark

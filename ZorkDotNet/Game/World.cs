@@ -185,6 +185,7 @@ public class World
                 ["WEST"] = ExitTarget.Blocked("You try to ascend the ramp, but it is impossible, and you slide back down.")
             },
             objectIds: new[] { "TDOOR" },
+            roomAction: RoomActions.Cellar,
             visitScore: 25,
             onEnter: RoomActions.OnEnterCellar);
 
@@ -515,7 +516,7 @@ public class World
         AddRoom("LOBBY",
             "This room appears to have been the waiting room for groups touring the dam.  There are exits here to the north and east marked 'Private', though the doors are open, and an exit to the south.",
             "Dam Lobby",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("DAM"), ["NORTH"] = new("MAINT"), ["EAST"] = new("MAINT") });
         AddRoom("MAINT",
             "You are in what appears to have been the maintenance room for Flood Control Dam #3, judging by the assortment of tool chests around the room.  Apparently, this room has been ransacked recently, for most of the valuable equipment is gone. On the wall in front of you is a panel of buttons, which are labelled in EBCDIC. However, they are of different colors:  Blue, Yellow, Brown, and Red. The doors to this room are in the west and south ends.",
@@ -672,8 +673,9 @@ public class World
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("WCLF2"), ["LAUNC"] = new("RIVR3") });
         AddRoom("WCLF2", "You are on a rocky, narrow strip of beach beside the Cliffs.  A narrow path leads north along the shore.", "White Cliffs Beach", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("WCLF1"), ["LAUNC"] = new("RIVR4") });
-        AddRoom("FCHMP", "You have gone over Aragain Falls.  Not a very smart thing to do, apparently.", "Moby lossage", false,
-            new Dictionary<string, ExitTarget>(),
+        AddRoom("FCHMP", "", "Moby lossage", false,
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
+            roomAction: RoomActions.OverFallsLook,
             onEnter: RoomActions.OverFalls);
         AddRoom("RCAVE", "You are on the west shore of the river.  An entrance to a cave is to the northwest.  The shore is very rocky here.", "Rocky Shore", false,
             new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR3"), ["NW"] = new("TCAVE") });
@@ -791,7 +793,8 @@ public class World
 
         // ---- Objects (from dung.56 #OBJECT / ADD-OBJECT) ----
         AddObject("FDOOR", "The door is closed.", "door", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("MAILB", "The small mailbox is here.", "mailbox", "The small mailbox is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 5, 0);
+        AddObject("MAILB", "There is a small mailbox here.", "mailbox", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 10, new[] { "BOX" });
+        AddObject("ADVER", "There is a small leaflet here.", "leaflet", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "PAMPH", "LEAFL", "BOOKL" });
         AddObject("WIND1", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0);
         AddObject("WIND2", "", "window", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0);
         AddObject("SBAG", "A sandwich bag is here.", "sandwich bag", "On the table is an elongated brown sack, smelling of hot peppers.", null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Burnable, 0, 0, 0, 3, 15,
@@ -806,15 +809,15 @@ public class World
         AddObject("SWORD", "There is an elvish sword here.", "sword", "On hooks above the mantelpiece hangs an elvish sword of great antiquity.", null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 30, 0, new[] { "ORCRI", "GLAMD", "BLADE" });
         AddObject("LAMP", "There is a brass lantern (battery-powered) here.", "lamp", "A battery-powered brass lantern is on the trophy case.", ObjectActions.Lantern, ObjectFlags.Take | ObjectFlags.Visible, -1, 0, 0, 15, 0, new[] { "LANTE" });
         AddObject("BLAMP", "There is a broken brass lantern here.", "broken lamp", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 15, 0, new[] { "LAMP", "LANTE" });
-        AddObject("MATCH", "A match is here.", "match", null, ObjectActions.MatchFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0);
+        AddObject("MATCH", "There is a matchbook whose cover says 'Visit Beautiful FCD#3' here.", "matchbook", null, ObjectActions.MatchFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "FLINT" });
         AddObject("CANDL", "Some candles are here.", "candles", null, ObjectActions.CandlesFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "CANDLE" });
         AddObject("RUG", "", "carpet", null, ObjectActions.Rug, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "CARPE" });
         AddObject("TCASE", "There is a trophy case here.", "trophy case", null, ObjectActions.TrophyCase, ObjectFlags.Container | ObjectFlags.Transparent | ObjectFlags.Visible, 0, 0, 0, 100, 100, new[] { "CASE" });
-        AddObject("PAPER", "There is a leaflet here.", "leaflet", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 1, 0);
+        AddObject("PAPER", "", "newspaper", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "NEWSP", "ISSUE", "REPOR", "MAGAZ", "NEWS" });
         AddObject("WDOOR", "", "wooden door", null, null, ObjectFlags.Door | ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("DOOR", "The trap door is closed.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Door, 0, 0, 0, 100, 0, new[] { "TRAP" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
-        AddObject("TDOOR", "The trap door is open.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TRAP" });
-        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 2);
+        AddObject("DOOR", "The trap door is closed.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
+        AddObject("TDOOR", "The trap door is open.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP" });
+        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 2);
         AddObject("AXE", "There is a bloody axe here.", "bloody axe", null, null, ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 25, 0);
         AddObject("RKNIF", "There is a rusty knife here.", "rusty knife", "Beside the skeleton is a rusty knife.", null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 20, 0, new[] { "KNIFE" });
         AddObject("BLANT", "There is a burned-out lantern here.", "burned-out lantern", "The deceased adventurer's useless lantern is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "LANTE", "LAMP" });
@@ -874,7 +877,9 @@ public class World
         // Place objects in starting rooms
         PlaceInRoom("WHOUS", "FDOOR", "MAILB");
         PlaceInRoom("EHOUS", "WIND1");
-        PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL", "MATCH");
+        PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
+        PlaceInRoom("LOBBY", "MATCH");
+        PutInContainer("MAILB", "ADVER");
         PutInContainer("SBAG", "GARLI", "FOOD");
         PutInContainer("BOTTL", "WATER");
         PlaceInRoom("ATTIC", "BRICK", "ROPE", "KNIFE");
@@ -916,6 +921,13 @@ public class World
         PlaceInRoom("TEMP1", "BELL");
         PlaceInRoom("TEMP2", "BOOK");
         PlaceInRoom("CANY1", "STICK");
+
+        // Reading texts (dung.56 ADD-DESC)
+        foreach (var (id, text) in ReadTexts.ByObject)
+        {
+            var o = FindObject(id);
+            if (o != null) o.ReadText = text;
+        }
 
         // Starting location (BLOC = WHOUS in original)
         var start = FindRoom("WHOUS")!;

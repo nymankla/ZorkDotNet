@@ -12,6 +12,8 @@ public class GameObject
     /// <summary>Short description (e.g. "lamp", "sword").</summary>
     public string DescriptionShort { get; set; } = "";
     public string? DescriptionUntouched { get; set; }
+    /// <summary>MDL OREAD: the text READ prints (from <see cref="ReadTexts"/>).</summary>
+    public string? ReadText { get; set; }
     public Action<GameState, string, GameObject?>? ObjectAction { get; set; }
     public List<GameObject> Contents { get; } = new();
     public GameObject? Container { get; set; }

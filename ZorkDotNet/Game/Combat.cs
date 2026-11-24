@@ -29,19 +29,23 @@ public static class Combat
         return list;
     }
 
-    /// <summary>INFESTED?: true if room or adjacent has a villain (for sword glow).</summary>
-    public static bool Infested(GameState state, Room room)
+    /// <summary>act1.38 INFESTED?: a villain is in this room.</summary>
+    public static bool Infested(Room room) => room.Objects.Any(o => o.IsVillain);
+
+    /// <summary>
+    /// act1.38 SWORD-GLOW: 2 if a villain is here, 1 if one is in a room an exit leads to (plain or conditional, whether
+    /// or not it's open; blocked exits don't count), else 0.
+    /// </summary>
+    public static int SwordGlow(GameState state, Room here)
     {
-        if (state.World == null) return false;
-        if (room.Objects.Any(o => o.IsVillain)) return true;
-        foreach (var kv in room.Exits)
+        if (Infested(here)) return 2;
+        if (state.World == null) return 0;
+        foreach (var target in here.Exits.Values)
         {
-            var target = kv.Value;
-            Room? adj = null;
-            if (target.RoomId != null) adj = state.World.FindRoom(target.RoomId);
-            if (adj != null && adj.Objects.Any(o => o.IsVillain)) return true;
+            var adj = target.RoomId != null ? state.World.FindRoom(target.RoomId) : null;
+            if (adj != null && Infested(adj)) return 1;
         }
-        return false;
+        return 0;
     }
 
     /// <summary>SWORD-DEMON: when player has sword, update glow from INFESTED? and print message.</summary>
@@ -51,7 +55,7 @@ public static class Combat
         var sword = state.World.FindObject("SWORD");
         if (sword == null || !state.Winner.Inventory.Contains(sword)) return;
         var here = state.Here;
-        var ng = Infested(state, here) ? 2 : (state.Rooms.Any(r => r != here && Infested(state, r))) ? 1 : 0;
+        var ng = SwordGlow(state, here);
         var g = state.ObjectState.TryGetValue(sword.Id, out var v) ? v : 0;
         if (ng == g) return;
         state.ObjectState[sword.Id] = ng;

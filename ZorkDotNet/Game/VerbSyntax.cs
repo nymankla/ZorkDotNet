@@ -77,6 +77,8 @@ public static class Preposition
     public const string In = "IN";
     public const string To = "TO";
     public const string At = "AT";
+    public const string On = "ON";
+    public const string Off = "OFF";
 
     public static string? Normalize(string normWord)
     {
@@ -84,6 +86,8 @@ public static class Preposition
         if (normWord == "IN" || normWord == "INSID" || normWord == "INTO") return In;
         if (normWord == "TO") return To;
         if (normWord == "AT") return At;
+        if (normWord == "ON") return On;
+        if (normWord == "OFF") return Off;
         return null;
     }
 }
@@ -228,9 +232,12 @@ public static class VerbTable
         AddWords(new[] { "POUR" }, V("POUR", "pour",
             new Syntax(ArgRoom, VArg.Empty, "POUR", isDriver: true)));
 
-        // TURN ON/OFF: handled as sub-verb in parser
-        AddWords(new[] { "TURN", "TURNO" }, V("TURN", "turn",
-            new Syntax(ArgRoom, VArg.Empty, "TURN", isDriver: true)));
+        // dung.56 TURN: TURN obj [WITH tool] (driver), TURN ON light, TURN OFF light. The light slots are AOBJS ROBJS
+        // without NO-TAKE, so a lamp on the floor is taken first (np.93 TAKE-IT-OR-LEAVE-IT).
+        AddWords(new[] { "TURN" }, V("TURN", "turn",
+            new Syntax(ArgRoomNoTake, VArg.Empty, "TURN", isDriver: true),
+            new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.On), VArg.Empty, "TURNON"),
+            new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.Off), VArg.Empty, "TURNOFF")));
 
         // System / no object
         AddWords(new[] { "BRIEF" }, V("BRIEF", "brief", new Syntax(VArg.Empty, VArg.Empty, "BRIEF", isDriver: true)));

@@ -68,14 +68,6 @@ public static class Parser
             return;
         }
 
-        // MOVE RUG in living room first so RUG-MOVED gets set reliably (before orphan handling)
-        if (words.Length >= 2 && NormWord(words[0]) == "MOVE" && (NormWord(words[1]) == "RUG" || NormWord(words[1]) == "CARPE")
-            && string.Equals(state.Here?.Id, "LROOM", StringComparison.OrdinalIgnoreCase))
-        {
-            var rug = state.World?.FindObject("RUG");
-            if (rug != null) { DoMove(state, rug); return; }
-        }
-
         // Orphan handling: after "Which X?" next input can be just the noun to disambiguate
         if (state.PendingVerb != null && state.PendingWords != null)
         {
@@ -186,7 +178,7 @@ public static class Parser
         }
 
         // Sparse: build PRSVEC (o1, prep2, o2) from remaining words
-        Sparse(state, words, spec, out var o1, out var prep2, out var o2, out var ambiguousWord);
+        Sparse(state, words, spec, out var prep1, out var o1, out var prep2, out var o2, out var ambiguousWord);
         if (ambiguousWord != null)
         {
             SetPending(state, spec.ActionName, words);
@@ -195,19 +187,29 @@ public static class Parser
         }
 
         // SYN-MATCH: find syntax, optionally GWIM, then dispatch
-        SynMatch(state, spec, o1, prep2, o2, words);
+        SynMatch(state, spec, o1, prep2, o2, words, prep1);
     }
 
     /// <summary>SPARSE: parse words after verb into direct object and optional (prep, indirect object).</summary>
     private static void Sparse(GameState state, string[] words, VerbSpec spec,
-        out GameObject? o1, out string? prep2, out GameObject? o2, out string? ambiguousWord)
+        out string? prep1, out GameObject? o1, out string? prep2, out GameObject? o2, out string? ambiguousWord)
     {
+        prep1 = null;
         o1 = null;
         prep2 = null;
         o2 = null;
         ambiguousWord = null;
         var start = 1;
         if (start >= words.Length) return;
+
+        // A preposition right after the verb belongs to the first slot when a syntax wants one there ("TURN ON LAMP").
+        var leading = Preposition.Normalize(NormWord(words[start]));
+        if (leading != null && spec.Syntaxes.Any(s => s.Syn1.Prep == leading))
+        {
+            prep1 = leading;
+            start++;
+            if (start >= words.Length) return;
+        }
 
         // Prepositions that this verb's slot2 can use (PREPVEC-style)
         var slot2Preps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -245,16 +247,16 @@ public static class Parser
     }
 
     /// <summary>SYN-MATCH: try syntaxes, GWIM if missing object, then dispatch (np.93).</summary>
-    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string[] words)
+    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string[] words, string? prep1 = null)
     {
         state.LastVerb = spec.ActionName;
         Syntax? driver = null;
         Syntax? match = null;
         foreach (var syn in spec.Syntaxes)
         {
-            if (SynEqual(syn.Syn1, o1, null) && SynEqual(syn.Syn2, o2, prep2))
+            if (SynEqual(syn.Syn1, o1, prep1) && SynEqual(syn.Syn2, o2, prep2))
             { match = syn; break; }
-            if ((o1 == null || o2 == null) && syn.IsDriver) driver = syn;
+            if ((o1 == null || o2 == null) && prep1 == null && syn.IsDriver) driver = syn;
         }
         var chosen = match ?? driver;
         if (chosen == null)
@@ -371,20 +373,17 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to pour?");
                 break;
             case "TURN":
-                var subVerb = "TURN";
-                var startIdx = 1;
-                if (words.Length >= 2 && NormWord(words[1]) == "ON") { subVerb = "TURNON"; startIdx = 2; }
-                else if (words.Length >= 2 && NormWord(words[1]) == "OFF") { subVerb = "TURNOFF"; startIdx = 2; }
-                var turnObj = startIdx < words.Length ? ResolveObject(state, words, startIdx, out _) : direct;
-                if (turnObj != null)
+            case "TURNON":
+            case "TURNOFF":
+                if (direct == null)
                 {
-                    state.LastDirectObject = turnObj;
-                    if (turnObj.ObjectAction != null) turnObj.ObjectAction(state, subVerb, null);
-                    else if (subVerb == "TURNON") LampOn(state, turnObj);
-                    else if (subVerb == "TURNOFF") LampOff(state, turnObj);
-                    else state.Output.WriteLine("Nothing happens.");
+                    state.Output.WriteLine(action == "TURN" ? "What do you want to turn?" : "What do you want to turn " + (action == "TURNON" ? "on" : "off") + "?");
+                    break;
                 }
-                else state.Output.WriteLine("What do you want to turn?");
+                if (direct.ObjectAction != null) direct.ObjectAction(state, action, null);
+                else if (action == "TURNON") LampOn(state, direct);
+                else if (action == "TURNOFF") LampOff(state, direct);
+                else state.Output.WriteLine("Nothing happens.");
                 break;
             case "QUIT": Scoring.Quit(state); break;
             case "SCORE": Scoring.PrintScore(state, ask: true); break;
@@ -577,40 +576,89 @@ public static class Parser
         }
         // No Moves++ here: the original (rooms.99 RDCOM) counts one move per command, and GOTO never adds one.
         if (!nextRoom.Seen) state.Winner.Score += nextRoom.VisitScore;
+        var wasSeen = nextRoom.Seen;
         nextRoom.Seen = true;
-        nextRoom.OnEnter?.Invoke(state);
-        if (state.Running) DoLook(state);
+        // rooms.99 ROOM-INFO: describe the room and its objects first, then run the room's WALK-IN action. In the
+        // dark ROOM-INFO stops after "It is pitch black", so the WALK-IN action doesn't run.
+        if (DoLook(state, full: false, seen: wasSeen) && state.Running)
+            nextRoom.OnEnter?.Invoke(state);
     }
 
-    private static void DoLook(GameState state)
+    /// <summary>
+    /// rooms.99 ROOM-INFO. <paramref name="full"/> is true for an explicit LOOK. Returns false when the room is dark
+    /// (nothing but the grue warning was printed).
+    /// </summary>
+    private static bool DoLook(GameState state, bool full = true, bool seen = true)
     {
         var r = state.Here;
-        var brief = state.Winner.BriefMode && r.Seen;
-        var superBrief = state.Winner.SuperBriefMode;
-        if (r.RoomAction != null)
+        if (!GameState.IsLit(state))
         {
-            r.RoomAction(state, "LOOK");
-            if (GameState.IsLit(state)) PrintRoomObjects(state);
-            else state.Output.WriteLine("It is too dark to see.");
-            return;
+            state.Output.WriteLine("It is pitch black.  You are likely to be eaten by a grue.");
+            return false;
         }
-        if (superBrief)
+        var brief = state.Winner.BriefMode && seen && !full;
+        var superBrief = state.Winner.SuperBriefMode && !full;
+        if ((superBrief || brief) && !string.IsNullOrEmpty(r.DescriptionShort))
             state.Output.WriteLine(r.DescriptionShort);
-        else if (brief && !string.IsNullOrEmpty(r.DescriptionShort))
-            state.Output.WriteLine(r.DescriptionShort);
+        else if (r.RoomAction != null)
+            r.RoomAction(state, "LOOK");
         else
             state.Output.WriteLine(string.IsNullOrEmpty(r.DescriptionLong) ? r.DescriptionShort : r.DescriptionLong);
-        if (GameState.IsLit(state)) PrintRoomObjects(state);
-        else state.Output.WriteLine("It is too dark to see.");
+        var vehicle = state.Winner.Vehicle;
+        if (vehicle != null) state.Output.WriteLine("You are in the " + vehicle.DescriptionShort + ".");
+        // PRINT-CONT's CASE?: the trophy case contents are left out of brief room descriptions.
+        var showCase = full || !(state.Winner.SuperBriefMode || state.Winner.BriefMode);
+        foreach (var o in r.Objects)
+        {
+            if (o.IsVisible && (o.Flags & ObjectFlags.NoDescribe) == 0 && o != vehicle)
+            {
+                var desc = LongDescription(o);
+                if (!string.IsNullOrEmpty(desc))
+                    state.Output.WriteLine(vehicle != null ? desc + " [in the room]" : desc);
+            }
+            if (SeeInside(o)) PrintContents(state, o, "", showCase);
+        }
+        return true;
     }
 
-    private static void PrintRoomObjects(GameState state)
+    /// <summary>rooms.99 LONG-DESC-OBJ: the "untouched" description (ODESCO) until the object is first taken.</summary>
+    private static string LongDescription(GameObject o) =>
+        o.Touched || string.IsNullOrEmpty(o.DescriptionUntouched) ? o.DescriptionHere : o.DescriptionUntouched;
+
+    /// <summary>defs.63 SEE-INSIDE?: visible, and transparent or open.</summary>
+    private static bool SeeInside(GameObject o) => o.IsVisible && (o.IsTransparent || o.Open);
+
+    /// <summary>rooms.99 PRINT-CONT: "The bottle contains:" and one line per visible item, nested containers indented.</summary>
+    private static void PrintContents(GameState state, GameObject container, string indent, bool showCase)
     {
-        var visible = state.Here.Objects.Where(o => o.IsVisible).ToList();
-        foreach (var c in state.Here.Objects.Where(o => o.IsOpenOrTransparent || o.Open))
-            visible.AddRange(c.Contents.Where(x => x.IsVisible));
-        foreach (var o in visible.Distinct().Where(o => !string.IsNullOrEmpty(o.DescriptionHere)))
-            state.Output.WriteLine(o.DescriptionHere);
+        if (container.Contents.Count == 0) return;
+        if (container.Id == "TCASE")
+        {
+            if (!showCase) return;
+            state.Output.WriteLine("Your collection of treasures consists of:");
+        }
+        else
+            state.Output.WriteLine(indent + "The " + container.DescriptionShort + " contains:");
+        foreach (var y in container.Contents)
+        {
+            if (y.IsVisible && (y.Flags & ObjectFlags.NoDescribe) == 0 && !string.IsNullOrEmpty(y.DescriptionShort))
+                state.Output.WriteLine(indent + " A " + y.DescriptionShort);
+            if (SeeInside(y)) PrintContents(state, y, indent + " ", showCase);
+        }
+    }
+
+    /// <summary>rooms.99 PRINT-CONTENTS: "a leaflet", "a bag, and a bottle", "a, b, and c".</summary>
+    private static string ListContents(List<GameObject> objects)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < objects.Count; i++)
+        {
+            sb.Append("a ").Append(objects[i].DescriptionShort);
+            var left = objects.Count - i;
+            if (left > 2) sb.Append(", ");
+            else if (left == 2) sb.Append(", and ");
+        }
+        return sb.ToString();
     }
 
     private static void DoBoard(GameState state, GameObject obj)
@@ -677,7 +725,9 @@ public static class Parser
         obj.Container = null;
         obj.Carrier = state.Winner;
         state.Winner.Inventory.Add(obj);
-        if (obj.FindScore > 0 && !obj.Touched) { obj.Touched = true; state.Winner.Score += obj.FindScore; }
+        // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
+        if (!obj.Touched) state.Winner.Score += obj.FindScore;
+        obj.Touched = true;
         state.Output.WriteLine("Taken.");
     }
 
@@ -700,10 +750,28 @@ public static class Parser
             obj.ObjectAction(state, "OPEN", null);
             return;
         }
-        if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) == 0)
-        { state.Output.WriteLine("That's not something you can open."); return; }
-        if (obj.Open) state.Output.WriteLine("It is already open.");
-        else { obj.Open = true; state.Output.WriteLine("Opened."); }
+        if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) != 0)
+        {
+            // Doors without their own action (the original's DDOOR-FUNCTION isn't ported yet).
+            if (obj.Open) state.Output.WriteLine("It is already open.");
+            else { obj.Open = true; state.Output.WriteLine("Opened."); }
+            return;
+        }
+        // rooms.99 OPENER
+        if (!obj.IsContainer)
+            state.Output.WriteLine("You must tell me how to do that to a " + obj.DescriptionShort + ".");
+        else if (obj.Capacity == 0)
+            state.Output.WriteLine("The " + obj.DescriptionShort + " cannot be opened.");
+        else if (obj.Open)
+            state.Output.WriteLine("It is already open.");
+        else
+        {
+            obj.Open = true;
+            if (obj.Contents.Count == 0 || obj.IsTransparent)
+                state.Output.WriteLine("Opened.");
+            else
+                state.Output.WriteLine("Opening the " + obj.DescriptionShort + " reveals " + ListContents(obj.Contents) + ".");
+        }
     }
 
     /// <summary>CLOSE: try ObjectAction first (e.g. window) so objects with custom close behavior work.</summary>
@@ -715,7 +783,12 @@ public static class Parser
             obj.ObjectAction(state, "CLOSE", null);
             return;
         }
-        if (!obj.Open) state.Output.WriteLine("It is already closed.");
+        // rooms.99 CLOSER (doors without their own action keep the plain open/closed toggle)
+        if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) == 0)
+            state.Output.WriteLine("You must tell me how to do that to a " + obj.DescriptionShort + ".");
+        else if (obj.IsContainer && obj.Capacity == 0)
+            state.Output.WriteLine("You cannot close that.");
+        else if (!obj.Open) state.Output.WriteLine("It is already closed.");
         else { obj.Open = false; state.Output.WriteLine("Closed."); }
     }
 
