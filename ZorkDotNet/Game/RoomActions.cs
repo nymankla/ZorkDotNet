@@ -84,6 +84,18 @@ public static class RoomActions
         if (next != null) Parser.MoveToRoom(state, next);
     }
 
+    /// <summary>act1.38 WELL: answering the riddle in the Riddle Room opens its east door.</summary>
+    public static void Well(GameState state)
+    {
+        if (!state.GetFlag("RIDDLE-FLAG!-FLAG") && state.Here?.Id == "RIDDL")
+        {
+            state.SetFlag("RIDDLE-FLAG!-FLAG", true);
+            state.Output.WriteLine("There is a clap of thunder and the east door opens.");
+        }
+        else
+            state.Output.WriteLine("Well what?");
+    }
+
     /// <summary>act1.38 CELLAR on LOOK: the room's description (CELLA has no RDESC1 of its own).</summary>
     public static void Cellar(GameState state, string verb)
     {

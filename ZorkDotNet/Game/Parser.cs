@@ -412,6 +412,7 @@ public static class Parser
                 break;
             case "DIAGNOSE": ObjectActions.Diagnose(state); break;
             case "EXORCISE": state.Output.WriteLine("Nothing happens."); break;
+            case "WELL": RoomActions.Well(state); break;
             case "BOARD":
                 if (direct != null) DoBoard(state, direct);
                 else state.Output.WriteLine("What do you want to board?");
@@ -520,36 +521,39 @@ public static class Parser
         return false;
     }
 
+    private const string NoWay = "There is no way to go in that direction.";
+
     private static void TryGo(GameState state, string direction)
     {
         var r = state.Here;
+        // rooms.99 WALK: no exit -> "There is no way to go in that direction."; #NEXIT -> its message (even "");
+        // a closed #CEXIT -> its message, nothing if that is "", or the no-way message if it has none.
         if (!r.Exits.TryGetValue(direction, out var target))
         {
-            state.Output.WriteLine("You can't go that way.");
+            state.Output.WriteLine(NoWay);
             return;
         }
         if (target.IsBlocked)
         {
-            state.Output.WriteLine(target.BlockedMessage ?? "You can't go that way.");
+            state.Output.WriteLine(target.BlockedMessage);
             return;
         }
         if (target.IsConditional && target.ConditionFlag != null)
         {
             if (state.World != null && state.World.TryGetBeforeExitAction(r.Id, direction, out var beforeAction) && beforeAction != null)
                 beforeAction(state);
+            if (state.World != null && state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null
+                && exitAction(state, direction))
+                return;
             if (!state.GetFlag(target.ConditionFlag))
             {
-                if (state.World != null && state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null)
-                {
-                    exitAction(state, direction);
-                    return;
-                }
-                state.Output.WriteLine(target.BlockedMessage ?? "You can't go that way.");
+                if (target.BlockedMessage == null) state.Output.WriteLine(NoWay);
+                else if (target.BlockedMessage.Length > 0) state.Output.WriteLine(target.BlockedMessage);
                 return;
             }
         }
         var nextRoom = state.World!.FindRoom(target.RoomId!);
-        if (nextRoom == null) { state.Output.WriteLine("You can't go that way."); return; }
+        if (nextRoom == null) { state.Output.WriteLine(NoWay); return; }
         if (nextRoom.Munged)
         {
             state.Output.WriteLine(nextRoom.MungedMessage ?? "The way is blocked.");

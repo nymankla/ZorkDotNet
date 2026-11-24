@@ -20,8 +20,11 @@ public class World
     public IEnumerable<Room> Rooms => _rooms.Values;
     public IEnumerable<GameObject> Objects => _objects.Values;
 
-    /// <summary>Optional exit functions (e.g. CAROUSEL-EXIT). When conditional exit is blocked, run this instead.</summary>
-    private readonly Dictionary<(string roomId, string direction), Action<GameState, string>> _exitActions = new();
+    /// <summary>
+    /// MDL CXACTION of a conditional exit (e.g. CAROUSEL-EXIT). As in rooms.99 WALK it runs before the exit's flag is
+    /// checked; it returns true when it has dealt with the move, false to let the flag decide.
+    /// </summary>
+    private readonly Dictionary<(string roomId, string direction), Func<GameState, string, bool>> _exitActions = new();
     /// <summary>Runs before evaluating conditional exit (e.g. COFFIN-CURE sets EGYPT-FLAG from inventory).</summary>
     private readonly Dictionary<(string roomId, string direction), Action<GameState>> _beforeExitActions = new();
 
@@ -37,7 +40,7 @@ public class World
         return false;
     }
 
-    public bool TryGetExitAction(string roomId, string direction, out Action<GameState, string>? action)
+    public bool TryGetExitAction(string roomId, string direction, out Func<GameState, string, bool>? action)
     {
         var key = (NormId(roomId), direction);
         if (_exitActions.TryGetValue(key, out var act))
@@ -83,6 +86,8 @@ public class World
         _state.SetFlag("RAINBOW!-FLAG", false);
         _state.SetFlag("BINF!-FLAG", false);
         _state.SetFlag("IN-BALLOON!-FLAG", false);
+        _state.SetFlag("RIDDLE-FLAG!-FLAG", false);
+        _state.SetFlag("LIGHT-LOAD!-FLAG", false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -298,12 +303,15 @@ public class World
                 ["NW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "CANY1", null),
                 ["NE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS5", null),
                 ["SE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS4", null),
-                ["SW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MAZE1", null)
+                ["SW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MAZE1", null),
+                // Its CAROUSEL-OUT action always picks a random exit first, so PASS3 is never actually reached.
+                ["EXIT"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS3", "")
             },
             objectIds: new[] { "IRBOX" },
             roomAction: RoomActions.CarouselRoom);
         RegisterCarouselExitActions();
         RegisterCoffinCure();
+        _beforeExitActions[(NormId("STUDI"), "UP")] = ChimneyFunction;
 
         AddRoom("CANY1",
             "You are on the south edge of a deep canyon.  Passages lead off to the east, south, and northwest.  You can hear the sound of flowing water below.",
@@ -398,17 +406,22 @@ public class World
             new Dictionary<string, ExitTarget> { ["WEST"] = new("LAVA"), ["SOUTH"] = new("ICY") },
             objectIds: new[] { "RUBY" });
         AddRoom("CHAS1", "A chasm runs southwest to northeast.  You are on the south edge; the path exits to the south and to the east.", "Chasm", false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("RAVI1") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("RAVI1"), ["EAST"] = new("PASS5"), ["DOWN"] = ExitTarget.Blocked("Are you out of your mind?") });
         AddRoom("CRAW1",
             "You are in a crawlway with a three-foot high ceiling.  Your footing is very unsure here due to the assortment of rocks underfoot. Passages can be seen in the east, west, and northwest corners of the passage.",
             "Rocky Crawl",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("RAVI1"), ["EAST"] = new("DOME"), ["NW"] = new("EGYPT") });
         AddRoom("DOME", "", "Dome Room", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("CRAW1") },
+            new Dictionary<string, ExitTarget>
+            {
+                ["EAST"] = new("CRAW1"),
+                ["DOWN"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones."),
+                ["CLIMB"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones.")
+            },
             objectIds: new[] { "RAILI" });
         AddRoom("PASS5", "You are in a high north-south passage, which forks to the northeast.", "North-South Passage", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("MIRR2"), ["WEST"] = new("SLIDE"), ["NORTH"] = new("CRAW2") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS1"), ["NE"] = new("ECHO"), ["SOUTH"] = new("CAROU") });
         AddRoom("SLIDE",
             "You are in a small chamber, which appears to have been part of a coal mine. On the south wall of the chamber the letters \"Granite Wall\" are etched in the rock. To the east is a long passage and there is a steep metal slide twisting downward. From the appearance of the slide, an attempt to climb up it would be impossible.  To the north is a small opening.",
             "Slide Room",
@@ -501,9 +514,9 @@ public class World
                 ["NORTH"] = ExitTarget.Blocked("You hear the whir of the carousel room but can find no entrance.")
             });
         AddRoom("CAVE4", "You have entered a cave with passages leading north and southeast.", "Engravings Cave", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAROU") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CAROU"), ["SE"] = new("RIDDL") });
         AddRoom("MGRAI", "You are standing in a small circular room with a pedestal.  A set of stairs leads up, and passages leave to the east and west.", "Grail Room", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CRAW3"), ["WEST"] = new("CAROU"), ["EAST"] = new("CRAW3"), ["UP"] = new("TEMP1") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("CAROU"), ["EAST"] = new("CRAW3"), ["UP"] = new("TEMP1") });
         AddRoom("DAM", "", "Dam", true,
             new Dictionary<string, ExitTarget>
             {
@@ -574,8 +587,8 @@ public class World
         AddRoom("SAFE", "", "Dusty Room", true,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("LEDG4") },
             roomAction: RoomActions.SafeRoom);
-        AddRoom("STUDI", "You are in what appears to have been an artist's studio.  The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here.  At the north and northwest of the room are open doors (also covered with paint).  An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4") });
-        AddRoom("GALLE", "You are in an art gallery.  Most of the paintings which were here have been stolen by vandals with exceptional taste.  The vandals left through either the north or south exits.", "Gallery", true, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS2") });
+        AddRoom("STUDI", "You are in what appears to have been an artist's studio.  The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here.  At the north and northwest of the room are open doors (also covered with paint).  An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4"), ["NW"] = new("GALLE"), ["UP"] = new ExitTarget("LIGHT-LOAD!-FLAG", "KITCH", "The chimney is too narrow for you and all of your baggage.") });
+        AddRoom("GALLE", "You are in an art gallery.  Most of the paintings which were here have been stolen by vandals with exceptional taste.  The vandals left through either the north or south exits.", "Gallery", true, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS2"), ["SOUTH"] = new("STUDI") });
         AddRoom("CYCLO", "", "Cyclops Room", false,
             new Dictionary<string, ExitTarget>
             {
@@ -606,7 +619,13 @@ public class World
             "You are on a small beach on the continuation of the Frigid River past the Falls.  The beach is narrow due to the presence of the White Cliffs.  The river canyon opens here and sunlight shines in from above.  A rainbow crosses over the falls to the west and a narrow path continues to the southeast.",
             "End of Rainbow",
             true,
-            new Dictionary<string, ExitTarget> { ["SE"] = new("CLBOT"), ["NORTH"] = new("FANTE") });
+            new Dictionary<string, ExitTarget>
+            {
+                ["SE"] = new("CLBOT"),
+                ["WEST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
+                ["NW"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
+                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null)
+            });
         AddRoom("FANTE",
             "You are on the shore of the River.  The river here seems somewhat treacherous.  A path travels from north to south here, the south end quickly turning around a sharp corner.",
             "Shore",
@@ -648,17 +667,23 @@ public class World
                 ["NE"] = new("CMACH"), ["NW"] = new("ALICE"), ["SW"] = new("ALICE"), ["SE"] = new("ALICE")
             });
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("The cage door is closed.") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") });
         AddRoom("ALISM",
             "You are in an enormous room, in the center of which are four wooden posts delineating a rectanular area, above which is what appears to be a wooden roof.  In fact, all objects in this room appear to be abnormally large. To the east is a passageway.  There is a large chasm on the west and the northwest.",
             "Posts Room",
             false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALITR") });
+            new Dictionary<string, ExitTarget>
+            {
+                ["EAST"] = new("ALITR"),
+                ["NW"] = ExitTarget.Blocked("There is a chasm too large to jump across."),
+                ["WEST"] = ExitTarget.Blocked("There is a chasm too large to jump across."),
+                ["DOWN"] = ExitTarget.Blocked("There is a chasm too large to jump across.")
+            });
         AddRoom("ALITR",
             "You are in a large room, one half of which is depressed.  There is a large leak in the ceiling through which brown colored goop is falling.  The only exit to this room is to the west.",
             "Pool Room",
             false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("ALISM") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("ALISM"), ["EXIT"] = new("ALISM") });
         AddRoom("RIVR1", "You are on the River Frigid in the vicinity of the Dam.  The river flows quietly here.  There is a landing on the west shore.", "Frigid River", false,
             new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["WEST"] = new("DOCK"), ["LAND"] = new("DOCK"), ["DOWN"] = new("RIVR2"), ["EAST"] = ExitTarget.Blocked(Cliffs) });
         AddRoom("RIVR2", "The River turns a corner here making it impossible to see the Dam.  The White Cliffs loom on the east bank and large rocks prevent landing on the west.", "Frigid River", false,
@@ -680,7 +705,7 @@ public class World
         AddRoom("RCAVE", "You are on the west shore of the river.  An entrance to a cave is to the northwest.  The shore is very rocky here.", "Rocky Shore", false,
             new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR3"), ["NW"] = new("TCAVE") });
         AddRoom("BARRE", "You are in a barrel.  Congratulations.  Etched into the side of the barrel is the word 'Geronimo!'.", "Barrel", false,
-            new Dictionary<string, ExitTarget> { ["EXIT"] = new("FALLS"), ["OUT"] = new("FALLS") });
+            new Dictionary<string, ExitTarget> { ["EXIT"] = new("FALLS") });
         AddRoom("ATLAN", "You are in an ancient room, long buried by the Reservoir.  There are exits here to the southeast and upward.", "Atlantis Room", false,
             new Dictionary<string, ExitTarget> { ["SE"] = new("RESEN"), ["UP"] = new("CAVE1") },
             objectIds: new[] { "TRIDE" });
@@ -696,14 +721,14 @@ public class World
             },
             roomAction: RoomActions.LldRoom);
         AddRoom("LLD2", "", "Land of the Living Dead", true,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("TOMB"), ["WEST"] = new("LLD1") },
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("TOMB"), ["WEST"] = new("LLD1"), ["EXIT"] = new("LLD1") },
             roomAction: RoomActions.Lld2Room, visitScore: 30);
         AddRoom("TOMB",
             "You are in the Tomb of the Unknown Implementer. A hollow voice says:  \"That's not a bug, it's a feature!\"",
             "Tomb of the Unknown Implementer",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("LLD2") });
-        AddRoom("TREAS", "This is a large room, whose north wall is solid granite.  A number of discarded bags, which crumble at your touch, are scattered about on the floor.", "Treasure Room", false, new Dictionary<string, ExitTarget>(), visitScore: 25);
+        AddRoom("TREAS", "This is a large room, whose north wall is solid granite.  A number of discarded bags, which crumble at your touch, are scattered about on the floor.", "Treasure Room", false, new Dictionary<string, ExitTarget> { ["DOWN"] = new("CYCLO") }, visitScore: 25);
         AddRoom("MPEAR",
             "This is a former broom closet.  The exits are to the east and west.",
             "Pearl Room",
@@ -713,7 +738,7 @@ public class World
             "This is a room which is bare on all sides.  There is an exit down.  To the east is a great door made of stone.  Above the stone, the following words are written: 'No man shall enter this room without solving this riddle: What is tall as a house, round as a cup, and all the king's horses can't draw it up?'",
             "Riddle Room",
             false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("BWELL"), ["EAST"] = ExitTarget.Blocked("The stone door is locked."), ["WEST"] = new("MPEAR") });
+            new Dictionary<string, ExitTarget> { ["DOWN"] = new("CAVE4"), ["EAST"] = new ExitTarget("RIDDLE-FLAG!-FLAG", "MPEAR", "Your way is blocked by an invisible force.") });
         AddRoom("TWELL",
             "You are at the top of the well.  Well done.  There are etchings on the side of the well. There is a small crack across the floor at the entrance to a room on the east, but it can be crossed easily.",
             "Top of Well",
@@ -723,7 +748,7 @@ public class World
             "You are in a damp circular room, whose walls are made of brick and mortar.  The roof of this room is not visible, but there appear to be some etchings on the walls.  There is a passageway to the west.",
             "Circular Room",
             false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("MPEAR"), ["UP"] = new("RIDDL") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("MPEAR"), ["UP"] = ExitTarget.Blocked("The walls cannot be climbed.") });
         AddRoom("ALICE",
             "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea.  It is clear from the objects on the table that the users were indeed mad.  In the eastern corner of the room is a small hole (no more that four inches high). There are passageways leading away to the west and the northwest.",
             "Tea Room",
@@ -746,14 +771,14 @@ public class World
         AddRoom("TIMBE", "You are in a long and narrow passage, which is cluttered with broken timbers.  A wide passage comes from the north and turns at the southwest corner of the room into a very narrow passageway.", "Timber Room", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("BLADD"), ["SW"] = new("BSHAF") });
         AddRoom("BSHAF", "You are in a small square room which is at the bottom of a long shaft. To the east is a passageway and to the northeast a very narrow passage. In the shaft can be seen a heavy iron chain.", "Lower Shaft", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new("TIMBE"), ["NE"] = new("TIMBE") },
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new("TIMBE"), ["NE"] = new("TIMBE"), ["UP"] = ExitTarget.Blocked("Not a chance."), ["CLIMB"] = ExitTarget.Blocked("The chain is not climbable.") },
             objectIds: new[] { "FBASK" });
         AddRoom("MACHI", "", "Machine Room", false,
             new Dictionary<string, ExitTarget> { ["NW"] = new("BSHAF") },
             objectIds: new[] { "MSWIT", "MACHI" },
             roomAction: RoomActions.MachineRoom);
         AddRoom("MTORC", "", "Torch Room", false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("MTORC"), ["DOWN"] = new("CRAW4") },
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked("You cannot reach the rope."), ["WEST"] = new("MTORC"), ["DOWN"] = new("CRAW4") },
             objectIds: new[] { "TORCH" });
         AddRoom("ECHO", "You are in a large room with a ceiling which cannot be detected from the ground. There is a narrow passage from east to west and a stone stairway leading upward.  The room is extremely noisy.  In fact, it is difficult to hear yourself think.", "Loud Room", false,
             new Dictionary<string, ExitTarget> { ["EAST"] = new("CHAS3"), ["WEST"] = new("PASS5"), ["UP"] = new("CAVE3") },
@@ -940,16 +965,45 @@ public class World
 
     private void RegisterCarouselExitActions()
     {
-        var carouselRooms = new[] { "CAVE4", "MGRAI", "PASS1", "CANY1", "PASS5", "PASS4", "MAZE1", "PASS3" };
-        void CarouselOut(GameState state, string _)
+        // act1.38 CAROUSEL-OUT: a random one of the eight compass exits (NORTH and SOUTH both lead to CAVE4).
+        var carouselRooms = new[] { "CAVE4", "CAVE4", "MGRAI", "PASS1", "CANY1", "PASS5", "PASS4", "MAZE1" };
+        void CarouselOut(GameState state)
         {
-            state.Output.WriteLine("Unfortunately, it is impossible to tell directions in here.");
             var room = FindRoom(carouselRooms[Random.Shared.Next(carouselRooms.Length)]);
             if (room != null)
                 Parser.MoveToRoom(state, room);
         }
+        // act1.38 CAROUSEL-EXIT: while the carousel spins, every direction is random.
+        bool CarouselExit(GameState state, string _)
+        {
+            if (state.GetFlag("CAROUSEL-FLIP!-FLAG")) return false;
+            state.Output.WriteLine("Unfortunately, it is impossible to tell directions in here.");
+            CarouselOut(state);
+            return true;
+        }
         foreach (var dir in new[] { "NORTH", "SOUTH", "EAST", "WEST", "NW", "NE", "SE", "SW" })
-            _exitActions[(NormId("CAROU"), dir)] = CarouselOut;
+            _exitActions[(NormId("CAROU"), dir)] = CarouselExit;
+        _exitActions[(NormId("CAROU"), "EXIT")] = (state, _) =>
+        {
+            CarouselOut(state);
+            return true;
+        };
+    }
+
+    /// <summary>
+    /// act1.38 CHIMNEY-FUNCTION, before the studio's UP exit: you fit up the chimney carrying at most two things,
+    /// one of them the lamp. Coming up this way, the trap door will slam again (if it's closed now).
+    /// </summary>
+    private void ChimneyFunction(GameState state)
+    {
+        var inventory = state.Winner.Inventory;
+        var light = inventory.Count <= 2 && inventory.Exists(o => o.Id == "LAMP");
+        state.SetFlag("LIGHT-LOAD!-FLAG", light);
+        if (light && !state.GetFlag("TRAP-DOOR!-FLAG"))
+        {
+            var door = FindObject("DOOR");
+            if (door != null) door.Touched = false;
+        }
     }
 
     private void RegisterCoffinCure()

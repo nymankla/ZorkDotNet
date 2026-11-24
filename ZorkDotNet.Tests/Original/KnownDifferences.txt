@@ -15,51 +15,17 @@ Exit condition: MAGNE WEST: original FROBOZZ, port none
 Exit condition: TIMBE SW: original EMPTY-HANDED, port none
 Exit condition: WCLF1 SOUTH: original DEFLATE, port none
 Exit condition: WCLF2 NORTH: original DEFLATE, port none
-Exit message: CAGED NORTH: original "", port "The cage door is closed."
-Exit missing: ALISM DOWN -> blocked "There is a chasm too large to jump across."
-Exit missing: ALISM NW -> blocked "There is a chasm too large to jump across."
-Exit missing: ALISM WEST -> blocked "There is a chasm too large to jump across."
-Exit missing: ALITR EXIT -> ALISM
-Exit missing: BSHAF CLIMB -> blocked "The chain is not climbable."
-Exit missing: BSHAF UP -> blocked "Not a chance."
-Exit missing: CAROU EXIT -> PASS3 if CAROUSEL-FLIP
-Exit missing: CAVE4 NORTH -> CAROU
-Exit missing: CAVE4 SE -> RIDDL
-Exit missing: CHAS1 DOWN -> blocked "Are you out of your mind?"
-Exit missing: CHAS1 EAST -> PASS5
-Exit missing: CHAS1 SOUTH -> RAVI1
-Exit missing: DOME CLIMB -> MTORC if DOME-FLAG
-Exit missing: DOME DOWN -> MTORC if DOME-FLAG
-Exit missing: GALLE SOUTH -> STUDI
 Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
 Exit missing: LEDG2 LAUNC -> VAIR2
 Exit missing: LEDG4 LAUNC -> VAIR4
-Exit missing: LLD2 EXIT -> LLD1
-Exit missing: MTORC UP -> blocked "You cannot reach the rope."
-Exit missing: PASS5 NE -> ECHO
-Exit missing: PASS5 SOUTH -> CAROU
-Exit missing: POG NW -> RAINB if RAINBOW
-Exit missing: POG UP -> RAINB if RAINBOW
-Exit missing: POG WEST -> RAINB if RAINBOW
 Exit missing: RESEN CROSS -> RESES if LOW-TIDE
 Exit missing: RESEN SOUTH -> RESES if LOW-TIDE
-Exit missing: STUDI NW -> GALLE
-Exit missing: STUDI UP -> KITCH if LIGHT-LOAD
-Exit missing: TREAS DOWN -> CYCLO
 Exit missing: VAIR2 LAND -> LEDG2
 Exit missing: VAIR2 WEST -> LEDG2
 Exit missing: VAIR4 EAST -> LEDG4
 Exit missing: VAIR4 LAND -> LEDG4
-Exit not in original: BARRE OUT -> FALLS
-Exit not in original: CAVE4 SOUTH -> CAROU
-Exit not in original: CHAS1 WEST -> RAVI1
 Exit not in original: LEDG2 UP -> VAIR2 if IN-BALLOON
 Exit not in original: LEDG4 UP -> VAIR1 if IN-BALLOON
-Exit not in original: MGRAI SOUTH -> CRAW3
-Exit not in original: PASS5 EAST -> MIRR2
-Exit not in original: PASS5 WEST -> SLIDE
-Exit not in original: POG NORTH -> FANTE
-Exit not in original: RIDDL WEST -> MPEAR
 Exit not in original: VAIR1 DOWN -> LEDG4
 Exit not in original: VAIR1 UP -> VAIR2
 Exit not in original: VAIR2 DOWN -> VAIR1
@@ -67,10 +33,6 @@ Exit not in original: VAIR2 UP -> VAIR3
 Exit not in original: VAIR3 DOWN -> VAIR2
 Exit not in original: VAIR3 UP -> VAIR4
 Exit not in original: VAIR4 DOWN -> VAIR3
-Exit should be blocked: BWELL UP: original "The walls cannot be climbed.", port RIDDL
-Exit target: PASS5 NORTH: original CHAS1, port CRAW2
-Exit target: RIDDL DOWN: original CAVE4, port BWELL
-Exit target: RIDDL EAST: original MPEAR if RIDDLE-FLAG, port blocked "The stone door is locked."
 Object action missing: BAT: FLY-ME
 Object action missing: BOOK: BLACK-BOOK
 Object action missing: BUCKE: BUCKET
@@ -300,7 +262,6 @@ Verb not understood: UNTIE: FREE
 Verb not understood: VERSI: VERSI
 Verb not understood: WAIT: WAIT
 Verb not understood: WAKE: WAKE AWAKE SURPR START
-Verb not understood: WELL: WELL
 Verb not understood: WHERE: WHERE FIND SEEK SEE
 Verb not understood: WIN: WIN WINNA
 Verb not understood: YELL: YELL SCREA SHOUT

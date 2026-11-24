@@ -256,6 +256,9 @@ public static class VerbTable
         AddWords(new[] { "BOARD" }, V("BOARD", "board", new Syntax(ArgRoom, VArg.Empty, "BOARD", isDriver: true)));
         AddWords(new[] { "DISEM", "GETOU" }, V("DISEMBARK", "disembark", new Syntax(VArg.Empty, VArg.Empty, "DISEMBARK", isDriver: true)));
 
+        // dung.56 SADD-ACTION "WELL": the answer to the riddle
+        AddWords(new[] { "WELL" }, V("WELL", "well", new Syntax(VArg.Empty, VArg.Empty, "WELL", isDriver: true)));
+
         // WALK/GO: special (direction); handled before verb table
         AddWords(new[] { "WALK", "GO", "G" }, V("WALK", "walk", new Syntax(VArg.Empty, VArg.Empty, "WALK", isDriver: true)));
 
