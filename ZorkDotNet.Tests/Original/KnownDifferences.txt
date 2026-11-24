@@ -1,7 +1,6 @@
 # Differences between the port and the original dung.56 that are not fixed yet.
 # One per line; checked by OriginalWorldTests. Delete a line when you fix it.
 # Regenerate with ZORK_UPDATE_KNOWN_DIFFERENCES=1 (see Original/README.md).
-Direction not understood: TRAVE
 Exit condition: BSHAF NE: original EMPTY-HANDED, port none
 Exit condition: BSHAF OUT: original EMPTY-HANDED, port none
 Exit condition: MAGNE EAST: original FROBOZZ, port none
@@ -200,26 +199,3 @@ Room action missing: TIMBE: NO-OBJS
 Room action missing: TREAS: TREASURE-ROOM
 Room action missing: WCLF1: CLIFF-FUNCTION
 Room action missing: WCLF2: CLIFF-FUNCTION
-Verb not understood: BRAND: BRAND FLAUN
-Verb not understood: BRUSH: BRUSH CLEAN
-Verb not understood: DEFLA: DEFLA
-Verb not understood: DIG: DIG
-Verb not understood: EXTIN: EXTIN DOUSE
-Verb not understood: FIND: FIND
-Verb not understood: FIRST: FIRST
-Verb not understood: HELP: HELP
-Verb not understood: INFLA: INFLA
-Verb not understood: KICK: KICK BITE TAUNT
-Verb not understood: KNOCK: KNOCK
-Verb not understood: MELT: MELT LIQUI
-Verb not understood: PLUG: PLUG GLUE PATCH
-Verb not understood: POKE: POKE JAB
-Verb not understood: RING: RING PEAL
-Verb not understood: STRIK: STRIK
-Verb not understood: SWIM: SWIM BATHE WADE
-Verb not understood: SWING: SWING THRUS
-Verb not understood: TELL: TELL COMMA REQUE
-Verb not understood: VERSI: VERSI
-Verb not understood: WAIT: WAIT
-Verb not understood: WAKE: WAKE AWAKE SURPR START
-Verb not understood: WHERE: WHERE FIND SEEK SEE

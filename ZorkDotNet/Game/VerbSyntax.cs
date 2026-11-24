@@ -79,6 +79,7 @@ public static class Preposition
     public const string At = "AT";
     public const string On = "ON";
     public const string Off = "OFF";
+    public const string Down = "DOWN";
 
     public static string? Normalize(string normWord)
     {
@@ -88,6 +89,7 @@ public static class Preposition
         if (normWord == "AT") return At;
         if (normWord == "ON") return On;
         if (normWord == "OFF") return Off;
+        if (normWord == "DOWN") return Down;
         return null;
     }
 }
@@ -185,7 +187,7 @@ public static class VerbTable
             new Syntax(ArgInv, ArgRoomAt, "THROW")));
 
         // WAVE
-        AddWords(new[] { "WAVE", "SHAKE" }, V("WAVE", "wave",
+        AddWords(new[] { "WAVE", "SHAKE", "BRAND", "FLAUN" }, V("WAVE", "wave",
             new Syntax(ArgRoom, VArg.Empty, "WAVE", isDriver: true)));
 
         // RUB (mirror puzzle)
@@ -220,7 +222,7 @@ public static class VerbTable
             new Syntax(ArgRoom, VArg.Empty, "LOWER", isDriver: true)));
 
         // BURN
-        AddWords(new[] { "BURN", "LIGHT", "INCIN", "IGNIT" }, V("BURN", "burn",
+        AddWords(new[] { "BURN", "INCIN", "IGNIT" }, V("BURN", "burn",
             new Syntax(ArgRoom, VArg.Empty, "BURN", isDriver: true)));
 
         // FILL / TIE / UNTIE / BREAK / POUR
@@ -242,6 +244,49 @@ public static class VerbTable
             new Syntax(ArgRoomNoTake, VArg.Empty, "TURN", isDriver: true),
             new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.On), VArg.Empty, "TURNON"),
             new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.Off), VArg.Empty, "TURNOFF")));
+
+        // dung.56 LIGHT and EXTIN: LAMP-ON / LAMP-OFF (LIGHT is not BURN). LIGHT x WITH y also just lights x.
+        var argLight = A(VArgFlags.VABIT | VArgFlags.VRBIT | VArgFlags.VTBIT);
+        AddWords(new[] { "LIGHT" }, V("LIGHT", "light",
+            new Syntax(argLight, VArg.Empty, "TURNON", isDriver: true),
+            new Syntax(argLight, ArgInvWith, "TURNON")));
+        AddWords(new[] { "EXTIN", "DOUSE" }, V("EXTINGUISH", "turn off",
+            new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT), VArg.Empty, "TURNOFF", isDriver: true)));
+
+        // dung.56 STRIKE: a villain (WITH a weapon) is attacked; anything else is lit, like a match.
+        AddWords(new[] { "STRIK" }, V("STRIKE", "strike",
+            new Syntax(ArgRoomNoTake, ArgInvWith, "STRIKE"),
+            new Syntax(ArgRoomNoTake, VArg.Empty, "STRIKE", isDriver: true)));
+        // dung.56 POKE/JAB (MUNGER), SWING weapon AT villain (SWINGER), KICK (KICKER)
+        AddWords(new[] { "POKE", "JAB" }, V("POKE", "poke",
+            new Syntax(ArgRoomNoTake, ArgInvWith, "POKE"),
+            new Syntax(ArgRoomNoTake, VArg.Empty, "POKE", isDriver: true)));
+        AddWords(new[] { "SWING", "THRUS" }, V("SWING", "swing",
+            new Syntax(ArgInv, ArgRoomAt, "SWING"),
+            new Syntax(ArgInv, VArg.Empty, "SWING", isDriver: true)));
+        AddWords(new[] { "KICK", "BITE", "TAUNT" }, V("KICK", "kick", new Syntax(ArgRoomNoTake, VArg.Empty, "KICK", isDriver: true)));
+        AddWords(new[] { "WAKE", "AWAKE", "SURPR", "START" }, V("WAKE", "wake", new Syntax(ArgRoomNoTake, VArg.Empty, "WAKE", isDriver: true)));
+        AddWords(new[] { "MELT", "LIQUI" }, V("MELT", "melt", new Syntax(ArgRoomNoTake, VArg.Empty, "MELT", isDriver: true)));
+        AddWords(new[] { "PLUG", "GLUE", "PATCH" }, V("PLUG", "plug",
+            new Syntax(ArgRoomNoTake, ArgInvWith, "PLUG"),
+            new Syntax(ArgRoomNoTake, VArg.Empty, "PLUG", isDriver: true)));
+        AddWords(new[] { "DIG" }, V("DIG", "dig", new Syntax(A(VArgFlags.VABIT, Preposition.With), VArg.Empty, "DIG", isDriver: true)));
+        AddWords(new[] { "INFLA" }, V("INFLATE", "inflate",
+            new Syntax(ArgRoomNoTake, A(VArgFlags.VABIT | VArgFlags.VRBIT | VArgFlags.VTBIT, Preposition.With), "INFLATE"),
+            new Syntax(ArgRoomNoTake, VArg.Empty, "INFLATE", isDriver: true)));
+        AddWords(new[] { "DEFLA" }, V("DEFLATE", "deflate", new Syntax(ArgRoomNoTake, VArg.Empty, "DEFLATE", isDriver: true)));
+        AddWords(new[] { "TELL", "COMMA", "REQUE" }, V("TELL", "tell", new Syntax(ArgRoomNoTake, VArg.Empty, "TELL", isDriver: true)));
+        AddWords(new[] { "WHERE", "FIND", "SEEK", "SEE" }, V("FIND", "find", new Syntax(ArgRoomNoTake, VArg.Empty, "FIND", isDriver: true)));
+        AddWords(new[] { "RING", "PEAL" }, V("RING", "ring", new Syntax(ArgRoomNoTake, VArg.Empty, "RING", isDriver: true)));
+        AddWords(new[] { "BRUSH", "CLEAN" }, V("BRUSH", "brush",
+            new Syntax(ArgRoom, VArg.Empty, "BRUSH", isDriver: true),
+            new Syntax(ArgRoom, ArgInvWith, "BRUSH")));
+        // dung.56 KNOCK AT/ON obj; KNOCK DOWN villain attacks it.
+        var argNoTakeAny = A(VArgFlags.VABIT | VArgFlags.VRBIT | VArgFlags.VTBIT);
+        AddWords(new[] { "KNOCK" }, V("KNOCK", "knock",
+            new Syntax(argNoTakeAny with { Prep = Preposition.At }, VArg.Empty, "KNOCK", isDriver: true),
+            new Syntax(argNoTakeAny with { Prep = Preposition.On }, VArg.Empty, "KNOCK"),
+            new Syntax(A(VArgFlags.VRBIT | VArgFlags.VTBIT, Preposition.Down), VArg.Empty, "ATTACK")));
 
         // System / no object
         AddWords(new[] { "BRIEF" }, V("BRIEF", "brief", new Syntax(VArg.Empty, VArg.Empty, "BRIEF", isDriver: true)));
@@ -284,6 +329,11 @@ public static class VerbTable
         Simple("BLAST", "BLAST");
         Simple("ODYSSEUS", "ODYSS", "ULYSS");
         Simple("TIME", "TIME");
+        Simple("FIRST", "FIRST");
+        Simple("HELP", "HELP");
+        Simple("VERSION", "VERSI");
+        Simple("WAIT", "WAIT");
+        Simple("SWIM", "SWIM", "BATHE", "WADE");
         AddWords(new[] { "HELLO", "HI" }, V("HELLO", "hello",
             new Syntax(VArg.Empty, VArg.Empty, "HELLO", isDriver: true),
             new Syntax(ArgRoomNoTake, VArg.Empty, "HELLO")));

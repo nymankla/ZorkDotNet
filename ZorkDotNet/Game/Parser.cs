@@ -54,9 +54,33 @@ public static class Parser
             Scoring.AnswerQuit(state, input.Trim());
             return;
         }
+        if (state.AwaitingPatchAnswer)
+        {
+            // JIGS-UP reads the answer inside the turn the player died in; the rest of that turn follows.
+            if (Death.AnswerPatch(state, input.Trim()) && state.ClocksAfterPatch) state.ProcessClocks();
+            state.ClocksAfterPatch = false;
+            return;
+        }
         state.Winner.Moves++;
-        Execute(state, input);
-        state.ProcessClocks();
+        var output = state.Output;
+        var tell = new TellWriter(output);
+        state.Output = tell;
+        try
+        {
+            Execute(state, input);
+        }
+        finally
+        {
+            state.Output = output;
+        }
+        // rooms.99 RDCOM: a command that told nothing gets "Nothing happens."
+        if (!tell.Told) output.WriteLine("Nothing happens.");
+        if (state.AwaitingPatchAnswer)
+        {
+            state.ClocksAfterPatch = true;
+            return;
+        }
+        if (state.Running) state.ProcessClocks();
     }
 
     public static void Execute(GameState state, string input)
@@ -128,7 +152,7 @@ public static class Parser
                 else
                 {
                     state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, chomper!\"  Apparently, the voice thinks you are an evil spirit, and dismisses you from the realm of the living.");
-                    state.Running = false;
+                    state.JigsUp(null);
                 }
                 return;
             }
@@ -400,8 +424,26 @@ public static class Parser
                 break;
             case "DISEMBARK": DoDisembark(state); break;
             case "WALK": state.Output.WriteLine("Go where?"); break;
+            case "STRIKE":
+                // dung.56 STRIKE: a villain is attacked, anything else is lit.
+                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect, words);
+                break;
+            case "POKE":
+                // act1.38 MUNGER: a villain with a weapon is attacked; the rest is Verbs' MUNG.
+                if (direct?.IsVillain == true && indirect != null && (indirect.Flags & ObjectFlags.Weapon) != 0)
+                    Dispatch(state, "ATTACK", direct, indirect, words);
+                else
+                    Verbs.Run(state, "MUNG", direct, indirect);
+                break;
+            case "SWING":
+                // act1.38 SWINGER: SWING weapon AT villain is ATTACK villain WITH weapon.
+                if (indirect == null) { state.Output.WriteLine("Swing at what?"); break; }
+                state.LastDirectObject = indirect;
+                state.LastIndirectObject = direct;
+                Dispatch(state, "ATTACK", indirect, direct, words);
+                break;
             default:
-                if (!Verbs.Run(state, action, direct)) state.Output.WriteLine("I don't know how to do that.");
+                if (!Verbs.Run(state, action, direct, indirect)) state.Output.WriteLine("I don't know how to do that.");
                 break;
         }
     }
@@ -429,6 +471,7 @@ public static class Parser
     private static string? ResolveDirection(string w)
     {
         if (DirectionSynonyms.TryGetValue(w, out var d)) return d;
+        if (w == "TRAVE") return "CROSS"; // dung.56 DSYNONYM "CROSS" "TRAVE"
         var dirs = new[] { "NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN", "ENTER", "EXIT", "NE", "NW", "SE", "SW", "LAUNC", "LAND", "CROSS", "CLIMB" };
         return dirs.FirstOrDefault(d => NormWord(d) == w);
     }
@@ -509,6 +552,23 @@ public static class Parser
     private static void TryGo(GameState state, string direction)
     {
         var r = state.Here;
+        // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
+        // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
+        if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
+        {
+            if (!r.Exits.TryGetValue(direction, out var dark))
+            {
+                state.JigsUp("Oh, no!  You walked into the slavering fangs of a lurking grue.");
+                return;
+            }
+            var open = !dark.IsBlocked && dark.RoomId != null && (!dark.IsConditional || state.GetFlag(dark.ConditionFlag!));
+            var lit = open ? state.World?.FindRoom(dark.RoomId!) : null;
+            if (lit != null && GameState.IsLit(state, lit))
+                MoveToRoom(state, lit);
+            else
+                state.JigsUp("Oh, no!  A fearsome grue slithered into the room and devoured you.");
+            return;
+        }
         // rooms.99 WALK: no exit -> "There is no way to go in that direction."; #NEXIT -> its message (even "");
         // a closed #CEXIT -> its message, nothing if that is "", or the no-way message if it has none.
         if (!r.Exits.TryGetValue(direction, out var target))

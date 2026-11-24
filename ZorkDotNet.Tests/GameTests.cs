@@ -669,7 +669,7 @@ public class GameTests
         runner.Execute("DOWN");
 
         Assert.Contains("gone over Aragain Falls", runner.GetOutput());
-        Assert.False(runner.State.Running);
+        Assert.True(runner.State.AwaitingPatchAnswer); // JIGS-UP asks to patch you up
     }
 
     [Fact]

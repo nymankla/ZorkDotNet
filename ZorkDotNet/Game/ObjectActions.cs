@@ -174,11 +174,11 @@ public static class ObjectActions
             state.Output.WriteLine("The trophy case is securely fastened to the wall (perhaps to foil any attempt by robbers to remove it).");
     }
 
-    public static void Lantern(GameState state, string verb, GameObject? obj)
+    public static void Lantern(GameState state, string verb, GameObject? _)
     {
         var lamp = state.World?.FindObject("LAMP");
         var blamp = state.World?.FindObject("BLAMP");
-        if (verb == "THROW" && obj != null)
+        if (verb == "THROW" && lamp != null)
         {
             state.Output.WriteLine("The lamp has smashed into the floor and the light has gone out.");
             RemoveFromWhere(lamp!);
@@ -202,8 +202,10 @@ public static class ObjectActions
     }
 
     /// <summary>MATCH: BURN or TURN ON lights it; burns out after 5 moves (ProcessClocks).</summary>
-    public static void MatchFunction(GameState state, string verb, GameObject? obj)
+    public static void MatchFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the MATCH itself.
+        var obj = state.World?.FindObject("MATCH");
         if (obj == null) return;
         if (verb == "BURN" || verb == "TURNON" || verb == "TURN ON")
         {
@@ -230,8 +232,10 @@ public static class ObjectActions
     }
 
     /// <summary>CANDLES: TURN ON / TURN OFF. In CAVE2, 50% chance each move to blow out (ProcessClocks).</summary>
-    public static void CandlesFunction(GameState state, string verb, GameObject? obj)
+    public static void CandlesFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the CANDL itself.
+        var obj = state.World?.FindObject("CANDL");
         if (obj == null) return;
         if (verb == "TURNON" || verb == "TURN ON")
         {
@@ -246,8 +250,10 @@ public static class ObjectActions
     }
 
     /// <summary>FUSE: BURN lights it; after 2 moves explodes (same room = death; else SAFE-MUNG in 5).</summary>
-    public static void FuseFunction(GameState state, string verb, GameObject? obj)
+    public static void FuseFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the FUSE itself.
+        var obj = state.World?.FindObject("FUSE");
         if (obj == null) return;
         if (verb != "BURN") return;
         if (obj.LightAmount > 0)
@@ -284,7 +290,7 @@ public static class ObjectActions
         {
             state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
             state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-            state.Running = false;
+            state.JigsUp(null);
             return;
         }
         state.Output.WriteLine("There is an explosion nearby.");
@@ -301,7 +307,7 @@ public static class ObjectActions
             state.Output.WriteLine(r.Id == "SAFE"
                 ? "The house shakes, and the ceiling of the room you're in collapses, turning you into a pancake."
                 : "The room trembles and 50,000 pounds of rock fall on you, turning you into a pancake.");
-            state.Running = false;
+            state.JigsUp(null);
             return;
         }
         state.Output.WriteLine("You may recall your recent explosion.  Well, probably as a result of that, you hear an ominous rumbling, as if one of the rooms in the dungeon had collapsed.");
@@ -322,7 +328,7 @@ public static class ObjectActions
             if (inBalloon && state.GetFlag("BTIE!-FLAG"))
             {
                 state.Output.WriteLine("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
-                state.Running = false;
+                state.JigsUp(null);
                 return;
             }
             if (inBalloon)
@@ -341,7 +347,7 @@ public static class ObjectActions
         if (verb != "BURN") return;
         state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
         state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-        state.Running = false;
+        state.JigsUp(null);
     }
 
     /// <summary>GNOME-FUNCTION (CEVENT): GIVE valuable → door appears; clock tick → gnome leaves.</summary>
@@ -459,8 +465,10 @@ public static class ObjectActions
         }
     }
 
-    public static void BottleFunction(GameState state, string verb, GameObject? obj)
+    public static void BottleFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the BOTTL itself.
+        var obj = state.World?.FindObject("BOTTL");
         if (verb == "THROW" && obj != null)
         {
             state.Output.WriteLine("The bottle hits the far wall and is decimated.");
@@ -483,8 +491,10 @@ public static class ObjectActions
         }
     }
 
-    public static void WaterFunction(GameState state, string verb, GameObject? obj)
+    public static void WaterFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the WATER itself.
+        var obj = state.World?.FindObject("WATER");
         if (obj == null) return;
         var bottle = state.World?.FindObject("BOTTL");
         if (verb == "THROW")
@@ -541,8 +551,10 @@ public static class ObjectActions
         }
     }
 
-    public static void RopeFunction(GameState state, string verb, GameObject? obj)
+    public static void RopeFunction(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the ROPE itself.
+        var obj = state.World?.FindObject("ROPE");
         var dome = state.World?.FindRoom("DOME");
         var raili = state.World?.FindObject("RAILI");
         if (state.Here != dome)
@@ -589,8 +601,10 @@ public static class ObjectActions
             state.Output.WriteLine("The skeleton is too heavy to carry.");
     }
 
-    public static void LeafPile(GameState state, string verb, GameObject? obj)
+    public static void LeafPile(GameState state, string verb, GameObject? _)
     {
+        // The third argument is the indirect object; this action is about the LEAVE itself.
+        var obj = state.World?.FindObject("LEAVE");
         if (verb == "BURN" && obj != null)
         {
             if (obj.InRoom != null)
@@ -601,7 +615,7 @@ public static class ObjectActions
             else
             {
                 state.Output.WriteLine("The sight of someone carrying a pile of burning leaves so offends the neighbors that they come over and put you out.");
-                state.Running = false;
+                state.JigsUp(null);
             }
         }
         else if (verb == "MOVE")
@@ -911,7 +925,7 @@ public static class ObjectActions
         {
             state.SetFlag("RAINBOW!-FLAG", false);
             state.Output.WriteLine("The structural integrity of the rainbow seems to have left it, leaving you about 450 feet in the air, supported by water vapor.");
-            state.Running = false;
+            state.JigsUp(null);
         }
         else
             state.Output.WriteLine("Very good.");
@@ -950,7 +964,7 @@ public static class ObjectActions
             if (count > 5)
             {
                 state.Output.WriteLine("The cyclops, tired of all of your games and trickery, eats you.\nThe cyclops says 'Mmm.  Just like mom used to make 'em.'");
-                state.Running = false;
+                state.JigsUp(null);
                 return;
             }
             if (verb == "GIVE" && indirect != null)

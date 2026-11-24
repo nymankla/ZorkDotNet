@@ -45,13 +45,40 @@ public static class Verbs
         "Goodbye.",
     ];
 
+    // act1.38 HO-HUM
+    private static readonly string[] HoHum =
+    [
+        " does not seem to do anything.",
+        " is not notably useful.",
+        " isn't very interesting.",
+        " doesn't appear worthwhile.",
+        " has no effect.",
+        " doesn't do anything.",
+    ];
+
+    // act2.27 SWIMYUKS
+    private static readonly string[] SwimYuks =
+    [
+        "I don't really see how.",
+        "I think that swimming is best performed in water.",
+        "Perhaps it is your head that is swimming.",
+    ];
+
+    /// <summary>dung.56: the rooms with RFILLBIT (water you could swim in).</summary>
+    private static readonly HashSet<string> WaterRooms =
+        ["RESEN", "RESES", "DAM", "STREA", "RIVR1", "RIVR2", "RIVR3", "RIVR4", "RIVR5", "BEACH", "RCAVE", "DOCK", "WCLF1", "WCLF2", "FANTE", "POG"];
+
+    // rooms.99 REMARKABLY-DISGUSTING-CODE
+    private static readonly string[] Months =
+        ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
     /// <summary>MDL PICK-ONE.</summary>
     private static string PickOne(string[] choices) => choices[Random.Shared.Next(choices.Length)];
 
     /// <summary>
     /// Dispatches the verbs of this class. Returns false when <paramref name="action"/> isn't one of them.
     /// </summary>
-    public static bool Run(GameState state, string action, GameObject? direct)
+    public static bool Run(GameState state, string action, GameObject? direct, GameObject? indirect = null)
     {
         var output = state.Output;
         switch (action)
@@ -83,8 +110,190 @@ public static class Verbs
             case "HELLO": Hello(state, direct); return true;
             case "EXAMINE": Examine(state, direct); return true;
             case "TIME": PlayTime(state); return true;
+            case "FIRST": return true; // dung.56 FIRST? is an internal verb (TIME); typed, it does nothing
+            case "HELP": output.Write(HelpText.Text); return true;
+            case "VERSION": Version(state); return true;
+            case "WAIT": Wait(state); return true;
+            case "SWIM": // act2.27 SWIMMER
+                output.WriteLine(WaterRooms.Contains(state.Here.Id) ? "Swimming is not allowed in this dungeon." : PickOne(SwimYuks));
+                return true;
+            case "KICK": HackHack(state, direct, "KICK", "Munging a "); return true; // act1.38 KICKER
+            case "MUNG": Munger(state, direct, indirect); return true;
+            case "RING": // act1.38 RING
+                output.WriteLine(direct?.Id == "BELL" ? "Ding, dong." : "How, exactly, can I ring that?");
+                return true;
+            case "BRUSH": Brush(state, direct, indirect); return true;
+            case "WAKE": Alarm(state, direct); return true;
+            case "MELT": // act1.38 MELTER
+                if (direct != null && !ObjectAction(state, direct, "MELT", indirect))
+                    output.WriteLine("I'm not sure that a " + direct.DescriptionShort + " can be melted.");
+                return true;
+            case "PLUG": // act1.38 PLUGGER
+                if (direct == null || !ObjectAction(state, direct, "PLUG", indirect)) output.WriteLine("This has no effect.");
+                return true;
+            case "DIG": Digger(state, direct); return true;
+            case "INFLATE": Inflater(state, direct, indirect); return true;
+            case "DEFLATE": // act1.38 DEFLATER
+                if (direct?.Id != "RBOAT" || !ObjectAction(state, direct, "DEFLATE", null)) output.WriteLine("Come on, now!");
+                return true;
+            case "TELL": // rooms.99 COMMAND: there are no actors to command yet (the robot isn't ported)
+                output.WriteLine("You cannot talk to that!");
+                return true;
+            case "KNOCK": // act3.13 KNOCK
+                if (direct == null) output.WriteLine("Knock on what?");
+                else if (direct.Id == "DOOR" || direct.Synonyms.Contains("DOOR")) output.WriteLine("I don't think that anybody's home.");
+                else output.WriteLine("Why knock on a " + direct.DescriptionShort + "?");
+                return true;
+            case "FIND": Find(state, direct); return true;
             default: return false;
         }
+    }
+
+    /// <summary>
+    /// MDL OBJECT-ACTION for one object: run its action and report whether it dealt with the verb, which here means
+    /// it said something.
+    /// </summary>
+    private static bool ObjectAction(GameState state, GameObject obj, string verb, GameObject? indirect)
+    {
+        if (obj.ObjectAction == null) return false;
+        var output = state.Output;
+        var tell = new TellWriter(output);
+        state.Output = tell;
+        try
+        {
+            obj.ObjectAction(state, verb, indirect);
+        }
+        finally
+        {
+            state.Output = output;
+        }
+        return tell.Told;
+    }
+
+    /// <summary>act1.38 HACK-HACK: the object's own action, or "Munging a mailbox does not seem to do anything."</summary>
+    private static void HackHack(GameState state, GameObject? obj, string verb, string prefix)
+    {
+        if (obj == null)
+            state.Output.WriteLine("What do you want to do that to?");
+        else if (!ObjectAction(state, obj, verb, null))
+            state.Output.WriteLine(prefix + obj.DescriptionShort + PickOne(HoHum));
+    }
+
+    /// <summary>act1.38 MUNGER for something that isn't a villain (POKE/JAB at a villain is an attack).</summary>
+    private static void Munger(GameState state, GameObject? obj, GameObject? with)
+    {
+        if (obj == null || !obj.IsVillain)
+        {
+            HackHack(state, obj, "MUNG", "Munging a ");
+            return;
+        }
+        if (with == null)
+            state.Output.WriteLine("Munging a " + obj.DescriptionShort + " with your bare hands is suicidal.");
+        else
+            state.Output.WriteLine("Munging a " + obj.DescriptionShort + " with a " + with.DescriptionShort + " is quite self-destructive.");
+    }
+
+    /// <summary>act1.38 BRUSH (the teeth belong to the unported mirror-room puzzle).</summary>
+    private static void Brush(GameState state, GameObject? obj, GameObject? with)
+    {
+        if (obj?.Id != "TEETH")
+            state.Output.WriteLine("If you wish, but I can't understand why??");
+        else if (with?.Id == "PUTTY" && with.Carrier == state.Winner)
+            state.JigsUp("Well, you seem to have been brushing your teeth with some sort of glue. As a result, your mouth gets glued together (with your nose) and you die of respiratory failure.");
+        else if (with == null)
+            state.Output.WriteLine("Dental hygiene is highly recommended, but I'm not sure what you want to brush them with.");
+        else
+            state.Output.WriteLine("A nice idea, but with a " + with.DescriptionShort + "?");
+    }
+
+    /// <summary>act1.38 ALARM: only something asleep (the drugged cyclops) can be woken.</summary>
+    private static void Alarm(GameState state, GameObject? obj)
+    {
+        if (obj == null) return;
+        var asleep = obj.Id == "CYCLO" && state.GetFlag("CYCLOPS-FLAG!-FLAG") && !state.GetFlag("MAGIC-FLAG!-FLAG");
+        if (!asleep || !ObjectAction(state, obj, "WAKE", null))
+            state.Output.WriteLine("The " + obj.DescriptionShort + " isn't sleeping.");
+    }
+
+    /// <summary>act2.27 DIGGER (DIG WITH tool). Digging with the shovel belongs to the unported sandy cave.</summary>
+    private static void Digger(GameState state, GameObject? tool)
+    {
+        if (tool == null)
+            state.Output.WriteLine("Dig with what?");
+        else if (tool.Id == "SHOVE")
+            return;
+        else if ((tool.Flags & ObjectFlags.Tool) != 0)
+            state.Output.WriteLine("Digging with the " + tool.DescriptionShort + " is slow and tedious.");
+        else
+            state.Output.WriteLine("Digging with a " + tool.DescriptionShort + " is silly.");
+    }
+
+    /// <summary>act1.38 INFLATER (INFLATE obj WITH tool).</summary>
+    private static void Inflater(GameState state, GameObject? obj, GameObject? tool)
+    {
+        if (obj?.Id == "IBOAT")
+        {
+            if (tool?.Id != "PUMP" || !ObjectAction(state, obj, "INFLATE", tool))
+                state.Output.WriteLine("You would inflate it with that?");
+        }
+        else if (obj?.Id == "RBOAT")
+            state.Output.WriteLine("Inflating it further would probably burst it.");
+        else
+            state.Output.WriteLine("How can you inflate that?");
+    }
+
+    /// <summary>rooms.99 FIND (WHERE, SEEK, SEE): the object's own action, or where it is relative to you.</summary>
+    private static void Find(GameState state, GameObject? obj)
+    {
+        if (obj == null)
+        {
+            state.Output.WriteLine("I can't see that here.");
+            return;
+        }
+        if (ObjectAction(state, obj, "FIND", null)) return;
+        var told = FindFrob(state, obj, state.Here.Objects, ", which is in the room.", "There is a ", " here.");
+        told |= FindFrob(state, obj, state.Winner.Inventory, ", which you are carrying.", "You are carrying a ", ".");
+        if (!told) state.Output.WriteLine("I can't see that here.");
+    }
+
+    /// <summary>rooms.99 FIND-FROB: look for the object in a list, and one level into open or transparent containers.</summary>
+    private static bool FindFrob(GameState state, GameObject obj, List<GameObject> list, string where, string before, string after)
+    {
+        var told = false;
+        foreach (var x in list)
+        {
+            if (x == obj)
+            {
+                state.Output.WriteLine(before + x.DescriptionShort + after);
+                told = true;
+            }
+            else if (x.IsTransparent || (x.IsContainer && x.Open))
+            {
+                foreach (var y in x.Contents.Where(y => y == obj))
+                {
+                    state.Output.WriteLine(before + y.DescriptionShort + after);
+                    state.Output.WriteLine("It is in the " + x.DescriptionShort + where);
+                    told = true;
+                }
+            }
+        }
+        return told;
+    }
+
+    /// <summary>rooms.99 VERSION: the date this program was made (the original printed the date of its saved image).</summary>
+    private static void Version(GameState state)
+    {
+        var path = Environment.ProcessPath;
+        var date = path != null && File.Exists(path) ? File.GetLastWriteTime(path) : DateTime.Now;
+        state.Output.WriteLine("This version created " + Months[date.Month - 1] + " " + date.Day + ".");
+    }
+
+    /// <summary>rooms.99 WAIT: "Time passes..." while the clock runs up to three more times, stopping when something happens.</summary>
+    private static void Wait(GameState state)
+    {
+        state.Output.WriteLine("Time passes...");
+        for (var i = 0; i < 3; i++)
+            if (state.ClockTick()) break;
     }
 
     /// <summary>act1.38 TREAS: the magic words between the temple and the treasure room.</summary>
@@ -161,10 +370,7 @@ public static class Verbs
             state.Output.WriteLine("I think that only schizophrenics say 'Hello' to a " + obj.DescriptionShort + ".");
     }
 
-    /// <summary>
-    /// rooms.99 ROOM-INFO for an object (EXAMINE x, LOOK AT x): its reading text, or nothing special. (The original
-    /// asks the object's action first; the port's actions don't know EXAMINE yet.)
-    /// </summary>
+    /// <summary>rooms.99 ROOM-INFO for an object (EXAMINE x, LOOK AT x): its action, its reading text, or nothing special.</summary>
     private static void Examine(GameState state, GameObject? obj)
     {
         if (obj == null)
@@ -172,7 +378,8 @@ public static class Verbs
             state.Output.WriteLine("What do you want to examine?");
             return;
         }
-        state.Output.WriteLine(obj.ReadText ?? "I see nothing special about the " + obj.DescriptionShort + ".");
+        if (!ObjectAction(state, obj, "EXAMINE", null))
+            state.Output.WriteLine(obj.ReadText ?? "I see nothing special about the " + obj.DescriptionShort + ".");
     }
 
     /// <summary>rooms.99 PLAY-TIME: how long this game has been played, in real time.</summary>

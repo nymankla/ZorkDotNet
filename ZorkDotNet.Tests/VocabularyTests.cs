@@ -124,7 +124,7 @@ public class VocabularyTests
 
         var output = Do(runner, "JUMP");
 
-        Assert.False(runner.State.Running);
+        Assert.True(runner.State.AwaitingPatchAnswer); // JIGS-UP asks to patch you up
         Assert.Contains(new[] { "You should have looked before you leaped.", "I'm afraid that leap was a bit much for your weak frame.", "In the movies, your life would be passing in front of your eyes.", "Geronimo....." },
             r => output.Contains(r, StringComparison.Ordinal));
     }
@@ -136,7 +136,7 @@ public class VocabularyTests
         runner.Teleport("BARRE");
 
         Assert.Contains("Is this what 'over a barrel' means?", Do(runner, "GERONIMO"));
-        Assert.False(runner.State.Running);
+        Assert.True(runner.State.AwaitingPatchAnswer); // JIGS-UP asks to patch you up
     }
 
     [Fact]
@@ -158,5 +158,124 @@ public class VocabularyTests
         runner.State.StartedAt = runner.State.Clock.GetUtcNow() - TimeSpan.FromSeconds(3725);
 
         Assert.Contains("You have been playing DUNGEON for 1 hour, 2 minutes, and 5 seconds.", Do(runner, "TIME"));
+    }
+    [Theory]
+    [InlineData("KNOCK ON DOOR", "I don't think that anybody's home.")]
+    [InlineData("KNOCK AT MAILBOX", "Why knock on a mailbox?")]
+    [InlineData("WAKE MAILBOX", "The mailbox isn't sleeping.")]
+    [InlineData("DIG WITH LEAFLET", "Digging with a leaflet is silly.")]
+    [InlineData("INFLATE MAILBOX", "How can you inflate that?")]
+    [InlineData("DEFLATE MAILBOX", "Come on, now!")]
+    [InlineData("TELL MAILBOX", "You cannot talk to that!")]
+    [InlineData("WHERE MAILBOX", "There is a mailbox here.")]
+    [InlineData("RING MAILBOX", "How, exactly, can I ring that?")]
+    [InlineData("MELT MAILBOX", "I'm not sure that a mailbox can be melted.")]
+    [InlineData("PLUG MAILBOX", "This has no effect.")]
+    [InlineData("BRUSH LEAFLET", "If you wish, but I can't understand why??")]
+    [InlineData("FIRST", "Nothing happens.")]
+    [InlineData("HELP", "Useful commands")]
+    [InlineData("VERSION", "This version created ")]
+    public void Object_verbs_give_the_original_replies(string command, string expected)
+    {
+        using var runner = new GameRunner();
+        runner.Give("ADVER");
+
+        Assert.Contains(expected, Do(runner, command));
+    }
+
+    [Fact]
+    public void Kicking_something_does_nothing_much()
+    {
+        string[] hoHum = [" does not seem to do anything.", " is not notably useful.", " isn't very interesting.", " doesn't appear worthwhile.", " has no effect.", " doesn't do anything."];
+        using var runner = new GameRunner();
+
+        var output = Do(runner, "KICK MAILBOX");
+
+        Assert.Contains(hoHum, h => output.Contains("Munging a mailbox" + h, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Find_says_where_something_is_inside_a_container()
+    {
+        using var runner = new GameRunner();
+        runner.Execute("OPEN MAILBOX");
+
+        var output = Do(runner, "FIND LEAFLET");
+
+        Assert.Contains("There is a leaflet here." + Environment.NewLine + "It is in the mailbox, which is in the room.", output);
+    }
+
+    [Fact]
+    public void Poking_a_villain_with_bare_hands_is_suicidal()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Teleport("MTROL");
+
+        Assert.Contains("Munging a troll with your bare hands is suicidal.", Do(runner, "POKE TROLL"));
+    }
+
+    [Fact]
+    public void Ringing_the_bell()
+    {
+        using var runner = new GameRunner();
+        runner.Give("BELL");
+
+        Assert.Contains("Ding, dong.", Do(runner, "RING BELL"));
+    }
+
+    [Theory]
+    [InlineData("WHOUS", false)]
+    [InlineData("DAM", true)]
+    public void Swimming_is_not_allowed_in_the_water(string room, bool water)
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Teleport(room);
+
+        var output = Do(runner, "SWIM");
+
+        Assert.Equal(water, output.Contains("Swimming is not allowed in this dungeon.", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("LIGHT MATCH", "MATCH", "The match is now lit.")]
+    [InlineData("STRIKE MATCH", "MATCH", "The match is now lit.")]
+    [InlineData("LIGHT CANDLES", "CANDL", "The candles are now lit.")]
+    public void Light_and_strike_light_things(string command, string objectId, string expected)
+    {
+        using var runner = new GameRunner();
+        var obj = runner.Give(objectId);
+
+        Assert.Contains(expected, Do(runner, command));
+        Assert.True(obj.LightAmount > 0);
+    }
+
+    [Fact]
+    public void Douse_puts_the_lamp_out()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+
+        Assert.Contains("The lamp is now off.", Do(runner, "DOUSE LAMP"));
+    }
+
+    [Fact]
+    public void Wait_lets_the_clock_run_three_more_moves()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        var before = runner.State.LampTicks;
+
+        Assert.Contains("Time passes...", Do(runner, "WAIT"));
+        Assert.Equal(before - 4, runner.State.LampTicks); // three for WAIT, one for the turn itself
+    }
+
+    [Fact]
+    public void Travel_is_a_way_of_saying_cross()
+    {
+        using var runner = new GameRunner();
+
+        Assert.DoesNotContain("I don't know the word", Do(runner, "TRAVEL"));
     }
 }

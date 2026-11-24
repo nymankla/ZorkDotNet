@@ -91,6 +91,7 @@ public static class GameSave
             LampStage = state.LampStage,
             MaintLeakAtMove = state.MaintLeakAtMove,
             HelloCount = state.HelloCount,
+            Deaths = state.Deaths,
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
             Rooms = world.Rooms.Select(r => new RoomData
             {
@@ -234,6 +235,7 @@ public static class GameSave
         state.LampStage = data.LampStage;
         state.MaintLeakAtMove = data.MaintLeakAtMove;
         state.HelloCount = data.HelloCount;
+        state.Deaths = data.Deaths;
         state.ScheduledEvents.Clear();
         state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
 
@@ -266,6 +268,7 @@ internal sealed class SaveData
     public int LampStage { get; set; }
     public int MaintLeakAtMove { get; set; }
     public int HelloCount { get; set; }
+    public int Deaths { get; set; }
     public List<EventData> Events { get; set; } = new();
     public List<RoomData> Rooms { get; set; } = new();
     public List<ObjectData> Objects { get; set; } = new();

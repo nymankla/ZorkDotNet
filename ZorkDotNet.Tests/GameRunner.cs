@@ -23,6 +23,8 @@ public sealed class GameRunner : IDisposable
     {
         _state = new GameState();
         _ = new World(_state);
+        // Chance events (the grue's PROB 75) never happen unless a test asks for them with its own FixedRandom.
+        _state.Random = new FixedRandom(99);
         _capture = new StringWriter(new StringBuilder());
         if (!string.IsNullOrEmpty(logPath))
         {
