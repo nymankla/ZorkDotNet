@@ -288,7 +288,7 @@ public static class RoomActions
     {
         if (!DugWithShovel(state, verb)) return;
         var here = state.Here;
-        if (!here.Objects.Exists(o => o.Id == "GUANO"))
+        if (!here.Objects.Any(o => o.Id == "GUANO"))
         {
             state.Output.WriteLine("There's nothing to dig into here.");
             return;
@@ -304,12 +304,12 @@ public static class RoomActions
     public static void CliffFunction(GameState state, string _) => CliffPath(state);
 
     public static void CliffPath(GameState state) =>
-        state.SetFlag("DEFLATE!-FLAG", !state.Winner.Inventory.Exists(o => o.Id == "RBOAT"));
+        state.SetFlag("DEFLATE!-FLAG", !state.Winner.Inventory.Any(o => o.Id == "RBOAT"));
 
     /// <summary>act2.27 RIVR4-ROOM: carrying the buoy here, you notice it is heavier than it should be (the emerald).</summary>
     public static void Rivr4Room(GameState state, string _)
     {
-        if (state.Winner.Inventory.Exists(o => o.Id == "BUOY") && state.GetFlag("BUOY-FLAG!-FLAG"))
+        if (state.Winner.Inventory.Any(o => o.Id == "BUOY") && state.GetFlag("BUOY-FLAG!-FLAG"))
         {
             state.Output.WriteLine("Something seems funny about the feel of the buoy.");
             state.SetFlag("BUOY-FLAG!-FLAG", false);
@@ -442,11 +442,10 @@ public static class RoomActions
             {
                 var inv = state.Winner.Inventory;
                 var candles = inv.FirstOrDefault(o => o.Id == "CANDL");
-                if (inv.Exists(o => o.Id == "BELL") && inv.Exists(o => o.Id == "BOOK") && candles != null && candles.LightAmount > 0)
+                if (inv.Any(o => o.Id == "BELL") && inv.Any(o => o.Id == "BOOK") && candles != null && candles.LightAmount > 0)
                 {
                     state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, fiends!\"  The spirits, sensing the presence of a greater power, flee through the walls.");
-                    state.Here.Objects.Remove(ghost);
-                    ghost.InRoom = null;
+                    ghost.MoveTo(null);
                     state.SetFlag("LLD-FLAG!-FLAG", true);
                 }
                 else

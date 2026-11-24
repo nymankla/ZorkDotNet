@@ -717,8 +717,7 @@ public class GameTests
         runner.Teleport(from);
         // The river needs the magic boat (rooms.99 GOTO); sit in it, wherever it is.
         var boat = runner.State.World!.FindObject("RBOAT")!;
-        runner.State.Here.Objects.Add(boat);
-        boat.InRoom = runner.State.Here;
+        boat.MoveTo(runner.State.Here);
         runner.State.Winner.Vehicle = boat;
         runner.Execute(command);
 

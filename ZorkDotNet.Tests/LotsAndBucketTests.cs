@@ -47,9 +47,7 @@ public class LotsAndBucketTests
         using var runner = new GameRunner();
         runner.Teleport("LROOM");
         var pearl = runner.State.World!.FindObject("PEARL")!;
-        pearl.InRoom?.Objects.Remove(pearl);
-        pearl.InRoom = runner.State.Here;
-        runner.State.Here.Objects.Add(pearl);
+        pearl.MoveTo(runner.State.Here);
 
         var output = Do(runner, "TAKE VALUABLES");
 

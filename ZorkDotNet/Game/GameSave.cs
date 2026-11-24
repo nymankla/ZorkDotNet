@@ -185,15 +185,8 @@ public static class GameSave
             o.DescriptionShort = d.Short;
             o.DescriptionUntouched = d.Untouched;
         }
-        foreach (var o in world.Objects)
-        {
-            o.InRoom = null;
-            o.Container = null;
-            o.Carrier = null;
-            o.Contents.Clear();
-        }
-        foreach (var r in world.Rooms) r.Objects.Clear();
-        state.Winner.Inventory.Clear();
+        foreach (var o in world.Objects) o.MoveTo(null);
+        foreach (var r in world.Rooms) r.ClearScenery();
 
         foreach (var d in data.Rooms)
         {
@@ -206,22 +199,12 @@ public static class GameSave
             r.Exits.Clear();
             foreach (var (dir, e) in d.Exits)
                 r.Exits[dir] = ToExit(e);
-            foreach (var id in d.Objects)
-            {
-                var o = world.FindObject(id)!;
-                o.InRoom = r;
-                r.Objects.Add(o);
-            }
+            foreach (var id in d.Objects) world.FindObject(id)!.PlaceAlsoIn(r);
         }
         foreach (var d in data.Objects)
         {
             var container = world.FindObject(d.Id)!;
-            foreach (var id in d.Contents)
-            {
-                var o = world.FindObject(id)!;
-                o.Container = container;
-                container.Contents.Add(o);
-            }
+            foreach (var id in d.Contents) world.FindObject(id)!.MoveTo(container);
         }
 
         var w = state.Winner;
@@ -234,12 +217,7 @@ public static class GameSave
         w.BriefMode = p.Brief;
         w.SuperBriefMode = p.SuperBrief;
         w.Vehicle = p.Vehicle == null ? null : world.FindObject(p.Vehicle);
-        foreach (var id in p.Inventory)
-        {
-            var o = world.FindObject(id)!;
-            o.Carrier = w;
-            w.Inventory.Add(o);
-        }
+        foreach (var id in p.Inventory) world.FindObject(id)!.MoveTo(w);
 
         state.Flags.Clear();
         foreach (var (k, v) in data.Flags) state.Flags[k] = v;
@@ -263,13 +241,7 @@ public static class GameSave
         state.ThiefActive = data.ThiefActive;
         state.ThiefAnnounced = data.ThiefAnnounced;
         if (data.RobotRoom != null) state.Robot.CurrentRoom = world.FindRoom(data.RobotRoom)!;
-        state.Robot.Inventory.Clear();
-        foreach (var id in data.RobotInventory)
-        {
-            var o = world.FindObject(id)!;
-            o.Carrier = state.Robot;
-            state.Robot.Inventory.Add(o);
-        }
+        foreach (var id in data.RobotInventory) world.FindObject(id)!.MoveTo(state.Robot);
         state.ScheduledEvents.Clear();
         state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
 

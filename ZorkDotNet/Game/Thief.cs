@@ -42,30 +42,15 @@ public static class Thief
 
     private static bool Prob(GameState state, int percent) => state.Random.Next(100) < percent;
 
-    private static void Remove(GameObject o)
-    {
-        o.InRoom?.Objects.Remove(o);
-        o.Container?.Contents.Remove(o);
-        o.Carrier?.Inventory.Remove(o);
-        o.InRoom = null;
-        o.Container = null;
-        o.Carrier = null;
-    }
+    private static void Remove(GameObject o) => o.MoveTo(null);
 
-    private static void Insert(GameObject o, Room room)
-    {
-        Remove(o);
-        o.InRoom = room;
-        room.Objects.Add(o);
-    }
+    private static void Insert(GameObject o, Room room) => o.MoveTo(room);
 
     /// <summary>act1.38 SNARF-OBJECT: the thief picks up his stiletto (or anything) wherever it lies.</summary>
     private static void Snarf(GameObject who, GameObject what)
     {
         if (what.Container == who || (what.InRoom == null && what.Container == null)) return;
-        Remove(what);
-        what.Container = who;
-        who.Contents.Insert(0, what);
+        what.MoveTo(who, first: true);
     }
 
     private static void Bag(GameState state, GameObject o)
@@ -172,10 +157,7 @@ public static class Thief
                     }
                     if (Prob(state, 70)) return;
                     if (state.ThiefBag.Remove(still.Id))
-                    {
-                        still.Container = thief;
-                        thief.Contents.Insert(0, still);
-                    }
+                        still.MoveTo(thief, first: true);
                     RobRoom(state, rm, 100);
                     RobAdventurer(state, state.Winner);
                     state.ThiefAnnounced = true;

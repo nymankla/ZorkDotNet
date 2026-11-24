@@ -12,7 +12,7 @@ public static class Balloon
 
     /// <summary>The object burning in the receptacle (MDL BINF), if any.</summary>
     public static GameObject? Fuel(GameState state) =>
-        state.GetFlag("BINF!-FLAG") ? state.World?.FindObject("RECEP")?.Contents.FirstOrDefault() : null;
+        state.GetFlag("BINF!-FLAG") && state.World?.FindObject("RECEP")?.Contents is [var fuel, ..] ? fuel : null;
 
     /// <summary>
     /// BALLOON with READ-IN, before a verb while you're in the basket: walking only chooses where it goes (or is
@@ -76,8 +76,7 @@ public static class Balloon
         {
             var label = state.World!.FindObject("BLABE")!;
             var ball = state.World.FindObject("BALLO")!;
-            label.Container = ball;
-            ball.Contents.Insert(0, label);
+            label.MoveTo(ball, first: true);
         }
         state.SetFlag("BLAB!-FLAG", true);
         state.SetFlag("BINF!-FLAG", true);
@@ -214,17 +213,9 @@ public static class Balloon
         state.BalloonLocation = roomId;
     }
 
-    private static void Remove(GameObject o)
-    {
-        o.InRoom?.Objects.Remove(o);
-        o.InRoom = null;
-    }
+    private static void Remove(GameObject o) => o.MoveTo(null);
 
-    private static void Put(GameObject o, Room room)
-    {
-        o.InRoom = room;
-        room.Objects.Add(o);
-    }
+    private static void Put(GameObject o, Room room) => o.MoveTo(room);
 
     /// <summary>act2.27 WIRE-FUNCTION: TIE the braided wire TO a hook to hold the balloon at a ledge, UNTIE to let go.</summary>
     public static void WireFunction(GameState state, string verb, GameObject? to)
@@ -258,8 +249,7 @@ public static class Balloon
         state.SetFlag("BINF!-FLAG", false);
         if (recep.Contents.Count == 0) return;
         var obj = recep.Contents[0];
-        recep.Contents.RemoveAt(0);
-        obj.Container = null;
+        obj.MoveTo(null);
         state.Output.WriteLine("It seems that the " + obj.DescriptionShort + " has burned out, and the cloth bag starts to collapse.");
     }
 
@@ -295,7 +285,6 @@ public static class Balloon
         }
         state.Output.WriteLine("A volcano gnome seems to walk straight out of the wall and says 'I have a very busy appointment schedule and little time to waste on tresspassers, but for a small fee, I'll show you the way out.'  You notice the gnome nervously glancing at his watch.");
         var gnome = state.World!.FindObject("GNOME")!;
-        gnome.InRoom?.Objects.Remove(gnome);
         Put(gnome, state.Here);
     }
 
@@ -315,12 +304,7 @@ public static class Balloon
             else
             {
                 state.Output.WriteLine("'That wasn't quite what I had in mind', he says, crunching the " + gift.DescriptionShort + " in his rock-hard hands.");
-                gift.InRoom?.Objects.Remove(gift);
-                gift.Container?.Contents.Remove(gift);
-                gift.Carrier?.Inventory.Remove(gift);
-                gift.InRoom = null;
-                gift.Container = null;
-                gift.Carrier = null;
+                gift.MoveTo(null);
             }
             return;
         }

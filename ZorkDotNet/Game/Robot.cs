@@ -84,9 +84,7 @@ public static class Robot
                 }
                 else
                 {
-                    Detach(direct);
-                    direct.Carrier = robot;
-                    robot.Inventory.Add(direct);
+                    direct.MoveTo(robot);
                     state.Output.WriteLine("Taken.");
                 }
                 break;
@@ -94,9 +92,7 @@ public static class Robot
                 if (direct == null || direct.Carrier != robot) state.Output.WriteLine("You're not carrying that.");
                 else
                 {
-                    Detach(direct);
-                    direct.InRoom = robot.CurrentRoom;
-                    robot.CurrentRoom.Objects.Add(direct);
+                    direct.MoveTo(robot.CurrentRoom);
                     state.Output.WriteLine("Dropped.");
                 }
                 break;
@@ -107,9 +103,7 @@ public static class Robot
                     state.Output.WriteLine("It won't fit.");
                 else
                 {
-                    Detach(direct);
-                    direct.Container = indirect;
-                    indirect.Contents.Add(direct);
+                    direct.MoveTo(indirect);
                     state.Output.WriteLine("Done.");
                 }
                 break;
@@ -144,15 +138,7 @@ public static class Robot
         return null;
     }
 
-    private static void Detach(GameObject o)
-    {
-        o.InRoom?.Objects.Remove(o);
-        o.Container?.Contents.Remove(o);
-        o.Carrier?.Inventory.Remove(o);
-        o.InRoom = null;
-        o.Container = null;
-        o.Carrier = null;
-    }
+    private static void Detach(GameObject o) => o.MoveTo(null);
 
     /// <summary>The robot walks (rooms.99 WALK and GOTO for an actor). In the low room only SE and EAST lead anywhere.</summary>
     private static void Walk(GameState state, string? direction)
@@ -196,9 +182,7 @@ public static class Robot
     private static void MoveTo(GameState state, Room to)
     {
         var body = state.World!.FindObject("ROBOT")!;
-        body.InRoom?.Objects.Remove(body);
-        body.InRoom = to;
-        to.Objects.Add(body);
+        body.MoveTo(to);
         state.Robot.CurrentRoom = to;
     }
 
@@ -211,9 +195,7 @@ public static class Robot
         var closet = world.FindRoom("CAGER")!;
         Parser.Goto(state, closet);
         var cage = world.FindObject("CAGE")!;
-        Detach(cage);
-        cage.InRoom = closet;
-        closet.Objects.Add(cage);
+        cage.MoveTo(closet);
         cage.Flags = (cage.Flags | ObjectFlags.Take) & ~ObjectFlags.NoDescribe;
         var body = world.FindObject("ROBOT")!;
         body.Flags &= ~ObjectFlags.NoDescribe;
@@ -228,9 +210,7 @@ public static class Robot
         var body = state.World!.FindObject("ROBOT")!;
         if (verb == "GIVE" && other != null)
         {
-            Detach(other);
-            other.Carrier = state.Robot;
-            state.Robot.Inventory.Insert(0, other);
+            other.MoveTo(state.Robot, first: true);
             state.Output.WriteLine("The robot gladly takes the " + other.DescriptionShort + " and nods his head-like appendage in thanks.");
         }
         else if (verb is "THROW" or "MUNG")
@@ -304,8 +284,7 @@ public static class Robot
             Detach(body);
             sphere.Flags &= ~ObjectFlags.Visible;
             var rcage = world.FindObject("RCAGE")!;
-            rcage.InRoom = state.Robot.CurrentRoom;
-            state.Robot.CurrentRoom.Objects.Add(rcage);
+            rcage.MoveTo(state.Robot.CurrentRoom);
             return;
         }
         state.Output.WriteLine("As you reach for the sphere, an iron cage falls from the ceiling to entrap you.  To make matters worse, poisonous gas starts coming into the room.");

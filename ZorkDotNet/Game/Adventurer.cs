@@ -6,7 +6,9 @@ namespace ZorkDotNet.Game;
 public class Adventurer
 {
     public Room CurrentRoom { get; set; } = null!;
-    public List<GameObject> Inventory { get; } = new();
+    /// <summary>What the adventurer carries (MDL AOBJS). Changed only by <see cref="GameObject.MoveTo"/>.</summary>
+    public IReadOnlyList<GameObject> Inventory => Items;
+    internal List<GameObject> Items { get; } = new();
     public int Score { get; set; }
     public GameObject? Vehicle { get; set; }
     /// <summary>Strength of an unhurt adventurer.</summary>

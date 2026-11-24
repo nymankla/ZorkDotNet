@@ -93,9 +93,7 @@ public class RoomActionTests
         using var runner = new GameRunner();
         runner.Teleport("BSHAF");
         var lamp = runner.State.World!.FindObject("LAMP")!;
-        lamp.InRoom?.Objects.Remove(lamp);
-        lamp.InRoom = runner.State.Here;
-        runner.State.Here.Objects.Add(lamp);
+        lamp.MoveTo(runner.State.Here);
         lamp.LightAmount = 1;
         var score = runner.State.Winner.Score;
 

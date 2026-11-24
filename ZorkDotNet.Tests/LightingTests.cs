@@ -94,13 +94,8 @@ public class LightingTests
         runner.Teleport("CELLA");
         var bottle = runner.State.World!.FindObject("BOTTL")!;
         var lamp = runner.State.World.FindObject("LAMP")!;
-        bottle.InRoom!.Objects.Remove(bottle);
-        bottle.InRoom = runner.State.Here;
-        runner.State.Here.Objects.Add(bottle);
-        lamp.InRoom!.Objects.Remove(lamp);
-        lamp.InRoom = null;
-        lamp.Container = bottle;
-        bottle.Contents.Add(lamp);
+        bottle.MoveTo(runner.State.Here);
+        lamp.MoveTo(bottle);
 
         Assert.False(GameState.IsLit(runner.State));
         lamp.LightAmount = 1;

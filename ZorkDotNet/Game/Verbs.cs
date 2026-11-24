@@ -262,7 +262,7 @@ public static class Verbs
     }
 
     /// <summary>rooms.99 FIND-FROB: look for the object in a list, and one level into open or transparent containers.</summary>
-    private static bool FindFrob(GameState state, GameObject obj, List<GameObject> list, string where, string before, string after)
+    private static bool FindFrob(GameState state, GameObject obj, IReadOnlyList<GameObject> list, string where, string before, string after)
     {
         var told = false;
         foreach (var x in list)
@@ -352,8 +352,7 @@ public static class Verbs
             state.SetFlag("CYCLOPS-FLAG!-FLAG", true);
             state.Output.WriteLine("The cyclops, hearing the name of his deadly nemesis, flees the room by knocking down the wall on the north of the room.");
             state.SetFlag("MAGIC-FLAG!-FLAG", true);
-            state.Here.Objects.Remove(cyclops);
-            cyclops.InRoom = null;
+            cyclops.MoveTo(null);
         }
         else
             state.Output.WriteLine("Wasn't he a sailor?");

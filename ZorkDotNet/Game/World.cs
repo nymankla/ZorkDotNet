@@ -1052,7 +1052,7 @@ public class World
         PlaceInRoom("LLD2", "BODIE");
         PlaceInRoom("TOMB", "TOMB", "HEADS", "COKES", "LISTS");
         PlaceInRoom("FALLS", "RAINB", "BARRE");
-        FindRoom("POG")!.Objects.Add(FindObject("RAINB")!); // scenery in two rooms, as in dung.56
+        FindRoom("POG")!.AddScenery(FindObject("RAINB")!); // scenery in two rooms, as in dung.56
         PlaceInRoom("CAVE4", "ENGRA");
         PlaceInRoom("TEMP1", "PRAYE");
         PlaceInRoom("BWELL", "ETCH1");
@@ -1076,7 +1076,7 @@ public class World
         PutInContainer("BALLO", "CBAG", "BROPE", "RECEP");
         FindObject("BALLO")!.Open = true; // dung.56: <PUT <FIND-OBJ "BALLO"> ,OOPEN? T>
         PlaceInRoom("VLBOT", "BALLO");
-        FindObject("BLABE")!.Container = FindObject("BALLO"); // dung.56 gives the label OCAN BALLO, but it shows only once inflated
+        FindObject("BLABE")!.SetUnlistedContainer(FindObject("BALLO")!); // dung.56 gives the label OCAN BALLO, but it shows only once inflated
         PlaceInRoom("LEDG4", "HOOK2");
         PlaceInRoom("LIBRA", "BLBK", "GRBK", "PUBK", "WHBK");
         PutInContainer("PUBK", "STAMP");
@@ -1185,7 +1185,7 @@ public class World
     private void ChimneyFunction(GameState state)
     {
         var inventory = state.Winner.Inventory;
-        var light = inventory.Count <= 2 && inventory.Exists(o => o.Id == "LAMP");
+        var light = inventory.Count <= 2 && inventory.Any(o => o.Id == "LAMP");
         state.SetFlag("LIGHT-LOAD!-FLAG", light);
         if (light && !state.GetFlag("TRAP-DOOR!-FLAG"))
         {
@@ -1230,12 +1230,7 @@ public class World
         {
             foreach (var oid in objectIds)
             {
-                var o = FindObject(oid);
-                if (o != null)
-                {
-                    o.InRoom = r;
-                    r.Objects.Add(o);
-                }
+                FindObject(oid)?.PlaceAlsoIn(r);
             }
         }
     }
@@ -1273,14 +1268,7 @@ public class World
         if (r == null) return;
         foreach (var oid in objectIds)
         {
-            var o = FindObject(oid);
-            if (o != null)
-            {
-                o.InRoom = r;
-                o.Carrier = null;
-                if (!r.Objects.Contains(o))
-                    r.Objects.Add(o);
-            }
+            FindObject(oid)?.PlaceAlsoIn(r);
         }
     }
 
@@ -1290,14 +1278,7 @@ public class World
         if (c == null) return;
         foreach (var oid in objectIds)
         {
-            var o = FindObject(oid);
-            if (o != null)
-            {
-                o.Container = c;
-                o.InRoom = null;
-                o.Carrier = null;
-                c.Contents.Add(o);
-            }
+            FindObject(oid)?.MoveTo(c);
         }
     }
 }

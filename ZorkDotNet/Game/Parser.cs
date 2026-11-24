@@ -705,19 +705,8 @@ public static class Parser
     /// <summary>Move player to a room (score, seen, onEnter, look). Used by TryGo and exit actions (e.g. CAROUSEL-OUT).</summary>
     public static void MoveToRoom(GameState state, Room nextRoom)
     {
-        var vehicle = state.Winner.Vehicle;
-        if (vehicle != null && vehicle.InRoom != null)
-        {
-            vehicle.InRoom.Objects.Remove(vehicle);
-            vehicle.InRoom = null;
-        }
+        state.Winner.Vehicle?.MoveTo(nextRoom);
         state.Winner.CurrentRoom = nextRoom;
-        if (vehicle != null)
-        {
-            vehicle.InRoom = nextRoom;
-            if (!nextRoom.Objects.Contains(vehicle))
-                nextRoom.Objects.Add(vehicle);
-        }
         // No Moves++ here: the original (rooms.99 RDCOM) counts one move per command, and GOTO never adds one.
         if (!nextRoom.Seen) state.Winner.Score += nextRoom.VisitScore;
         var wasSeen = nextRoom.Seen;
@@ -796,7 +785,7 @@ public static class Parser
     }
 
     /// <summary>rooms.99 PRINT-CONTENTS: "a leaflet", "a bag, and a bottle", "a, b, and c".</summary>
-    private static string ListContents(List<GameObject> objects)
+    private static string ListContents(IReadOnlyList<GameObject> objects)
     {
         var sb = new System.Text.StringBuilder();
         for (var i = 0; i < objects.Count; i++)
@@ -859,14 +848,8 @@ public static class Parser
         {
             if (state.Winner.CarryingSize + obj.Size > Adventurer.MaxLoad)
             { state.Output.WriteLine("You're carrying too much."); return false; }
-            obj.InRoom.Objects.Remove(obj);
         }
-        else if (obj.Container != null)
-            obj.Container.Contents.Remove(obj);
-        obj.InRoom = null;
-        obj.Container = null;
-        obj.Carrier = state.Winner;
-        state.Winner.Inventory.Add(obj);
+        obj.MoveTo(state.Winner);
         // TAKE calls the object's action (rooms.99 APPLY-OBJECT): the candles start their clock, the rusty knife
         // makes the sword pulse.
         if (obj.Id is "CANDL" or "RKNIF") obj.ObjectAction?.Invoke(state, "TAKE", null);
@@ -880,10 +863,7 @@ public static class Parser
     private static void DoDrop(GameState state, GameObject obj)
     {
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.InRoom = state.Here;
-        state.Here.Objects.Add(obj);
+        obj.MoveTo(state.Here);
         state.Output.WriteLine("Dropped.");
     }
 
@@ -994,21 +974,17 @@ public static class Parser
         if (state.Here.Id == "ICY" && atObj?.Id == "ICE" && obj.Id == "TORCH" && obj.LightAmount > 0)
         {
             state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
-            state.Winner.Inventory.Remove(obj);
-            var ice = state.World!.FindObject("ICE");
-            if (ice != null) { state.Here.Objects.Remove(ice); }
-            var strea = state.World.FindRoom("STREA");
-            if (strea != null) { obj.InRoom = strea; obj.Carrier = null; strea.Objects.Add(obj); obj.LightAmount = 0; obj.Flags &= ~ObjectFlags.OnFire; obj.DescriptionShort = "burned out ivory torch"; obj.DescriptionHere = "There is a burned out ivory torch here."; }
+            state.World!.FindObject("ICE")?.MoveTo(null);
+            var strea = state.World.FindRoom("STREA")!;
+            obj.MoveTo(strea);
+            { obj.LightAmount = 0; obj.Flags &= ~ObjectFlags.OnFire; obj.DescriptionShort = "burned out ivory torch"; obj.DescriptionHere = "There is a burned out ivory torch here."; }
             state.SetFlag("GLACIER-FLAG!-FLAG", true);
             return;
         }
         if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
         // OBJECT-ACTION asks the target too (the troll catches it, the thief bags it).
         if (atObj != null && ObjectActions.Try(state, atObj, "THROW", obj)) return;
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.InRoom = state.Here;
-        state.Here.Objects.Add(obj);
+        obj.MoveTo(state.Here);
         state.Output.WriteLine("The " + obj.DescriptionShort + " lands on the ground.");
     }
 
@@ -1124,10 +1100,7 @@ public static class Parser
         }
         if (ObjectActions.Try(state, obj, "PUT", cont)) return;
         if (ObjectActions.Try(state, cont, "PUT", obj)) return;
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.Container = cont;
-        cont.Contents.Add(obj);
+        obj.MoveTo(cont);
         if (cont.Id == "TCASE" && obj.TrophyScore > 0)
             state.Winner.Score += obj.TrophyScore;
         state.Output.WriteLine("Done.");
@@ -1138,9 +1111,7 @@ public static class Parser
         var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to give?"); return; }
         // Held, or inside something held (the water in the bottle), as the AOBJS search finds it.
-        var holder = obj;
-        while (holder.Carrier == null && holder.Container != null) holder = holder.Container;
-        if (holder.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
+        if (obj.Holder != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
         var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
         var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
@@ -1183,11 +1154,7 @@ public static class Parser
         if (bottle.Contents.Count > 0) { state.Output.WriteLine("The bottle is already full."); return; }
         var water = state.World?.FindObject("WATER");
         if (water == null) { state.Output.WriteLine("I can't find any water here."); return; }
-        if (water.Container != null) water.Container.Contents.Remove(water);
-        if (water.InRoom != null) { water.InRoom.Objects.Remove(water); water.InRoom = null; }
-        water.Carrier = null;
-        water.Container = bottle;
-        bottle.Contents.Add(water);
+        water.MoveTo(bottle);
         state.Output.WriteLine("The bottle is now full of water.");
     }
 

@@ -86,13 +86,7 @@ public sealed class GameRunner : IDisposable
     public GameObject Give(string objectId)
     {
         var obj = _state.World!.FindObject(objectId) ?? throw new ArgumentException("No such object: " + objectId, nameof(objectId));
-        obj.InRoom?.Objects.Remove(obj);
-        obj.Container?.Contents.Remove(obj);
-        obj.Carrier?.Inventory.Remove(obj);
-        obj.InRoom = null;
-        obj.Container = null;
-        obj.Carrier = _state.Winner;
-        _state.Winner.Inventory.Add(obj);
+        obj.MoveTo(_state.Winner);
         return obj;
     }
 

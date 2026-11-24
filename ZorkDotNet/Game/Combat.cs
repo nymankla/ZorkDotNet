@@ -9,7 +9,7 @@ public static class Combat
     /// <summary>ARMED?: true if player has a weapon in inventory.</summary>
     public static bool Armed(GameState state)
     {
-        return state.Winner.Inventory.Exists(o => (o.Flags & ObjectFlags.Weapon) != 0);
+        return state.Winner.Inventory.Any(o => (o.Flags & ObjectFlags.Weapon) != 0);
     }
 
     /// <summary>act1.38 INFESTED?: a villain is in this room.</summary>
@@ -112,8 +112,7 @@ public static class Combat
         }
         state.VillainStrength.Remove(villain.Id);
         villain.Flags &= ~ObjectFlags.Fighting;
-        state.Here.Objects.Remove(villain);
-        villain.InRoom = null;
+        villain.MoveTo(null);
         state.Output.WriteLine("The " + villain.DescriptionShort + " is killed by the force of your attack.  The body has vanished.");
         if (villain.Id == "TROLL") state.SetFlag("TROLL-FLAG!-FLAG", true); // TROLL with DEAD!
         else if (villain.Id == "THIEF") Thief.Died(state); // ROBBER-FUNCTION with DEAD!

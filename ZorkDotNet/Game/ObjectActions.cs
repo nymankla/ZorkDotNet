@@ -166,22 +166,10 @@ public static class ObjectActions
     /// <summary>Put <paramref name="replacement"/> where <paramref name="old"/> is (room or inventory) and take <paramref name="old"/> away.</summary>
     private static void Swap(GameObject old, GameObject replacement)
     {
-        if (old.InRoom != null)
-        {
-            var room = old.InRoom;
-            room.Objects.Remove(old);
-            old.InRoom = null;
-            replacement.InRoom = room;
-            room.Objects.Add(replacement);
-        }
-        else if (old.Carrier != null)
-        {
-            var carrier = old.Carrier;
-            carrier.Inventory.Remove(old);
-            old.Carrier = null;
-            replacement.Carrier = carrier;
-            carrier.Inventory.Add(replacement);
-        }
+        if (old.InRoom == null && old.Carrier == null) return;
+        var place = old.Location;
+        old.MoveTo(null);
+        replacement.MoveTo(place);
     }
 
     /// <summary>act2.27 IBOAT-FUNCTION: INFLATE the folded boat on the ground, with the pump.</summary>
@@ -191,7 +179,7 @@ public static class ObjectActions
         var iboat = state.World!.FindObject("IBOAT")!;
         if (iboat.InRoom != state.Here)
             state.Output.WriteLine("The boat must be on the ground to be inflated.");
-        else if (state.Winner.Inventory.Exists(o => o.Id == "PUMP"))
+        else if (state.Winner.Inventory.Any(o => o.Id == "PUMP"))
         {
             state.Output.WriteLine("The boat inflates and appears seaworthy.");
             state.SetFlag("DEFLATE!-FLAG", false);
@@ -228,7 +216,7 @@ public static class ObjectActions
         switch (verb)
         {
             case "BOARD":
-                if (state.Winner.Inventory.Exists(o => o.Id == "STICK"))
+                if (state.Winner.Inventory.Any(o => o.Id == "STICK"))
                 {
                     state.Output.WriteLine("There is a hissing sound and the boat deflates.");
                     Swap(rboat, state.World.FindObject("DBOAT")!);
@@ -281,7 +269,7 @@ public static class ObjectActions
     {
         if (verb == "TAKE")
         {
-            if (state.Winner.Inventory.Exists(o => o.Id == "SWORD"))
+            if (state.Winner.Inventory.Any(o => o.Id == "SWORD"))
                 state.Output.WriteLine("As you pick up the rusty knife, your sword gives a single pulse of blinding blue light.");
         }
         else if (verb is "ATTACK" or "SWING" or "THROW" or "KILL")
@@ -316,9 +304,7 @@ public static class ObjectActions
         var to = state.World!.FindRoom(toRoomId)!;
         foreach (var o in from.Objects.ToList())
         {
-            from.Objects.Remove(o);
-            o.InRoom = to;
-            to.Objects.Add(o);
+            o.MoveTo(to);
             o.Size = smaller ? o.Size / 64 : o.Size * 64;
         }
         Parser.Goto(state, to);
@@ -436,9 +422,7 @@ public static class ObjectActions
             if (other.Id == "KNIFE")
             {
                 state.Output.WriteLine("and being for the moment sated, throws it back.  Fortunately, the troll has poor control, and the knife falls to the floor.  He does not look pleased.");
-                RemoveFromWhere(other);
-                other.InRoom = state.Here;
-                state.Here.Objects.Add(other);
+                other.MoveTo(state.Here);
                 troll.Flags |= ObjectFlags.Fighting;
                 state.VillainStrength.TryAdd("TROLL", Combat.TrollStrength);
             }
@@ -475,7 +459,7 @@ public static class ObjectActions
                 state.SetFlag("ON-POLE!-FLAG", true);
                 var pole = state.World?.FindObject("HPOLE");
                 var lld2 = state.World?.FindRoom("LLD2");
-                if (pole != null && lld2 != null) { pole.InRoom = lld2; lld2.Objects.Add(pole); }
+                if (lld2 != null) pole?.MoveTo(lld2);
             }
             state.JigsUp("The voice of the guardian of the dungeon booms out from the darkness 'Your disrespect costs you your life!' and places your head on a pole.");
         }
@@ -494,17 +478,8 @@ public static class ObjectActions
         var world = state.World!;
         var lcase = world.FindObject("LCASE")!;
         if (taken.Count > 0 && lcase.InRoom == null)
-        {
-            var lroom = world.FindRoom("LROOM")!;
-            lcase.InRoom = lroom;
-            lroom.Objects.Add(lcase);
-        }
-        foreach (var o in taken)
-        {
-            RemoveFromWhere(o);
-            o.Container = lcase;
-            lcase.Contents.Add(o);
-        }
+            lcase.MoveTo(world.FindRoom("LROOM")!);
+        foreach (var o in taken) o.MoveTo(lcase);
         state.JigsUp("Unfortunately, we've run out of poles.  Therefore, in punishment for your most grievous sin, we shall deprive you of all your valuables, and of your life.");
     }
 
@@ -609,12 +584,7 @@ public static class ObjectActions
         {
             state.Output.WriteLine("The lamp has smashed into the floor and the light has gone out.");
             RemoveFromWhere(lamp!);
-            if (blamp != null && state.Here != null)
-            {
-                blamp.InRoom = state.Here;
-                blamp.Carrier = null;
-                state.Here.Objects.Add(blamp);
-            }
+            blamp?.MoveTo(state.Here);
         }
         // TURN ON / OFF: the original LANTERN only enables or disables the lamp's clock and lets LAMP-ON /
         // LAMP-OFF do the rest. Here the lamp clock runs whenever the lamp is on (GameState.ProcessClocks).
@@ -773,8 +743,7 @@ public static class ObjectActions
         if (brickRoom.Id == "LROOM")
         {
             var tcase = world.FindObject("TCASE")!;
-            foreach (var o in tcase.Contents) o.Container = null;
-            tcase.Contents.Clear();
+            foreach (var o in tcase.Contents.ToList()) o.MoveTo(null);
         }
     }
 
@@ -814,11 +783,8 @@ public static class ObjectActions
                     var bottom = world.FindRoom("VLBOT")!;
                     state.BalloonLocation = "VLBOT";
                     var ball = world.FindObject("BALLO")!;
-                    ball.InRoom?.Objects.Remove(ball);
-                    ball.InRoom = null;
-                    var broken = world.FindObject("DBALL")!;
-                    broken.InRoom = bottom;
-                    bottom.Objects.Add(broken);
+                    ball.MoveTo(null);
+                    world.FindObject("DBALL")!.MoveTo(bottom);
                     state.SetFlag("BTIE!-FLAG", false);
                     state.SetFlag("BINF!-FLAG", false);
                     Balloon.StopClock(state);
@@ -892,9 +858,7 @@ public static class ObjectActions
     /// <summary>act3.13 PASS-THE-BUCKET: the bucket moves, and you in it see where you are.</summary>
     private static void PassTheBucket(GameState state, Room to, GameObject bucket)
     {
-        bucket.InRoom?.Objects.Remove(bucket);
-        bucket.InRoom = to;
-        to.Objects.Add(bucket);
+        bucket.MoveTo(to);
         if (state.Winner.Vehicle != bucket) return;
         Parser.Goto(state, to);
         Parser.Describe(state);
@@ -922,14 +886,12 @@ public static class ObjectActions
         {
             if (obj?.Carrier == state.Winner)
             {
-                state.Winner.Inventory.Remove(obj);
-                obj.Carrier = null;
+                obj.MoveTo(null);
                 state.Output.WriteLine("You have destroyed the bottle.  Well done.");
             }
             else if (obj?.InRoom == state.Here)
             {
-                state.Here.Objects.Remove(obj);
-                obj.InRoom = null;
+                obj.MoveTo(null);
                 state.Output.WriteLine("A brilliant maneuver destroys the bottle.");
             }
         }
@@ -957,11 +919,7 @@ public static class ObjectActions
                     state.Output.WriteLine("The bottle is closed.");
                 else
                 {
-                    obj.Container?.Contents.Remove(obj);
-                    obj.Container = bottle;
-                    bottle.Contents.Add(obj);
-                    obj.Carrier = null;
-                    state.Winner.Inventory.Remove(obj);
+                    obj.MoveTo(bottle);
                     state.Output.WriteLine("The bottle is now full of water.");
                 }
             }
@@ -969,12 +927,7 @@ public static class ObjectActions
             {
                 // act1.38 WATER-FUNCTION: water put into the vehicle you're in stays there.
                 state.Output.WriteLine("There is now a puddle in the bottom of the " + cont.DescriptionShort + ".");
-                obj.Container?.Contents.Remove(obj);
-                if (obj.InRoom != null) { obj.InRoom.Objects.Remove(obj); obj.InRoom = null; }
-                obj.Carrier?.Inventory.Remove(obj);
-                obj.Carrier = null;
-                obj.Container = cont;
-                if (!cont.Contents.Contains(obj)) cont.Contents.Add(obj);
+                if (obj.Container != cont) obj.MoveTo(cont);
             }
             else if (cont != null && cont != bottle)
             {
@@ -986,10 +939,7 @@ public static class ObjectActions
         }
         else if (verb == "DROP" || verb == "POUR")
         {
-            state.Winner.Inventory.Remove(obj);
-            obj.Carrier = null;
-            obj.Container = null;
-            if (state.Here != null) { obj.InRoom = state.Here; state.Here.Objects.Add(obj); }
+            obj.MoveTo(state.Here);
             state.Output.WriteLine("The water spills to the floor and evaporates immediately.");
         }
     }
@@ -1017,10 +967,7 @@ public static class ObjectActions
                 state.SetFlag("DOME-FLAG!-FLAG", true);
                 if (obj != null && obj.Carrier == state.Winner)
                 {
-                    state.Winner.Inventory.Remove(obj);
-                    obj.Carrier = null;
-                    obj.InRoom = dome;
-                    dome.Objects.Add(obj);
+                    obj.MoveTo(dome);
                 }
             }
         }
@@ -1053,7 +1000,7 @@ public static class ObjectActions
             if (obj.InRoom != null)
             {
                 state.Output.WriteLine("The leaves burn and the neighbors start to complain.");
-                state.Here.Objects.Remove(obj);
+                obj.MoveTo(null);
             }
             else
             {
@@ -1069,8 +1016,7 @@ public static class ObjectActions
     {
         if (obj?.Container != null)
         {
-            obj.Container.Contents.Remove(obj);
-            obj.Container = null;
+            obj.MoveTo(null);
             state.Output.WriteLine("The slag turns out to be rather insubstantial, and crumbles into dust at your touch.  It must not have been very valuable.");
         }
     }
@@ -1126,20 +1072,15 @@ public static class ObjectActions
         }
         state.Output.WriteLine("The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises.  After a few moments, the excitement abates.");
         var coal = world.FindObject("COAL")!;
-        if (mach.Contents.Remove(coal))
+        if (coal.Container == mach)
         {
-            coal.Container = null;
-            var diamond = world.FindObject("DIAMO")!;
-            diamond.Container = mach;
-            mach.Contents.Insert(0, diamond);
+            coal.MoveTo(null);
+            world.FindObject("DIAMO")!.MoveTo(mach, first: true);
         }
         else if (mach.Contents.Count > 0)
         {
-            foreach (var o in mach.Contents) o.Container = null;
-            mach.Contents.Clear();
-            var gunk = world.FindObject("GUNK")!;
-            gunk.Container = mach;
-            mach.Contents.Add(gunk);
+            foreach (var o in mach.Contents.ToList()) o.MoveTo(null);
+            world.FindObject("GUNK")!.MoveTo(mach);
         }
     }
 
@@ -1156,9 +1097,8 @@ public static class ObjectActions
             if (ct) state.Output.WriteLine("It's already at the top.");
             else
             {
-                RemoveFromWhere(tbask); RemoveFromWhere(fbask);
-                tbask.InRoom = top; top.Objects.Add(tbask); tbask.Carrier = null;
-                fbask.InRoom = bot; bot.Objects.Add(fbask); fbask.Carrier = null;
+                tbask.MoveTo(top);
+                fbask.MoveTo(bot);
                 state.Output.WriteLine("The basket is raised to the top of the shaft.");
                 state.SetFlag("CAGE-TOP!-FLAG", true);
             }
@@ -1168,9 +1108,8 @@ public static class ObjectActions
             if (!ct) state.Output.WriteLine("It's already at the bottom.");
             else
             {
-                RemoveFromWhere(tbask); RemoveFromWhere(fbask);
-                tbask.InRoom = bot; bot.Objects.Add(tbask);
-                fbask.InRoom = top; top.Objects.Add(fbask);
+                tbask.MoveTo(bot);
+                fbask.MoveTo(top);
                 state.Output.WriteLine("The basket is lowered to the bottom of the shaft.");
                 state.SetFlag("CAGE-TOP!-FLAG", false);
             }
@@ -1184,12 +1123,7 @@ public static class ObjectActions
         }
     }
 
-    private static void RemoveFromWhere(GameObject obj)
-    {
-        if (obj.InRoom != null) { obj.InRoom.Objects.Remove(obj); obj.InRoom = null; }
-        if (obj.Carrier != null) { obj.Carrier.Inventory.Remove(obj); obj.Carrier = null; }
-        if (obj.Container != null) { obj.Container.Contents.Remove(obj); obj.Container = null; }
-    }
+    private static void RemoveFromWhere(GameObject obj) => obj.MoveTo(null);
 
     public static void TrapDoor(GameState state, string verb, GameObject? _)
     {
@@ -1251,11 +1185,7 @@ public static class ObjectActions
         if (obj == null) return;
         if ((obj.Flags & ObjectFlags.Drinkable) == 0) { state.Output.WriteLine("You can't drink that."); return; }
         state.Output.WriteLine("You have drunk the water.  The bottle is now empty.");
-        if (obj.Container != null) obj.Container.Contents.Remove(obj);
-        obj.Container = null;
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        if (state.Here != null) { obj.InRoom = state.Here; state.Here.Objects.Add(obj); }
+        obj.MoveTo(state.Here);
     }
 
     public static void Diagnose(GameState state)
@@ -1280,12 +1210,11 @@ public static class ObjectActions
             }
             var from = here.Id == "MIRR1" ? m1 : m2;
             var to = here.Id == "MIRR1" ? m2 : m1;
-            var objsFrom = from.Objects.ToList();
-            var objsTo = to.Objects.ToList();
-            from.Objects.Clear();
-            to.Objects.Clear();
-            foreach (var o in objsTo) { o.InRoom = from; from.Objects.Add(o); }
-            foreach (var o in objsFrom) { o.InRoom = to; to.Objects.Add(o); }
+            var objsFrom = from.Objects.Where(o => o.InRoom == from).ToList();
+            var objsTo = to.Objects.Where(o => o.InRoom == to).ToList();
+            foreach (var o in objsFrom) o.MoveTo(null);
+            foreach (var o in objsTo) o.MoveTo(from);
+            foreach (var o in objsFrom) o.MoveTo(to);
             state.Winner.CurrentRoom = to;
             state.Output.WriteLine("There is a rumble from deep within the earth and the room shakes.");
             return;
