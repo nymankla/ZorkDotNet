@@ -164,6 +164,14 @@ public static class Parser
 
         var first = NormWord(words[0]);
 
+        // rooms.99 COMMAND: TELL actor '...' (the robot is the only actor)
+        if (first is "TELL" or "COMMA" or "REQUE" && words.Length >= 2)
+        {
+            var actor = ResolveObject(state, [words[1].Trim('\'', '"')], 0, out _);
+            if (actor != null) Robot.Tell(state, actor, words[2..]);
+            return;
+        }
+
         // Direction only -> walk (np.92 SPARSE: direction before verb)
         var dir = ResolveDirection(first);
         if (dir != null)
@@ -580,6 +588,10 @@ public static class Parser
         }
     }
 
+    internal static bool Matches(GameObject o, string word) => MatchObject(o, word);
+
+    internal static string? Direction(string normWord) => ResolveDirection(normWord);
+
     private static bool MatchObject(GameObject o, string word)
     {
         if (NormWord(o.Id) == word) return true;
@@ -614,6 +626,7 @@ public static class Parser
     {
         var r = state.Here;
         if (Balloon.ReadIn(state, "WALK", null, null, direction)) return;
+        if (r.Id == "MAGNE" && Robot.MagnetWalk(state, direction)) return;
         // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
         // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
         if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
@@ -742,6 +755,7 @@ public static class Parser
                 var desc = LongDescription(o);
                 if (!string.IsNullOrEmpty(desc))
                     state.Output.WriteLine(vehicle != null ? desc + " [in the room]" : desc);
+                if (o.Id == "ROBOT") Robot.DescribeCarrying(state); // ROOM-INFO: INVENT of an actor
             }
             if (SeeInside(o)) PrintContents(state, o, "", showCase);
         }

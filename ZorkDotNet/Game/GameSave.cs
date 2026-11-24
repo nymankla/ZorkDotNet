@@ -96,6 +96,8 @@ public static class GameSave
             MatchesLeft = state.MatchesLeft,
             LightShaftScored = state.LightShaftScored,
             BalloonLocation = state.BalloonLocation,
+            RobotRoom = state.Robot.CurrentRoom?.Id,
+            RobotInventory = state.Robot.Inventory.Select(o => o.Id).ToList(),
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
             Rooms = world.Rooms.Select(r => new RoomData
             {
@@ -139,6 +141,8 @@ public static class GameSave
         if (!IsRoom(data.Player.Room)) return "unknown room " + data.Player.Room;
         if (data.Player.Vehicle != null && !IsObject(data.Player.Vehicle)) return "unknown vehicle " + data.Player.Vehicle;
         if (data.Player.Inventory.FirstOrDefault(i => !IsObject(i)) is { } badInv) return "unknown object " + badInv;
+        if (data.RobotRoom != null && !IsRoom(data.RobotRoom)) return "unknown room " + data.RobotRoom;
+        if (data.RobotInventory.FirstOrDefault(i => !IsObject(i)) is { } badRobot) return "unknown object " + badRobot;
         if (data.Events.FirstOrDefault(e => !Clocks.IsKnown(e.Name)) is { } badEvent) return "unknown clock event " + badEvent.Name;
         foreach (var r in data.Rooms)
         {
@@ -244,6 +248,14 @@ public static class GameSave
         state.MatchesLeft = data.MatchesLeft;
         state.LightShaftScored = data.LightShaftScored;
         state.BalloonLocation = data.BalloonLocation ?? "VLBOT";
+        if (data.RobotRoom != null) state.Robot.CurrentRoom = world.FindRoom(data.RobotRoom)!;
+        state.Robot.Inventory.Clear();
+        foreach (var id in data.RobotInventory)
+        {
+            var o = world.FindObject(id)!;
+            o.Carrier = state.Robot;
+            state.Robot.Inventory.Add(o);
+        }
         state.ScheduledEvents.Clear();
         state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
 
@@ -281,6 +293,8 @@ internal sealed class SaveData
     public int MatchesLeft { get; set; }
     public bool LightShaftScored { get; set; }
     public string? BalloonLocation { get; set; }
+    public string? RobotRoom { get; set; }
+    public List<string> RobotInventory { get; set; } = new();
     public List<EventData> Events { get; set; } = new();
     public List<RoomData> Rooms { get; set; } = new();
     public List<ObjectData> Objects { get; set; } = new();

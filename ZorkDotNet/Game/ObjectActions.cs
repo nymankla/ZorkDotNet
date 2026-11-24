@@ -1010,14 +1010,14 @@ public static class ObjectActions
         }
     }
 
+    /// <summary>act2.27 MACHINE-FUNCTION: the machine's lid, in the machine room.</summary>
     public static void MachineFunction(GameState state, string verb, GameObject? _)
     {
-        var mach = state.World!.FindObject("MACHI");
-        if (mach == null) return;
+        if (state.Here.Id != "MACHI") return;
+        var mach = state.World!.FindObject("MACHI")!;
         if (verb == "OPEN")
         {
-            if (mach.Open)
-                state.Output.WriteLine("It is already open.");
+            if (mach.Open) state.Output.WriteLine(Dummy[state.Random.Next(Dummy.Length)]);
             else
             {
                 state.Output.WriteLine("The lid opens.");
@@ -1031,8 +1031,7 @@ public static class ObjectActions
                 state.Output.WriteLine("The lid closes.");
                 mach.Open = false;
             }
-            else
-                state.Output.WriteLine("It is already closed.");
+            else state.Output.WriteLine(Dummy[state.Random.Next(Dummy.Length)]);
         }
     }
 
@@ -1041,28 +1040,41 @@ public static class ObjectActions
         // Handled in Parser DoThrow: throw torch at ice in ICY.
     }
 
-    public static void MSwitchFunction(GameState state, string verb, GameObject? _)
+    /// <summary>
+    /// act2.27 MSWITCH-FUNCTION: TURN SWITCH WITH SCREWDRIVER runs the closed machine; coal inside becomes a diamond,
+    /// anything else becomes slag.
+    /// </summary>
+    public static void MSwitchFunction(GameState state, string verb, GameObject? tool)
     {
-        if (verb != "TURN") return;
-        var screw = state.World!.FindObject("SCREW");
-        var coal = state.World.FindObject("COAL");
-        var mach = state.World.FindObject("MACHI");
-        if (state.LastDirectObject?.Id != "SCREW" && state.LastDirectObject?.Id != "MSWIT") return;
-        if (mach?.Open == true)
-            state.Output.WriteLine("The machine doesn't seem to want to do anything.");
-        else
+        if (verb != "TURN" || tool == null) return;
+        var world = state.World!;
+        var mach = world.FindObject("MACHI")!;
+        if (tool.Id != "SCREW")
         {
-            state.Output.WriteLine("The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises.  After a few moments, the excitement abates.");
-            if (coal != null && mach != null && mach.Contents.Contains(coal))
-            {
-                mach.Contents.Remove(coal);
-                var diamo = state.World.FindObject("DIAMO");
-                if (diamo != null)
-                {
-                    diamo.Container = mach;
-                    mach.Contents.Add(diamo);
-                }
-            }
+            state.Output.WriteLine("It seems that a " + tool.DescriptionShort + " won't do.");
+            return;
+        }
+        if (mach.Open)
+        {
+            state.Output.WriteLine("The machine doesn't seem to want to do anything.");
+            return;
+        }
+        state.Output.WriteLine("The machine comes to life (figuratively) with a dazzling display of colored lights and bizarre noises.  After a few moments, the excitement abates.");
+        var coal = world.FindObject("COAL")!;
+        if (mach.Contents.Remove(coal))
+        {
+            coal.Container = null;
+            var diamond = world.FindObject("DIAMO")!;
+            diamond.Container = mach;
+            mach.Contents.Insert(0, diamond);
+        }
+        else if (mach.Contents.Count > 0)
+        {
+            foreach (var o in mach.Contents) o.Container = null;
+            mach.Contents.Clear();
+            var gunk = world.FindObject("GUNK")!;
+            gunk.Container = mach;
+            mach.Contents.Add(gunk);
         }
     }
 
@@ -1218,15 +1230,6 @@ public static class ObjectActions
         if (printMessage)
             state.Output.WriteLine("A seedy-looking individual with a large bag just wandered through the room.  On the way through, he quietly abstracted all valuables from the room and from your possession, mumbling something about \"Doing unto others before..\"");
         return true;
-    }
-
-    /// <summary>Iron box (IRBOX) in carousel: WAVE sets CAROUSEL-FLIP!-FLAG so directions work.</summary>
-    public static void IronBoxFunction(GameState state, string verb, GameObject? _)
-    {
-        if (verb != "WAVE" && verb != "WAVING") return;
-        if (state.Here?.Id != "CAROU") return;
-        state.SetFlag("CAROUSEL-FLIP!-FLAG", true);
-        state.Output.WriteLine("The room spins and you get your bearings.");
     }
 
     /// <summary>Mirror (REFL1/REFL2): RUB swaps MIRR1/MIRR2 contents and moves player; BREAK/THROW sets MIRROR-MUNG!-FLAG.</summary>

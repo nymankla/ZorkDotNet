@@ -94,6 +94,9 @@ public class World
         _state.SetFlag("EMPTY-HANDED!-FLAG", false);
         _state.SetFlag("ECHO-FLAG!-FLAG", false);
         _state.SetFlag("SAFE-FLAG!-FLAG", false);
+        _state.SetFlag("CAGE-SOLVE!-FLAG", false);
+        _state.SetFlag("CAROUSEL-ZOOM!-FLAG", false);
+        _state.SetFlag("FROBOZZ!-FLAG", false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -314,7 +317,7 @@ public class World
                 ["EXIT"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS3", "")
             },
             objectIds: new[] { "IRBOX" },
-            roomAction: RoomActions.CarouselRoom);
+            roomAction: RoomActions.CarouselRoom, onEnter: RoomActions.CarouselEnter);
         RegisterCarouselExitActions();
         RegisterCoffinCure();
         _beforeExitActions[(NormId("STUDI"), "UP")] = ChimneyFunction;
@@ -677,16 +680,21 @@ public class World
             false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("LEDG2"), ["OUT"] = new("LEDG2") });
         AddRoom("MAGNE",
-            "You are in a low room.  Exits lead in many directions.",
+            "",
             "Low Room",
             false,
+            // dung.56 MAGCMACH / MAGALICE: FROBOZZ exits, which never open; MAGNET-ROOM moves you (Robot.MagnetWalk).
             new Dictionary<string, ExitTarget>
             {
-                ["NORTH"] = new("CMACH"), ["SOUTH"] = new("CMACH"), ["EAST"] = new("CMACH"), ["WEST"] = new("CMACH"),
-                ["NE"] = new("CMACH"), ["NW"] = new("ALICE"), ["SW"] = new("ALICE"), ["SE"] = new("ALICE")
-            });
+                ["NORTH"] = new("FROBOZZ!-FLAG", "CMACH", ""), ["SOUTH"] = new("FROBOZZ!-FLAG", "CMACH", ""),
+                ["WEST"] = new("FROBOZZ!-FLAG", "CMACH", ""), ["NE"] = new("FROBOZZ!-FLAG", "CMACH", ""),
+                ["NW"] = new("FROBOZZ!-FLAG", "ALICE", ""), ["SW"] = new("FROBOZZ!-FLAG", "ALICE", ""),
+                ["SE"] = new("FROBOZZ!-FLAG", "ALICE", ""), ["EAST"] = new("FROBOZZ!-FLAG", "CMACH", "")
+            },
+            roomAction: Robot.MagnetRoom, onEnter: Robot.MagnetEnter);
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
+            roomAction: Robot.CagedRoom);
         AddRoom("ALISM",
             "You are in an enormous room, in the center of which are four wooden posts delineating a rectanular area, above which is what appears to be a wooden roof.  In fact, all objects in this room appear to be abnormally large. To the east is a passageway.  There is a large chasm on the west and the northwest.",
             "Posts Room",
@@ -780,7 +788,8 @@ public class World
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("TWELL"), ["NW"] = new("MAGNE"), ["EAST"] = ExitTarget.Blocked("Only a mouse could get in there.") });
         AddRoom("CMACH", "", "Machine Room", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAGER"), ["WEST"] = new("MAGNE") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAGER"), ["WEST"] = new("MAGNE") },
+            roomAction: Robot.CmachRoom);
         AddRoom("CAGER",
             "You are in a dingy closet adjacent to the machine room.  On one wall is a small sticker which says Protected by FROBOZZ Magic Alarm Company (Hello, footpad!)",
             "Dingy Closet",
@@ -893,7 +902,7 @@ public class World
         AddObject("TORCH", "There is an ivory torch here.", "torch", "Sitting on the pedestal is a flaming torch, made of ivory.", null, ObjectFlags.Tool | ObjectFlags.OnFire | ObjectFlags.Take | ObjectFlags.Visible, 1, 14, 6, 20, 0);
         AddObject("REFL1", "", "mirror", null, ObjectActions.MirrorFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MIRRO" });
         AddObject("REFL2", "", "mirror", null, ObjectActions.MirrorFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MIRRO" });
-        AddObject("IRBOX", "There is a dented iron box here.", "iron box", null, ObjectActions.IronBoxFunction, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Container, 0, 0, 0, 40, 20, new[] { "BOX", "IRON", "DENTE" });
+        AddObject("IRBOX", "There is a dented iron box here.", "iron box", null, null, ObjectFlags.Take | ObjectFlags.Container, 0, 0, 0, 40, 20, new[] { "BOX" }, new[] { "IRON", "DENTE" });
         AddObject("CYCLO", "", "cyclops", null, ObjectActions.CyclopsFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 10000, new[] { "ONE-E", "MONST" });
         AddObject("TRUNK", "There is an old trunk here, bulging with assorted jewels.", "trunk with jewels", "Lying half buried in the mud is an old trunk, bulging with jewels.", null, ObjectFlags.Take, 0, 15, 8, 35, 0, new[] { "CHEST" });
         AddObject("FUSE", "There is a coil of thin shiny wire here.", "wire coil", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Burnable, 0, 0, 0, 1, 0, new[] { "COIL", "WIRE" });
@@ -971,6 +980,14 @@ public class World
         AddObject("WHBK", "There is a white book here.", "white book", null, null, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 2, new[] { "BOOK" }, new[] { "WHITE" });
         AddObject("STAMP", "There is a Flathead Commemorative stamp here.", "stamp", null, null, ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable | ObjectFlags.Visible, 0, 4, 10, 1, 0);
 
+        // The robot, the machine room and the carousel (dung.56)
+        AddObject("ROBOT", "There is a robot here.", "robot", null, Robot.RobotFunction, ObjectFlags.Sacred | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "R2D2", "C3PO", "ROBBY" });
+        AddObject("RBTLB", "There is a green piece of paper here.", "green piece of paper", null, null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 3, 0, new[] { "PAPER" }, new[] { "GREEN" });
+        AddObject("SQBUT", "", "button", null, Robot.Buttons, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO" }, new[] { "SQUAR" });
+        AddObject("RNBUT", "", "button", null, Robot.Buttons, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO" }, new[] { "ROUND" });
+        AddObject("TRBUT", "", "button", null, Robot.Buttons, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO" }, new[] { "TRIAN" });
+        AddObject("STRAD", "There is a Stradavarius here.", "fancy violin", null, null, ObjectFlags.Visible | ObjectFlags.Take, 0, 10, 10, 10, 0, new[] { "VIOLI" }, new[] { "FANCY" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -1002,7 +1019,7 @@ public class World
         AddObject("HOOK1", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("HOOK2", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("POT", "There is a pot of gold here.", "pot filled with gold", "At the end of the rainbow is a pot of gold.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 10, 15, 0, new[] { "GOLD" });
-        AddObject("SPHER", "There is a beautiful crystal sphere here.", "crystal sphere", null, null, ObjectFlags.Sacred | ObjectFlags.Visible | ObjectFlags.Take, 0, 6, 6, 10, 0, new[] { "BALL", "CRYST", "GLASS" });
+        AddObject("SPHER", "There is a beautiful crystal sphere here.", "crystal sphere", null, Robot.SphereFunction, ObjectFlags.Sacred | ObjectFlags.Visible, 0, 6, 6, 10, 0, new[] { "BALL" }, new[] { "CRYST", "GLASS" });
         AddObject("CAGE", "There is a mangled cage here.", "mangled cage", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 60, 0, new[] { "IRON" });
         AddObject("RCAGE", "There is an iron cage in the middle of the room.", "iron cage", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "CAGE", "IRON" });
 
@@ -1057,7 +1074,13 @@ public class World
         PlaceInRoom("MPEAR", "PEARL");
         PlaceInRoom("POG", "POT");
         PlaceInRoom("CAGER", "SPHER");
-        PlaceInRoom("CAGED", "RCAGE");
+        PlaceInRoom("CAGED", "CAGE");
+        PlaceInRoom("MAGNE", "RBTLB", "ROBOT");
+        _state.Robot.CurrentRoom = FindRoom("MAGNE")!;
+        PlaceInRoom("CMACH", "SQBUT", "RNBUT", "TRBUT");
+        PlaceInRoom("CAROU", "IRBOX");
+        PutInContainer("IRBOX", "STRAD");
+        PlaceInRoom("MACHI", "MSWIT", "MACHI");
         PlaceInRoom("MAZE5", "BONES", "BAGCO", "KEYS", "BLANT", "RKNIF");
         PlaceInRoom("CLEAR", "GRAT1", "LEAVE");
         PlaceInRoom("MGRAT", "GRAT2");

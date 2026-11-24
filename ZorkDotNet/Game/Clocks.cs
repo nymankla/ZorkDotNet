@@ -31,6 +31,9 @@ public static class Clocks
     /// <summary>BURNUP (BRNIN): what burns in the balloon's receptacle burns out.</summary>
     public const string Burnup = "BURNUP";
 
+    /// <summary>SPHERE-FUNCTION (SPHIN): the poison gas in the cage.</summary>
+    public const string Sphere = "SPHERE-FUNCTION";
+
     /// <summary>BALLOON (BINT): every three moves the balloon rises or sinks.</summary>
     public const string Balloon = "BALLOON";
 
@@ -39,7 +42,7 @@ public static class Clocks
 
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
-        MatchOut, Fuse, SafeMung, LedgeMung, Volgnome, GnomeLeave, Bucket, Burnup, MaintRoom, Balloon,
+        MatchOut, Fuse, SafeMung, LedgeMung, Volgnome, GnomeLeave, Bucket, Burnup, MaintRoom, Balloon, Sphere,
     };
 
     /// <summary>True if <paramref name="name"/> is a clock event this port knows (used to validate save files).</summary>
@@ -58,6 +61,7 @@ public static class Clocks
             case Bucket: ObjectActions.BucketTick(state); break;
             case Burnup: Game.Balloon.Burnup(state); break;
             case Balloon: Game.Balloon.Tick(state); break;
+            case Sphere: Robot.SphereClock(state); break;
             case MaintRoom: RoomActions.MaintRoomRising(state); break;
             default: throw new InvalidOperationException("Unknown clock event: " + e.Name);
         }
