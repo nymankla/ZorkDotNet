@@ -31,13 +31,10 @@ Exit not in original: VAIR4 DOWN -> VAIR3
 Object action missing: BAT: FLY-ME
 Object action missing: BOOK: BLACK-BOOK
 Object action missing: BUCKE: BUCKET
-Object action missing: FDOOR: DDOOR-FUNCTION
 Object action missing: RKNIF: RUSTY-KNIFE
 Object action missing: SPHER: SPHERE-FUNCTION
 Object action missing: SWORD: SWORD
 Object action missing: TROLL: TROLL
-Object action missing: WDOOR: DDOOR-FUNCTION
-Object action missing: WIND2: WINDOW-FUNCTION
 Object bit not modelled: BAT: TRYTAKEBIT
 Object bit not modelled: BONES: TRYTAKEBIT
 Object bit not modelled: BRICK: SEARCHBIT
@@ -47,6 +44,7 @@ Object bit not modelled: GHOST: VICBIT
 Object bit not modelled: GNOME: VICBIT
 Object bit not modelled: GUNK: TRYTAKEBIT
 Object bit not modelled: ICE: VICBIT
+Object bit not modelled: POOL: VICBIT
 Object bit not modelled: RECEP: SEARCHBIT
 Object bit not modelled: REFL1: TRYTAKEBIT
 Object bit not modelled: REFL1: VICBIT
@@ -59,32 +57,14 @@ Object bit not modelled: THIEF: VICBIT
 Object bit not modelled: TROLL: VICBIT
 Object description: CANDL: original "There are two candles here.", port "Some candles are here."
 Object flags: BALLO: extra Take Container
-Object flags: BAT: missing NoDescribe
-Object flags: BOOK: missing Burnable
-Object flags: BRICK: missing Burnable
 Object flags: BUCKE: missing Vehicle extra Take Container
-Object flags: CAGE: missing NoDescribe
 Object flags: CANDL: missing OnFire
-Object flags: FDOOR: missing NoDescribe
-Object flags: FUSE: missing Burnable
-Object flags: GRAIL: missing Container extra Sacred
-Object flags: GRAT1: missing Door NoDescribe
-Object flags: GRAT2: missing Door NoDescribe
 Object flags: IRBOX: extra Visible
-Object flags: MSWIT: missing NoDescribe Turnable extra Tool
 Object flags: POT: extra Visible
-Object flags: RAILI: missing NoDescribe
-Object flags: SBAG: missing OnFire extra Burnable
 Object flags: SPHER: extra Take
-Object flags: STICK: extra Tool
-Object flags: WDOOR: missing Readable NoDescribe extra Door
-Object flags: WIND1: missing Door NoDescribe
-Object flags: WIND2: missing Door NoDescribe
 Object light: CANDL: original 1, port 0
 Object missing: ##### (cretin)
 Object missing: ATABL (large oblong table)
-Object missing: AVIAT (flyer)
-Object missing: BARRE (barrel)
 Object missing: BLABE (blue label)
 Object missing: BLBK (blue book)
 Object missing: BLICE (piece of cake with blue icing)
@@ -97,44 +77,29 @@ Object missing: COKES (bunch of Coke bottles)
 Object missing: CROWN (crown)
 Object missing: DBALL (broken balloon)
 Object missing: ECAKE (piece of 'Eat Me' cake)
-Object missing: ENGRA (wall with engravings)
-Object missing: ETCH1 (wall with etchings)
-Object missing: ETCH2 (wall with etchings)
 Object missing: EVERY (everything)
 Object missing: FLASK (glass flask filled with liquid)
 Object missing: GRBK (green book)
-Object missing: GRUE (lurking grue)
-Object missing: HANDS (pair of hands)
 Object missing: HEADS (set of poled heads)
-Object missing: HPOLE (head on a pole)
 Object missing: LCASE (large case)
 Object missing: LISTS (stack of listings)
-Object missing: LUNGS (breath)
 Object missing: ORICE (piece of cake with orange icing)
 Object missing: PAINT (painting)
-Object missing: POOL (pool of sewage)
-Object missing: POSTS (wooden posts)
-Object missing: PRAYE (prayer)
 Object missing: PUBK (purple book)
-Object missing: RAINB (rainbow)
 Object missing: RBTLB (green piece of paper)
 Object missing: RDICE (piece of cake with red icing)
 Object missing: RNBUT (button)
 Object missing: ROBOT (robot)
 Object missing: SAFE (box)
 Object missing: SAFFR (tin of spices)
-Object missing: SAILO (sailor)
-Object missing: SDOOR (door)
 Object missing: SQBUT (button)
 Object missing: SSLOT (hole)
 Object missing: STAMP (stamp)
 Object missing: STILL (stilletto)
 Object missing: STRAD (fancy violin)
-Object missing: TEETH (set of teeth)
 Object missing: TOMB (tomb)
 Object missing: TRBUT (button)
 Object missing: VALUA (valuables)
-Object missing: WALL (wall)
 Object missing: WHBK (white book)
 Object not in original: GATES (gate)
 Object start location: BALLO: original room VLBOT, port room LEDG4

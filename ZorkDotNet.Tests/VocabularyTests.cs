@@ -142,10 +142,7 @@ public class VocabularyTests
     [Fact]
     public void Saying_hello_to_the_sailor_wears_thin()
     {
-        using var runner = new GameRunner();
-        var sailor = new ZorkDotNet.Game.GameObject { Id = "SAILO", DescriptionShort = "sailor", Flags = ZorkDotNet.Game.ObjectFlags.Visible };
-        runner.State.Here.Objects.Add(sailor);
-        sailor.InRoom = runner.State.Here;
+        using var runner = new GameRunner(); // the sailor is a global object (ADD-STAR), always within reach
 
         for (var i = 1; i < 10; i++) Assert.Contains("Nothing happens here.", Do(runner, "HELLO SAILOR"));
         Assert.Contains("I think that phrase is getting a bit worn out.", Do(runner, "HELLO SAILOR"));

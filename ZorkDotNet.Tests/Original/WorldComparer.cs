@@ -178,7 +178,7 @@ internal static partial class WorldComparer
             if (missingSyn.Count > 0)
                 diffs.Add($"Object synonyms missing: {id}: {string.Join(" ", missingSyn)}");
 
-            var portLoc = PortLocation(p);
+            var portLoc = PortLocation(p, world);
             var origLoc = origLocations.TryGetValue(id, out var l) ? l : new SortedSet<string>(StringComparer.Ordinal);
             if (!origLoc.SetEquals(portLoc))
                 diffs.Add($"Object start location: {id}: original {Where(origLoc)}, port {Where(portLoc)}");
@@ -252,10 +252,13 @@ internal static partial class WorldComparer
         return loc;
     }
 
-    private static SortedSet<string> PortLocation(GameObject p)
+    /// <summary>Where the port starts an object. Scenery can be listed in several rooms (MDL allows that too).</summary>
+    private static SortedSet<string> PortLocation(GameObject p, World world)
     {
         var set = new SortedSet<string>(StringComparer.Ordinal);
         if (p.InRoom != null) set.Add("room " + Id5(p.InRoom.Id));
+        foreach (var room in world.Rooms.Where(r => r.Objects.Contains(p)))
+            set.Add("room " + Id5(room.Id));
         if (p.Container != null) set.Add("in " + Id5(p.Container.Id));
         return set;
     }
