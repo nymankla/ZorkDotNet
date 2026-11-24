@@ -940,6 +940,16 @@ public class World
         AddObject("LISTS", "There is an enormous stack of line-printer paper here.  It is barely readable.", "stack of listings", "There is a gigantic pile of line-printer output here.  Although the paper once contained useful information, almost nothing can be distinguished now.", null, ObjectFlags.Readable | ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 70, 0, new[] { "PAPER", "LIST", "PRINT", "LISTI", "STACK" });
         AddObject("LCASE", "There is a large case here, containing objects which you used to possess.", "large case", null, null, ObjectFlags.Visible | ObjectFlags.Transparent, 0, 0, 0, 0, 0, new[] { "CASE" }, new[] { "LARGE" });
 
+        // The Alice rooms and the gallery (dung.56)
+        AddObject("ATABL", "", "large oblong table", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, adjectives: new[] { "LARGE", "OBLON" });
+        AddObject("ECAKE", "There is a piece of cake here with the words 'Eat Me' on it.", "piece of 'Eat Me' cake", null, ObjectActions.EatMeFunction, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Food, 0, 0, 0, 10, 0, new[] { "CAKE" }, new[] { "EATME", "EAT-M" });
+        AddObject("ORICE", "There is a piece of cake with orange icing here.", "piece of cake with orange icing", null, ObjectActions.CakeFunction, ObjectFlags.Readable | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Food, 0, 0, 0, 4, 0, new[] { "CAKE", "ICING" }, new[] { "ORANG" });
+        AddObject("RDICE", "There is a piece of cake with red icing here.", "piece of cake with red icing", null, ObjectActions.CakeFunction, ObjectFlags.Readable | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Food, 0, 0, 0, 4, 0, new[] { "CAKE", "ICING" }, new[] { "RED" });
+        AddObject("BLICE", "There is a piece of cake with blue (ecch) icing here.", "piece of cake with blue icing", null, ObjectActions.CakeFunction, ObjectFlags.Readable | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Food, 0, 0, 0, 4, 0, new[] { "CAKE", "ICING" }, new[] { "BLUE", "ECCH" });
+        AddObject("FLASK", "A stoppered glass flask with a skull-and-crossbones marking is here. The flask is filled with some clear liquid.", "glass flask filled with liquid", null, ObjectActions.FlaskFunction, ObjectFlags.Transparent | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 10, 5, adjectives: new[] { "GLASS" });
+        AddObject("SAFFR", "There is a tin of rare spices here.", "tin of spices", null, null, ObjectFlags.Take, 0, 5, 5, 8, 0, new[] { "TIN", "SPICE" }, new[] { "RARE" });
+        AddObject("PAINT", "A masterpiece by a neglected genius is here.", "painting", "Fortunately, there is still one chance for you to be a vandal, for on the far wall is a work of unparalleled beauty.", ObjectActions.Painting, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 4, 7, 15, 0, new[] { "ART", "CANVA", "MASTE" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -981,6 +991,9 @@ public class World
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH", "GUIDE");
         PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PlaceInRoom("ALICE", "ATABL", "ECAKE", "ORICE", "RDICE", "BLICE");
+        PlaceInRoom("ALITR", "FLASK", "SAFFR");
+        PlaceInRoom("GALLE", "PAINT");
         PlaceInRoom("LLD2", "BODIE");
         PlaceInRoom("TOMB", "TOMB", "HEADS", "COKES", "LISTS");
         PlaceInRoom("FALLS", "RAINB", "BARRE");

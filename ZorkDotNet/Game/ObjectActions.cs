@@ -301,6 +301,125 @@ public static class ObjectActions
     /// <summary>act2.27: the bat's action is FLY-ME; whatever you do to it, it carries you off.</summary>
     public static void BatFunction(GameState state, string _1, GameObject? _2) => RoomActions.FlyMe(state);
 
+    // act3.13 CRUSHED, ICEBLAST, VAPORS
+    private const string Crushed = "The room seems to have become too small to hold you.  It seems that the  walls are not as compressible as your body, which is somewhat demolished.";
+    private const string IceBlast = "You have been blasted to smithereens (wherever they are).";
+    private const string Vapors = "Just before you pass out, you notice that the vapors from the flask's contents are fatal.";
+
+    /// <summary>
+    /// act3.13 (EATME-FUNCTION, CAKE-FUNCTION): everything in the room goes with you to the other size of room,
+    /// growing or shrinking by a factor of 64, and you GOTO it (without a description).
+    /// </summary>
+    private static void Resize(GameState state, string toRoomId, bool smaller)
+    {
+        var from = state.Here;
+        var to = state.World!.FindRoom(toRoomId)!;
+        foreach (var o in from.Objects.ToList())
+        {
+            from.Objects.Remove(o);
+            o.InRoom = to;
+            to.Objects.Add(o);
+            o.Size = smaller ? o.Size / 64 : o.Size * 64;
+        }
+        Parser.Goto(state, to);
+    }
+
+    /// <summary>act3.13 ICEBOOM: the orange cake explodes and seals the room.</summary>
+    private static void IceBoom(GameState state)
+    {
+        state.Here.Munged = true;
+        state.Here.MungedMessage = "The door to the room seems to be blocked by sticky orange rubble from an explosion.  Probably some careless adventurer was playing with blasting cakes.";
+        state.JigsUp(IceBlast);
+    }
+
+    private static bool InAliceRooms(GameState state) => state.Here.Id.Contains("ALI", StringComparison.Ordinal);
+
+    /// <summary>act3.13 EATME-FUNCTION: eaten in the tea room, the 'Eat Me' cake makes the room seem very large.</summary>
+    public static void EatMeFunction(GameState state, string verb, GameObject? _)
+    {
+        var cake = state.World!.FindObject("ECAKE")!;
+        if (verb != "EAT" || state.Here.Id != "ALICE") return;
+        state.Output.WriteLine("Suddenly, the room appears to have become very large.");
+        RemoveFromWhere(cake);
+        Resize(state, "ALISM", smaller: false);
+    }
+
+    /// <summary>
+    /// act3.13 CAKE-FUNCTION: the icing is readable through the flask; the blue cake shrinks the room back, the
+    /// orange one explodes, and the red one evaporates the pool.
+    /// </summary>
+    public static void CakeFunction(GameState state, string verb, GameObject? other)
+    {
+        var cake = state.LastDirectObject;
+        if (cake == null) return;
+        switch (verb)
+        {
+            case "READ":
+                if (other == null)
+                    state.Output.WriteLine("The only writing legible is a capital E.  The rest is too small to be clearly visible.");
+                else if (other.Id == "BOTTL")
+                    state.Output.WriteLine("The letters appear larger, but still are too small to be read.");
+                else if (other.Id == "FLASK")
+                    state.Output.WriteLine("The icing, now visible, says '" + (cake.Id == "RDICE" ? "Evaporate" : cake.Id == "ORICE" ? "Explode" : "Enlarge") + "'.");
+                else
+                    state.Output.WriteLine("You can't see through that!");
+                break;
+            case "EAT" when InAliceRooms(state):
+                if (cake.Id == "ORICE")
+                {
+                    RemoveFromWhere(cake);
+                    IceBoom(state);
+                }
+                else if (cake.Id == "BLICE")
+                {
+                    RemoveFromWhere(cake);
+                    state.Output.WriteLine("The room around you seems to be getting smaller.");
+                    if (state.Here.Id == "ALISM") Resize(state, "ALICE", smaller: true);
+                    else state.JigsUp(Crushed);
+                }
+                break;
+            case "THROW" when cake.Id == "ORICE" && InAliceRooms(state):
+                RemoveFromWhere(cake);
+                IceBoom(state);
+                break;
+            case "THROW" when cake.Id == "RDICE" && other?.Id == "POOL":
+                RemoveFromWhere(other);
+                state.Output.WriteLine("The pool of water evaporates, revealing a tin of rare spices.");
+                var spices = state.World?.FindObject("SAFFR");
+                if (spices != null) spices.Flags |= ObjectFlags.Visible;
+                break;
+        }
+    }
+
+    /// <summary>act3.13 FLASK-FUNCTION: the poison flask kills whoever opens or breaks it.</summary>
+    public static void FlaskFunction(GameState state, string verb, GameObject? _)
+    {
+        var flask = state.World!.FindObject("FLASK")!;
+        if (verb == "OPEN")
+        {
+            state.Here.Munged = true;
+            state.Here.MungedMessage = "Noxious vapors prevent your entry.";
+            state.JigsUp(Vapors);
+        }
+        else if (verb is "MUNG" or "THROW")
+        {
+            state.Output.WriteLine("The flask breaks into pieces.");
+            flask.Flags &= ~ObjectFlags.Visible;
+            state.JigsUp(Vapors);
+        }
+    }
+
+    /// <summary>act1.38 PAINTING: breaking it ruins the masterpiece.</summary>
+    public static void Painting(GameState state, string verb, GameObject? _)
+    {
+        if (verb != "MUNG") return;
+        var art = state.World!.FindObject("PAINT")!;
+        art.TrophyScore = 0;
+        art.DescriptionShort = "worthless piece of canvas";
+        art.DescriptionHere = "There is a worthless piece of canvas here.";
+        state.Output.WriteLine("Congratulations!  Unlike the other vandals, who merely stole the artist's masterpieces, you have destroyed one.");
+    }
+
     /// <summary>act1.38 BLACK-BOOK: burning the prayer book is a mistake.</summary>
     public static void BlackBook(GameState state, string verb, GameObject? _)
     {
@@ -1089,7 +1208,10 @@ public static class ObjectActions
         // act1.38 READER
         if (obj == null) return;
         if (!GameState.IsLit(state)) { state.Output.WriteLine("It is impossible to read in the dark."); return; }
+        var through = state.LastIndirectObject;
+        if (through != null && !through.IsTransparent) { state.Output.WriteLine("How does one look through a " + through.DescriptionShort + "?"); return; }
         if ((obj.Flags & ObjectFlags.Readable) == 0) { state.Output.WriteLine("How can I read a " + obj.DescriptionShort + "?"); return; }
+        if (Try(state, obj, "READ", through)) return;
         state.Output.WriteLine(obj.ReadText ?? "");
     }
 
@@ -1097,8 +1219,8 @@ public static class ObjectActions
     {
         if (obj == null) return;
         if ((obj.Flags & ObjectFlags.Food) == 0) { state.Output.WriteLine("You can't eat that."); return; }
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
+        if (Try(state, obj, "EAT", null)) return;
+        RemoveFromWhere(obj);
         state.Output.WriteLine("Thank you, that was delicious.");
     }
 
