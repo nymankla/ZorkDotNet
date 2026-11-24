@@ -97,6 +97,7 @@ public class World
         _state.SetFlag("CAGE-SOLVE!-FLAG", false);
         _state.SetFlag("CAROUSEL-ZOOM!-FLAG", false);
         _state.SetFlag("FROBOZZ!-FLAG", false);
+        _state.SetFlag("BUCKET-TOP!-FLAG", false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -988,6 +989,11 @@ public class World
         AddObject("TRBUT", "", "button", null, Robot.Buttons, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO" }, new[] { "TRIAN" });
         AddObject("STRAD", "There is a Stradavarius here.", "fancy violin", null, null, ObjectFlags.Visible | ObjectFlags.Take, 0, 10, 10, 10, 0, new[] { "VIOLI" }, new[] { "FANCY" });
 
+        // The player's own object, and "everything" / "valuables" (dung.56)
+        AddObject("#####", "You are here", "cretin", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0);
+        AddObject("EVERY", "", "everything", null, ObjectActions.Lots, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "ALL" });
+        AddObject("VALUA", "", "valuables", null, ObjectActions.Lots, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "TREAS" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -1006,7 +1012,7 @@ public class World
         AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 6);
         AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind.  Attached to the basket on the outside is a piece of wire.", "basket", null, Balloon.BalloonAction, ObjectFlags.Vehicle | ObjectFlags.Visible, 0, 0, 0, 70, 100, new[] { "BASKE" }, new[] { "WICKE" });
         AddObject("GNOME", "There is a nervous Volcano Gnome here.", "Volcano Gnome", null, Balloon.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TROLL" });
-        AddObject("BUCKE", "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", "wooden bucket", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 100, 100);
+        AddObject("BUCKE", "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", "wooden bucket", null, ObjectActions.BucketFunction, ObjectFlags.Vehicle | ObjectFlags.Visible, 0, 0, 0, 100, 100, adjectives: new[] { "WOODE" });
         // LLD (Hades): exorcism
         AddObject("GHOST", "", "", null, ObjectActions.GhostFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SPIRI", "FIEND" });
         AddObject("CORPS", "A pile of mangled corpses lies in one corner.", "corpses", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MANGL" });
@@ -1018,7 +1024,7 @@ public class World
         AddObject("ZORKM", "There is an engraved zorkmid coin here.", "priceless zorkmid", "On the floor is a gold zorkmid coin (a valuable collector's item).", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 10, 12, 10, 0, new[] { "COIN", "GOLD" });
         AddObject("HOOK1", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("HOOK2", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
-        AddObject("POT", "There is a pot of gold here.", "pot filled with gold", "At the end of the rainbow is a pot of gold.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 10, 15, 0, new[] { "GOLD" });
+        AddObject("POT", "There is a pot of gold here.", "pot filled with gold", "At the end of the rainbow is a pot of gold.", null, ObjectFlags.Take, 0, 10, 10, 15, 0, new[] { "GOLD" });
         AddObject("SPHER", "There is a beautiful crystal sphere here.", "crystal sphere", null, Robot.SphereFunction, ObjectFlags.Sacred | ObjectFlags.Visible, 0, 6, 6, 10, 0, new[] { "BALL" }, new[] { "CRYST", "GLASS" });
         AddObject("CAGE", "There is a mangled cage here.", "mangled cage", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 60, 0, new[] { "IRON" });
         AddObject("RCAGE", "There is an iron cage in the middle of the room.", "iron cage", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "CAGE", "IRON" });
@@ -1047,7 +1053,7 @@ public class World
         PlaceInRoom("ALITR", "POOL");
         PlaceInRoom("ALISM", "POSTS");
         PlaceInRoom("RIDDL", "SDOOR");
-        foreach (var id in new[] { "HANDS", "LUNGS", "AVIAT", "WALL", "SAILO", "TEETH", "GRUE" })
+        foreach (var id in new[] { "HANDS", "LUNGS", "AVIAT", "WALL", "SAILO", "TEETH", "GRUE", "EVERY", "VALUA" })
             FindObject(id)!.IsGlobal = true;
         PlaceInRoom("MAINT", "LEAK", "TUBE", "WRENC", "BLBUT", "RBUTT", "BRBUT", "YBUTT", "SCREW");
         PutInContainer("TUBE", "PUTTY");
@@ -1102,6 +1108,9 @@ public class World
         PlaceInRoom("ECHO", "BAR");
         PlaceInRoom("DOME", "RAILI");
         PlaceInRoom("BWELL", "BUCKE");
+        FindObject("BUCKE")!.Open = true; // dung.56: <PUT <FIND-OBJ "BUCKE"> ,OOPEN? T>
+        FindRoom("TWELL")!.IsBucket = true;
+        FindRoom("BWELL")!.IsBucket = true;
         PlaceInRoom("TREAS", "THIEF");
         PlaceInRoom("LLD1", "GHOST", "CORPS");
         PlaceInRoom("TEMP1", "BELL");
