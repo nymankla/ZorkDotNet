@@ -424,8 +424,26 @@ public static class Parser
                 break;
             case "DISEMBARK": DoDisembark(state); break;
             case "WALK": state.Output.WriteLine("Go where?"); break;
+            case "STRIKE":
+                // dung.56 STRIKE: a villain is attacked, anything else is lit.
+                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect, words);
+                break;
+            case "POKE":
+                // act1.38 MUNGER: a villain with a weapon is attacked; the rest is Verbs' MUNG.
+                if (direct?.IsVillain == true && indirect != null && (indirect.Flags & ObjectFlags.Weapon) != 0)
+                    Dispatch(state, "ATTACK", direct, indirect, words);
+                else
+                    Verbs.Run(state, "MUNG", direct, indirect);
+                break;
+            case "SWING":
+                // act1.38 SWINGER: SWING weapon AT villain is ATTACK villain WITH weapon.
+                if (indirect == null) { state.Output.WriteLine("Swing at what?"); break; }
+                state.LastDirectObject = indirect;
+                state.LastIndirectObject = direct;
+                Dispatch(state, "ATTACK", indirect, direct, words);
+                break;
             default:
-                if (!Verbs.Run(state, action, direct)) state.Output.WriteLine("I don't know how to do that.");
+                if (!Verbs.Run(state, action, direct, indirect)) state.Output.WriteLine("I don't know how to do that.");
                 break;
         }
     }
@@ -453,6 +471,7 @@ public static class Parser
     private static string? ResolveDirection(string w)
     {
         if (DirectionSynonyms.TryGetValue(w, out var d)) return d;
+        if (w == "TRAVE") return "CROSS"; // dung.56 DSYNONYM "CROSS" "TRAVE"
         var dirs = new[] { "NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN", "ENTER", "EXIT", "NE", "NW", "SE", "SW", "LAUNC", "LAND", "CROSS", "CLIMB" };
         return dirs.FirstOrDefault(d => NormWord(d) == w);
     }

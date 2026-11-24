@@ -126,6 +126,28 @@ public class GameState
     }
 
     /// <summary>
+    /// rooms.99 CLOCK-DEMON run once more within a turn, as WAIT does: the lamp burns a move and every pending clock
+    /// event comes one move closer. Returns true when something happened (WAIT then stops waiting).
+    /// </summary>
+    public bool ClockTick()
+    {
+        if (World == null) return false;
+        var fired = false;
+        var lamp = World.FindObject("LAMP");
+        if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
+        {
+            LampLightInt(lamp);
+            fired = true;
+        }
+        for (var i = 0; i < ScheduledEvents.Count; i++)
+            ScheduledEvents[i] = ScheduledEvents[i] with { TriggerMove = ScheduledEvents[i].TriggerMove - 1 };
+        var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
+        foreach (var e in toRun) ScheduledEvents.Remove(e);
+        foreach (var e in toRun) Clocks.Run(this, e);
+        return fired || toRun.Count > 0;
+    }
+
+    /// <summary>
     /// act1.38 LIGHT-INT for the lamp: take the next step of LAMP-TICKS. Warnings and the burn-out message are
     /// only told when the lamp is carried or in this room.
     /// </summary>
