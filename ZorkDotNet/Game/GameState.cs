@@ -132,7 +132,7 @@ public class GameState
         Combat.SwordDemon(this);
         Combat.FightDemon(this);
         Thief.Demon(this);
-        // CEVENTs with no effect in original MDL (dung.56 CURIN, SPHIN)
+        // CEVENT CURIN (dung.56)
         CureClock(this);
     }
 
@@ -197,8 +197,22 @@ public class GameState
         }
     }
 
-    /// <summary>CURE-CLOCK (CURIN). CEVENT in dung.56; no-op in original MDL — implemented as explicit no-op.</summary>
-    public static void CureClock(GameState _) { }
+    /// <summary>Moves between healed wounds (CURE-CLOCK).</summary>
+    public const int CureInterval = 30;
+
+    /// <summary>Strength one wound costs in the port's melee (<see cref="Combat.FightDemon"/>).</summary>
+    public const int WoundStrength = 20;
+
+    /// <summary>
+    /// CURE-CLOCK (CURIN, a CEVENT in dung.56). Its code is part of the melee, which is not in the MIT archive. In
+    /// the port, as in later Dungeon, wounds heal slowly: one wound every <see cref="CureInterval"/> moves.
+    /// </summary>
+    public static void CureClock(GameState state)
+    {
+        var hero = state.Winner;
+        if (hero.Strength < Adventurer.FullStrength && state.Moves % CureInterval == 0)
+            hero.Strength = Math.Min(Adventurer.FullStrength, hero.Strength + WoundStrength);
+    }
 
     public World? World { get; set; }
     internal StreamWriter? ScriptFile { get; set; }
