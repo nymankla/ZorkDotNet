@@ -170,9 +170,11 @@ public class DamTests
         using var runner = new GameRunner();
         runner.Give("TUBE");
         runner.Give("SWORD");
+        runner.Give("FUSE");
 
         Assert.Contains("Opening the tube reveals a viscous material.", Do(runner, "OPEN TUBE"));
-        Assert.Contains("The tube refuses to accept anything.", Do(runner, "PUT SWORD IN TUBE"));
+        Assert.Contains("It won't fit.", Do(runner, "PUT SWORD IN TUBE")); // rooms.99 PUTTER checks the fit first
+        Assert.Contains("The tube refuses to accept anything.", Do(runner, "PUT WIRE IN TUBE"));
     }
 
     [Fact]

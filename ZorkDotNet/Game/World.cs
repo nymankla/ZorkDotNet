@@ -92,6 +92,7 @@ public class World
         _state.SetFlag("DEFLATE!-FLAG", true);
         _state.SetFlag("EMPTY-HANDED!-FLAG", false);
         _state.SetFlag("ECHO-FLAG!-FLAG", false);
+        _state.SetFlag("SAFE-FLAG!-FLAG", false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -950,6 +951,12 @@ public class World
         AddObject("SAFFR", "There is a tin of rare spices here.", "tin of spices", null, null, ObjectFlags.Take, 0, 5, 5, 8, 0, new[] { "TIN", "SPICE" }, new[] { "RARE" });
         AddObject("PAINT", "A masterpiece by a neglected genius is here.", "painting", "Fortunately, there is still one chance for you to be a vandal, for on the far wall is a work of unparalleled beauty.", ObjectActions.Painting, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 4, 7, 15, 0, new[] { "ART", "CANVA", "MASTE" });
 
+        // The safe in the Dusty Room (dung.56)
+        AddObject("SAFE", "", "box", null, ObjectActions.SafeFunction, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 15, new[] { "BOX" });
+        AddObject("SSLOT", "", "hole", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 10, new[] { "SLOT", "HOLE" });
+        AddObject("CROWN", "Lord Dimwit's crown is here.", "crown", "The excessively gaudy crown of Lord Dimwit Flathead is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 15, 10, 10, 0, adjectives: new[] { "GAUDY" });
+        AddObject("CARD", "There is a card with writing on it here.", "card", null, null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 1, 0, new[] { "NOTE" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -991,6 +998,10 @@ public class World
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH", "GUIDE");
         PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PlaceInRoom("SAFE", "SSLOT", "SAFE");
+        PutInContainer("SAFE", "CROWN", "CARD");
+        FindObject("SSLOT")!.Open = true; // dung.56: <PUT <FIND-OBJ "SSLOT"> ,OOPEN? T>
+        FindObject("BRICK")!.Open = true; // dung.56: <PUT <FIND-OBJ "BRICK"> ,OOPEN? T>
         PlaceInRoom("ALICE", "ATABL", "ECAKE", "ORICE", "RDICE", "BLICE");
         PlaceInRoom("ALITR", "FLASK", "SAFFR");
         PlaceInRoom("GALLE", "PAINT");
