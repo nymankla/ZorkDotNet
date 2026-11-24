@@ -39,6 +39,16 @@ public static class Parser
     /// and demons. An answer to QUIT's "Do you wish to leave the game?" is read by FINISH itself, so it is
     /// neither a move nor a turn.
     /// </summary>
+    /// <summary>
+    /// rooms.99 START: "Welcome to Dungeon." and the version line (SAVE-IT passes it in), then the room you start in.
+    /// </summary>
+    public static void Start(GameState state)
+    {
+        state.Output.WriteLine("Welcome to Dungeon.");
+        state.Output.WriteLine(Verbs.VersionText());
+        Execute(state, "LOOK");
+    }
+
     public static void PlayTurn(GameState state, string input)
     {
         if (state.AwaitingQuitConfirmation)
@@ -259,7 +269,6 @@ public static class Parser
     /// <summary>SYN-MATCH: try syntaxes, GWIM if missing object, then dispatch (np.93).</summary>
     private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string? prep1 = null)
     {
-        state.LastVerb = spec.ActionName;
         Syntax? driver = null;
         Syntax? match = null;
         foreach (var syn in spec.Syntaxes)
@@ -282,13 +291,14 @@ public static class Parser
         if (chosen.Action != "TAKE" && chosen.Syn1.WantsRoom && dobj != null && dobj.InRoom != null && dobj.CanTake && !chosen.Syn1.NoTake)
             DoTake(state, dobj);
         // Dispatch
+        state.LastVerb = chosen.Action;
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
         Dispatch(state, chosen.Action, dobj, iobj);
         // rooms.99 RDCOM: after the verb, the room's own action gets its turn (the dam's buttons, digging on the beach).
         // After LOOK, ROOM-INFO has swapped the verb for the innocuous FOO, so the description isn't repeated.
         if (state.Running && !state.AwaitingPatchAnswer)
-            state.Here.RoomAction?.Invoke(state, chosen.Action == "LOOK" ? "FOO" : chosen.Action);
+            state.Here.RoomAction?.Invoke(state, state.LastVerb == "LOOK" ? "FOO" : state.LastVerb!);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
@@ -392,6 +402,13 @@ public static class Parser
             case "TURN":
             case "TURNON":
             case "TURNOFF":
+                // rooms.99 LAMP-ON: LIGHT something burnable WITH something is BURN.
+                if (action == "TURNON" && direct != null && indirect != null && (direct.Flags & ObjectFlags.Burnable) != 0)
+                {
+                    state.LastVerb = "BURN"; // <PUT .PRSVEC 1 ,BURN!-WORDS>: the room's action sees BURN
+                    DoBurn(state, direct, indirect);
+                    break;
+                }
                 if (direct == null)
                 {
                     state.Output.WriteLine(action == "TURN" ? "What do you want to turn?" : "What do you want to turn " + (action == "TURNON" ? "on" : "off") + "?");

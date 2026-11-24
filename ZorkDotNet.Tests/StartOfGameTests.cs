@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -186,5 +187,21 @@ public class StartOfGameTests
         Assert.True(flown >= 0, output);
         Assert.NotEqual(bats, runner.State.Here);
         Assert.False(string.IsNullOrWhiteSpace(output[(flown + "lifts you away....".Length)..]), output);
+    }
+
+    [Fact]
+    public void The_game_starts_as_the_original_does()
+    {
+        // rooms.99 START: "Welcome to Dungeon.", the version line, then the room.
+        var output = new StringWriter();
+        var state = new GameState { Output = output };
+
+        Parser.Start(state);
+
+        var lines = output.ToString().Split(Environment.NewLine);
+        Assert.Equal("Welcome to Dungeon.", lines[0]);
+        Assert.StartsWith("This version created ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("You are in an open field west of a big white house", lines[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("Infocom", output.ToString(), StringComparison.Ordinal);
     }
 }

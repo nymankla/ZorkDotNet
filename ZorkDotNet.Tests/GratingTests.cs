@@ -150,4 +150,18 @@ public class GratingTests
         Assert.Contains("There is a grating securely fastened into the ground.", Do(runner, "LOOK"));
         Assert.DoesNotContain("A grating appears", Do(runner, "DROP LEAVES"));
     }
+
+    [Fact]
+    public void Lighting_the_leaves_with_the_torch_burns_them()
+    {
+        // rooms.99 LAMP-ON: LIGHT something burnable WITH something is BURN.
+        using var runner = new GameRunner();
+        runner.Give("TORCH");
+        runner.Teleport("CLEAR");
+
+        var output = Do(runner, "LIGHT LEAVES WITH TORCH");
+
+        Assert.Contains("The leaves burn and the neighbors start to complain.", output);
+        Assert.Contains("A grating appears on the ground.", output);
+    }
 }

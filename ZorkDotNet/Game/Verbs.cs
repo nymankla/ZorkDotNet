@@ -287,11 +287,14 @@ public static class Verbs
     }
 
     /// <summary>rooms.99 VERSION: the date this program was made (the original printed the date of its saved image).</summary>
-    private static void Version(GameState state)
+    private static void Version(GameState state) => state.Output.WriteLine(VersionText());
+
+    /// <summary>rooms.99 REMARKABLY-DISGUSTING-CODE: "This version created" and the month and day the program was made.</summary>
+    internal static string VersionText()
     {
         var path = Environment.ProcessPath;
         var date = path != null && File.Exists(path) ? File.GetLastWriteTime(path) : DateTime.Now;
-        state.Output.WriteLine("This version created " + Months[date.Month - 1] + " " + date.Day + ".");
+        return "This version created " + Months[date.Month - 1] + " " + date.Day + ".";
     }
 
     /// <summary>rooms.99 WAIT: "Time passes..." while the clock runs up to three more times, stopping when something happens.</summary>

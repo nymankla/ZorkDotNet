@@ -181,4 +181,19 @@ public class LightingTests
         Assert.Contains("The candles are lighted.", Do(runner, "LIGHT CANDLES WITH MATCH"));
         Assert.True(clock.Enabled);
     }
+
+    [Fact]
+    public void A_robot_carrying_a_lit_lamp_lights_the_room()
+    {
+        // rooms.99 LFCN counts what an actor here carries.
+        using var runner = new GameRunner();
+        runner.Teleport("MAGNE");
+        Assert.False(GameState.IsLit(runner.State));
+        var lamp = runner.State.World.FindObject("LAMP")!;
+        lamp.MoveTo(runner.State.Robot);
+        lamp.LightAmount = 1;
+        runner.State.World.FindObject("ROBOT")!.MoveTo(runner.State.Here);
+
+        Assert.True(GameState.IsLit(runner.State));
+    }
 }

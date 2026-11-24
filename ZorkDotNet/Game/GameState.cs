@@ -67,6 +67,7 @@ public class GameState
 
     /// <summary>MDL JIGS-UP: the player dies (see <see cref="Death"/>). The message may already have been told.</summary>
     public void JigsUp(string? message) => Death.JigsUp(this, message);
+    /// <summary>The verb of the command being carried out (MDL PRSVEC 1); the room's action is given it afterwards.</summary>
     public string? LastVerb { get; set; }
     public GameObject? LastDirectObject { get; set; }
     public GameObject? LastIndirectObject { get; set; }
@@ -244,12 +245,16 @@ public class GameState
     public static bool IsLit(GameState state, Room? room = null)
     {
         var r = room ?? state.Here;
-        if (r == null) return false;
-        return r.HasLight || GivesLight(r.Objects) || GivesLight(state.Winner.Inventory);
+        return r.HasLight || GivesLight(state, r.Objects) || GivesLight(state, state.Winner.Inventory)
+            || (state.RobotActing && GivesLight(state, state.Robot.Inventory));
     }
 
-    /// <summary>rooms.99 LFCN.</summary>
-    private static bool GivesLight(IEnumerable<GameObject> objects) =>
+    /// <summary>
+    /// rooms.99 LFCN: something lit, or lit inside something open or transparent (one level), or carried by an
+    /// actor here (the robot with the lamp).
+    /// </summary>
+    private static bool GivesLight(GameState state, IEnumerable<GameObject> objects) =>
         objects.Any(o => o.LightAmount > 0
-            || (o.IsVisible && o.IsOpenOrTransparent && o.Contents.Any(c => c.LightAmount > 0)));
+            || (o.IsVisible && o.IsOpenOrTransparent && o.Contents.Any(c => c.LightAmount > 0))
+            || (o.IsActor && o.Id == Obj.Robot && GivesLight(state, state.Robot.Inventory)));
 }
