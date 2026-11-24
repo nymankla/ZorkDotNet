@@ -80,7 +80,6 @@ public static class RoomActions
         if (next != null)
         {
             state.Winner.CurrentRoom = next;
-            state.Winner.Moves++;
             if (!next.Seen) state.Winner.Score += next.VisitScore;
             next.Seen = true;
         }

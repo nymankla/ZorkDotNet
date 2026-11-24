@@ -604,6 +604,25 @@ public class GameTests
         runner.State.Winner.CurrentRoom = runner.State.World!.FindRoom(roomId)!;
 
     [Fact]
+    public void Each_command_counts_as_one_move_including_walking()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Each_command_counts_as_one_move", _logDir));
+        runner.Run("NORTH", "EAST", "LOOK", "SOUTH");
+
+        Assert.Equal(4, runner.State.Moves);
+    }
+
+    [Fact]
+    public void Being_carried_off_by_the_bat_counts_as_one_move()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Bat_counts_one_move", _logDir));
+        Teleport(runner, "SQUEE");
+        runner.Execute("WEST");
+
+        Assert.Equal(1, runner.State.Moves);
+    }
+
+    [Fact]
     public void Every_exit_is_a_message_or_leads_to_an_existing_room()
     {
         using var runner = new GameRunner();

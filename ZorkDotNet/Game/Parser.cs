@@ -547,7 +547,7 @@ public static class Parser
             if (!nextRoom.Objects.Contains(vehicle))
                 nextRoom.Objects.Add(vehicle);
         }
-        state.Winner.Moves++;
+        // No Moves++ here: the original (rooms.99 RDCOM) counts one move per command, and GOTO never adds one.
         if (!nextRoom.Seen) state.Winner.Score += nextRoom.VisitScore;
         nextRoom.Seen = true;
         nextRoom.OnEnter?.Invoke(state);
