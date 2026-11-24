@@ -32,6 +32,16 @@ public class GameState
     /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
     public int MatchesLeft { get; set; } = 5;
 
+    /// <summary>The thief's demon (MDL HACK): the room he works in (HROOM).</summary>
+    public string ThiefRoom { get; set; } = Thief.Rooms[0];
+    /// <summary>The thief's demon: the index in <see cref="Thief.Rooms"/> of the next room he goes to (HROOMS).</summary>
+    public int ThiefNext { get; set; }
+    /// <summary>The thief's bag (HOBJS), most recent first.</summary>
+    public List<string> ThiefBag { get; } = new();
+    /// <summary>The thief's demon still runs (HACTION); false once he is dead.</summary>
+    public bool ThiefActive { get; set; } = true;
+    /// <summary>The thief has shown himself in this room (HFLAG).</summary>
+    public bool ThiefAnnounced { get; set; }
     /// <summary>The robot as an adventurer (its ADV in dung.56): its room and what it carries.</summary>
     public Adventurer Robot { get; } = new();
     /// <summary>The robot is carrying out a TELL ROBOT command (MDL WINNER is the robot).</summary>
@@ -121,7 +131,7 @@ public class GameState
         // Demons (SWORD-DEMON, FIGHT-DEMON, ROBBER-DEMON)
         Combat.SwordDemon(this);
         Combat.FightDemon(this);
-        RunRobberDemon();
+        Thief.Demon(this);
         // CEVENTs with no effect in original MDL (dung.56 CURIN, SPHIN)
         CureClock(this);
     }
@@ -190,46 +200,6 @@ public class GameState
     /// <summary>CURE-CLOCK (CURIN). CEVENT in dung.56; no-op in original MDL — implemented as explicit no-op.</summary>
     public static void CureClock(GameState _) { }
 
-    /// <summary>ROBBER-DEMON (act1.37 ROBBER): thief in room can rob (ROB-ROOM + ROB-ADV); thief not in room can appear.</summary>
-    private void RunRobberDemon()
-    {
-        var thief = World?.FindObject("THIEF");
-        if (thief == null || Here == null) return;
-        var treas = World?.FindRoom("TREAS");
-
-        if (thief.InRoom == Here)
-        {
-            if (Random.Shared.Next(100) < 30)
-            {
-                var fromRoom = Combat.RobRoom(this, Here, 100);
-                foreach (var o in fromRoom)
-                {
-                    Here.Objects.Remove(o);
-                    o.InRoom = null;
-                    o.Carrier = null;
-                    o.Container = null;
-                    if (treas != null) { o.InRoom = treas; treas.Objects.Add(o); }
-                }
-                var fromAdv = ObjectActions.RobAdventurer(this, printMessage: false);
-                if (fromRoom.Count > 0 || fromAdv)
-                {
-                    Output.WriteLine("The other occupant just left, still carrying his large bag.  You may not have noticed that he robbed you blind first.");
-                    Here.Objects.Remove(thief);
-                    thief.InRoom = null;
-                }
-            }
-        }
-        else if (thief.InRoom == null && Here.Id != "TREAS" && Random.Shared.Next(100) < 30)
-        {
-            thief.InRoom = Here;
-            Here.Objects.Add(thief);
-            if (!GetFlag("THIEF-APPEARED!-FLAG"))
-            {
-                SetFlag("THIEF-APPEARED!-FLAG", true);
-                Output.WriteLine("Someone carrying a large bag is casually leaning against one of the walls here.  He does not speak, but it is clear from his aspect that the bag will be taken only over his dead body.");
-            }
-        }
-    }
     public World? World { get; set; }
     internal StreamWriter? ScriptFile { get; set; }
 

@@ -1002,12 +1002,9 @@ public static class Parser
             state.SetFlag("GLACIER-FLAG!-FLAG", true);
             return;
         }
-        if (state.Here.Id == "MTROL" && atObj?.Id == "TROLL")
-        {
-            state.Output.WriteLine("The troll, who is remarkably coordinated, catches the " + obj.DescriptionShort + ".");
-            return;
-        }
         if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
+        // OBJECT-ACTION asks the target too (the troll catches it, the thief bags it).
+        if (atObj != null && ObjectActions.Try(state, atObj, "THROW", obj)) return;
         state.Winner.Inventory.Remove(obj);
         obj.Carrier = null;
         obj.InRoom = state.Here;
@@ -1031,38 +1028,9 @@ public static class Parser
         var withStart = 2;
         if (words.Length > 3 && IsPrepWith(NormWord(words[2]))) withStart = 3;
         var withObj = state.LastIndirectObject ?? (words.Length >= withStart + 1 ? ResolveObject(state, words, withStart, out _) : state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0));
-        if (obj.Id == "TROLL" && state.Here.Id == "MTROL")
+        if (obj.Id is "TROLL" or "THIEF" && obj.InRoom == state.Here)
         {
-            if (withObj == null || withObj.Carrier != state.Winner) { state.Output.WriteLine("You need a weapon to attack the troll."); return; }
-            if ((withObj.Flags & ObjectFlags.Weapon) == 0) { state.Output.WriteLine("You can't attack with that."); return; }
-            var troll = state.World?.FindObject("TROLL");
-            if (troll != null)
-            {
-                if ((troll.Flags & ObjectFlags.Fighting) != 0)
-                {
-                    // Already in melee; FightDemon handles rounds. One extra hit from explicit ATTACK.
-                    if (state.VillainStrength.TryGetValue(troll.Id, out var s))
-                    {
-                        s--;
-                        state.VillainStrength[troll.Id] = s;
-                        if (s <= 0)
-                        {
-                            state.VillainStrength.Remove(troll.Id);
-                            troll.Flags &= ~ObjectFlags.Fighting;
-                            state.Here.Objects.Remove(troll);
-                            troll.InRoom = null;
-                            state.SetFlag("TROLL-FLAG!-FLAG", true);
-                            state.Output.WriteLine("The troll is killed by the force of your attack.  The body has vanished.");
-                        }
-                        else state.Output.WriteLine("You hit the troll.");
-                    }
-                    return;
-                }
-                // Enter melee (FIGHT-DEMON will run each move)
-                troll.Flags |= ObjectFlags.Fighting;
-                state.VillainStrength[troll.Id] = 2; // two hits to kill
-                state.Output.WriteLine("The troll blocks your blow with his axe, and you are thrown back.");
-            }
+            Combat.Attack(state, obj, withObj);
             return;
         }
         state.LastDirectObject = obj;

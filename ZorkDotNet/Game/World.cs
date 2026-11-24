@@ -762,7 +762,8 @@ public class World
             "Tomb of the Unknown Implementer",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("LLD2") });
-        AddRoom("TREAS", "This is a large room, whose north wall is solid granite.  A number of discarded bags, which crumble at your touch, are scattered about on the floor.", "Treasure Room", false, new Dictionary<string, ExitTarget> { ["DOWN"] = new("CYCLO") }, visitScore: 25);
+        AddRoom("TREAS", "This is a large room, whose north wall is solid granite.  A number of discarded bags, which crumble at your touch, are scattered about on the floor.", "Treasure Room", false, new Dictionary<string, ExitTarget> { ["DOWN"] = new("CYCLO") }, visitScore: 25,
+            roomAction: Thief.TreasureRoom, onEnter: Thief.TreasureEnter);
         AddRoom("MPEAR",
             "This is a former broom closet.  The exits are to the east and west.",
             "Pearl Room",
@@ -880,7 +881,7 @@ public class World
         AddObject("WDOOR", "", "door", null, ObjectActions.DdoorFunction, ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "DOOR" });
         AddObject("DOOR", "The trap door is closed.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
         AddObject("TDOOR", "The trap door is open.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" });
-        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 2);
+        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, ObjectActions.TrollFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 2);
         AddObject("AXE", "There is a bloody axe here.", "bloody axe", null, null, ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 25, 0);
         AddObject("RKNIF", "There is a rusty knife here.", "rusty knife", "Beside the skeleton is a rusty knife.", ObjectActions.RustyKnife, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 20, 0, new[] { "KNIFE" });
         AddObject("BLANT", "There is a burned-out lantern here.", "burned-out lantern", "The deceased adventurer's useless lantern is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "LANTE", "LAMP" });
@@ -994,6 +995,10 @@ public class World
         AddObject("EVERY", "", "everything", null, ObjectActions.Lots, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "ALL" });
         AddObject("VALUA", "", "valuables", null, ObjectActions.Lots, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "TREAS" });
 
+        // The thief's stiletto and chalice (dung.56)
+        AddObject("STILL", "There is a vicious-looking stilletto here.", "stilletto", null, null, ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 10, 0, adjectives: new[] { "VICIO" });
+        AddObject("CHALI", "There is a silver chalice, intricately engraved, here.", "chalice", null, Thief.Chalice, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 10, 10, 5, new[] { "CUP", "GOBLE" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -1008,7 +1013,7 @@ public class World
         AddObject("YBUTT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "YELLO" });
         AddObject("BLBUT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "BLUE" });
         AddObject("BRBUT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "BROWN" });
-        AddObject("THIEF", "There is a suspicious-looking individual, holding a bag, leaning against one wall.  He is armed with a vicious-looking stilletto.", "thief", null, ObjectActions.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 4, new[] { "ROBBE", "SEEDY", "CROOK", "CRIME", "CRIMI", "BANDI", "GENT", "GENTL", "MAN", "SHADY", "THUG", "BAGMA", "MAFIA" });
+        AddObject("THIEF", "There is a suspicious-looking individual, holding a bag, leaning against one wall.  He is armed with a vicious-looking stilletto.", "thief", null, Thief.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 4, new[] { "ROBBE", "SEEDY", "CROOK", "CRIME", "CRIMI", "BANDI", "GENT", "GENTL", "MAN", "SHADY", "THUG", "BAGMA", "MAFIA" });
         AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 6);
         AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind.  Attached to the basket on the outside is a piece of wire.", "basket", null, Balloon.BalloonAction, ObjectFlags.Vehicle | ObjectFlags.Visible, 0, 0, 0, 70, 100, new[] { "BASKE" }, new[] { "WICKE" });
         AddObject("GNOME", "There is a nervous Volcano Gnome here.", "Volcano Gnome", null, Balloon.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TROLL" });
@@ -1035,6 +1040,8 @@ public class World
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH", "GUIDE");
         PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PutInContainer("THIEF", "STILL");
+        PlaceInRoom("TREAS", "CHALI");
         PlaceInRoom("SAFE", "SSLOT", "SAFE");
         PutInContainer("SAFE", "CROWN", "CARD");
         FindObject("SSLOT")!.Open = true; // dung.56: <PUT <FIND-OBJ "SSLOT"> ,OOPEN? T>
@@ -1111,7 +1118,6 @@ public class World
         FindObject("BUCKE")!.Open = true; // dung.56: <PUT <FIND-OBJ "BUCKE"> ,OOPEN? T>
         FindRoom("TWELL")!.IsBucket = true;
         FindRoom("BWELL")!.IsBucket = true;
-        PlaceInRoom("TREAS", "THIEF");
         PlaceInRoom("LLD1", "GHOST", "CORPS");
         PlaceInRoom("TEMP1", "BELL");
         PlaceInRoom("TEMP2", "BOOK", "CANDL");
