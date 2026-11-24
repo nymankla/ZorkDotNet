@@ -96,7 +96,7 @@ public sealed class SaveRestoreTests : IDisposable
         restored.Execute("RESTORE");
         restored.Run("LOOK", "LOOK", "LOOK", "LOOK", "LOOK");
 
-        Assert.Contains("The match has burned out.", restored.GetOutput());
+        Assert.Contains("The match has gone out.", restored.GetOutput());
     }
 
     [Fact]

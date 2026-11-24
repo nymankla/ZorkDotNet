@@ -236,9 +236,8 @@ public class VocabularyTests
     }
 
     [Theory]
-    [InlineData("LIGHT MATCH", "MATCH", "The match is now lit.")]
-    [InlineData("STRIKE MATCH", "MATCH", "The match is now lit.")]
-    [InlineData("LIGHT CANDLES", "CANDL", "The candles are now lit.")]
+    [InlineData("LIGHT MATCH", "MATCH", "One of the matches starts to burn.")]
+    [InlineData("STRIKE MATCH", "MATCH", "One of the matches starts to burn.")]
     public void Light_and_strike_light_things(string command, string objectId, string expected)
     {
         using var runner = new GameRunner();

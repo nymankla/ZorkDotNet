@@ -25,6 +25,13 @@ public class GameState
     /// <summary>When this game started, for TIME.</summary>
     public DateTimeOffset StartedAt { get; set; } = TimeProvider.System.GetUtcNow();
 
+    /// <summary>Candle clock (CNDIN): moves left until the next LIGHT-INT step; 0 until the candles are first touched.</summary>
+    public int CandleTicks { get; set; }
+    /// <summary>Candle clock: LIGHT-INT steps taken so far (the count in the candles' ORAND).</summary>
+    public int CandleStage { get; set; }
+    /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
+    public int MatchesLeft { get; set; } = 5;
+
     /// <summary>MDL DEATHS: how many times the player has died.</summary>
     public int Deaths { get; set; }
     /// <summary>JIGS-UP asked "Do you want me to try to patch you?"; the next input line is the answer.</summary>
@@ -88,18 +95,13 @@ public class GameState
         var lamp = World.FindObject("LAMP");
         if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
             LampLightInt(lamp);
+        // Candle clock: runs while the candles burn, once they have been touched (act1.38 CANDLES).
+        var candles = World.FindObject("CANDL");
+        if (candles != null && candles.LightAmount > 0 && CandleTicks > 0 && --CandleTicks <= 0)
+            CandleLightInt(candles);
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
         foreach (var e in toRun) Clocks.Run(this, e);
-        if (Here?.Id == "CAVE2")
-        {
-            var candl = World.FindObject("CANDL");
-            if (candl != null && Winner.Inventory.Contains(candl) && candl.LightAmount > 0 && Random.Shared.Next(2) == 0)
-            {
-                candl.LightAmount = 0;
-                Output.WriteLine("The candles have been blown out by a gust of wind.");
-            }
-        }
         if (Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) == true && !GetFlag("VOLGNOME-SCHEDULED!-FLAG"))
         {
             SetFlag("VOLGNOME-SCHEDULED!-FLAG", true);
@@ -112,6 +114,25 @@ public class GameState
         // CEVENTs with no effect in original MDL (dung.56 CURIN, SPHIN)
         CureClock(this);
         SphereFunction(this);
+    }
+
+    // act1.38 CANDLE-TICKS and CANDLE-TELLS
+    private static readonly int[] CandleTickTable = [20, 10, 5, 0];
+    private static readonly string[] CandleTells = ["The candles grow shorter.", "The candles grow shorter.", "The candles are very short."];
+
+    /// <summary>act1.38 LIGHT-INT for the candles: the next step of CANDLE-TICKS, told if they are with you or here.</summary>
+    private void CandleLightInt(GameObject candles)
+    {
+        CandleStage++;
+        CandleTicks = CandleTickTable[Math.Min(CandleStage, CandleTickTable.Length) - 1];
+        var seen = candles.InRoom == null || candles.InRoom == Here;
+        if (CandleTicks == 0)
+        {
+            if (seen) Output.WriteLine("I hope you have more light than from a pair of candles.");
+            candles.LightAmount = 0;
+        }
+        else if (seen)
+            Output.WriteLine(CandleTells[CandleStage - 1]);
     }
 
     /// <summary>

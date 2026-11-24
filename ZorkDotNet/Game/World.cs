@@ -498,7 +498,8 @@ public class World
             "You are in a tiny cave with entrances west and north, and a dark, forbidding staircase leading down.",
             "Cave",
             false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW3"), ["WEST"] = new("MIRR2"), ["DOWN"] = new("LLD1") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW3"), ["WEST"] = new("MIRR2"), ["DOWN"] = new("LLD1") },
+            roomAction: RoomActions.Cave2Room, onEnter: RoomActions.Cave2Enter);
         AddRoom("CRAW2",
             "You are in a steep and narrow crawlway.  There are two exits nearby to the south and southwest.",
             "Steep Crawlway",
@@ -849,7 +850,7 @@ public class World
         AddObject("LAMP", "There is a brass lantern (battery-powered) here.", "lamp", "A battery-powered brass lantern is on the trophy case.", ObjectActions.Lantern, ObjectFlags.Take | ObjectFlags.Visible, -1, 0, 0, 15, 0, new[] { "LANTE" });
         AddObject("BLAMP", "There is a broken brass lantern here.", "broken lamp", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "LAMP", "LANTE" });
         AddObject("MATCH", "There is a matchbook whose cover says 'Visit Beautiful FCD#3' here.", "matchbook", null, ObjectActions.MatchFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "FLINT" });
-        AddObject("CANDL", "Some candles are here.", "pair of candles", null, ObjectActions.CandlesFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 0, new[] { "CANDLE" });
+        AddObject("CANDL", "There are two candles here.", "pair of candles", "On the two ends of the altar are burning candles.", ObjectActions.CandlesFunction, ObjectFlags.OnFire | ObjectFlags.Take | ObjectFlags.Visible, 1, 0, 0, 10, 0, new[] { "CANDLE" });
         AddObject("RUG", "", "carpet", null, ObjectActions.Rug, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "CARPE" });
         AddObject("TCASE", "There is a trophy case here.", "trophy case", null, ObjectActions.TrophyCase, ObjectFlags.Container | ObjectFlags.Transparent | ObjectFlags.Visible, 0, 0, 0, 100, 100, new[] { "CASE" });
         AddObject("PAPER", "", "newspaper", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "NEWSP", "ISSUE", "REPOR", "MAGAZ", "NEWS" });
@@ -922,6 +923,14 @@ public class World
         AddObject("SDOOR", "", "door", null, ObjectActions.DdoorFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "DOOR" }, new[] { "STONE" });
         AddObject("HPOLE", "", "head on a pole", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "HEAD" });
 
+        // The Land of the Living Dead and the Tomb of the Unknown Implementer (dung.56)
+        AddObject("BODIE", "", "pile of bodies", null, ObjectActions.BodyFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BODY", "CORPS" });
+        AddObject("TOMB", "There is a tomb here, made of the finest marble, and large enough for four headless corpses.  On one end is the cryptic inscription: \t\t \t\t \"Feel Free.\"", "tomb", null, ObjectActions.HeadFunction, ObjectFlags.Readable | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "GRAVE" });
+        AddObject("HEADS", "There are four heads here, mounted securely on poles.", "set of poled heads", null, ObjectActions.HeadFunction, ObjectFlags.Sacred | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "HEAD", "POLE", "POLES", "PDL", "BKD", "TAA", "MARC", "IMPLE", "LOSER" });
+        AddObject("COKES", "Many empty Coke bottles are here.  Alas, they can't hold water.", "bunch of Coke bottles", "There is a large pile of empty Coke bottles here, evidently produced by the implementers during their long struggle to win totally.", ObjectActions.CokeBottles, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 15, 0, new[] { "BOTTL" }, new[] { "COKE" });
+        AddObject("LISTS", "There is an enormous stack of line-printer paper here.  It is barely readable.", "stack of listings", "There is a gigantic pile of line-printer output here.  Although the paper once contained useful information, almost nothing can be distinguished now.", null, ObjectFlags.Readable | ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 70, 0, new[] { "PAPER", "LIST", "PRINT", "LISTI", "STACK" });
+        AddObject("LCASE", "There is a large case here, containing objects which you used to possess.", "large case", null, null, ObjectFlags.Visible | ObjectFlags.Transparent, 0, 0, 0, 0, 0, new[] { "CASE" }, new[] { "LARGE" });
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -943,10 +952,9 @@ public class World
         AddObject("BUCKE", "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", "wooden bucket", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 100, 100);
         // LLD (Hades): exorcism
         AddObject("GHOST", "", "", null, ObjectActions.GhostFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SPIRI", "FIEND" });
-        AddObject("GATES", "", "gate", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "GATE" });
         AddObject("CORPS", "A pile of mangled corpses lies in one corner.", "corpses", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MANGL" });
         AddObject("BELL", "There is a small brass bell here.", "bell", "Lying in a corner of the room is a small brass bell.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
-        AddObject("BOOK", "There is a large black book here.", "book", "On the altar is a large black book, open to page 569.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK", "PRAYE", "GOODB" });
+        AddObject("BOOK", "There is a large black book here.", "book", "On the altar is a large black book, open to page 569.", ObjectActions.BlackBook, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK", "PRAYE", "GOODB" });
         AddObject("STICK", "There is a broken sharp stick here.", "broken sharp stick", "A sharp stick, which appears to have been broken at one end, is here.", ObjectActions.StickFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 3, 0, new[] { "WAND", "MAGIC" });
         AddObject("GRAIL", "There is an extremely valuable (perhaps original) grail here.", "grail", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Container, 0, 2, 5, 10, 5, new[] { "CUP" });
         AddObject("PEARL", "There is a pearl necklace here with hundreds of large pearls.", "pearl necklace", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 9, 5, 10, 0, new[] { "NECKL" });
@@ -964,6 +972,8 @@ public class World
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH", "GUIDE");
         PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PlaceInRoom("LLD2", "BODIE");
+        PlaceInRoom("TOMB", "TOMB", "HEADS", "COKES", "LISTS");
         PlaceInRoom("FALLS", "RAINB", "BARRE");
         FindRoom("POG")!.Objects.Add(FindObject("RAINB")!); // scenery in two rooms, as in dung.56
         PlaceInRoom("CAVE4", "ENGRA");
@@ -982,7 +992,7 @@ public class World
         PutInContainer("SBAG", "GARLI", "FOOD");
         PutInContainer("BOTTL", "WATER");
         PlaceInRoom("ATTIC", "BRICK", "ROPE", "KNIFE");
-        PlaceInRoom("LROOM", "WDOOR", "DOOR", "TCASE", "LAMP", "RUG", "PAPER", "SWORD", "CANDL");
+        PlaceInRoom("LROOM", "WDOOR", "DOOR", "TCASE", "LAMP", "RUG", "PAPER", "SWORD");
         PlaceInRoom("CELLA", "TDOOR");
         PlaceInRoom("MTROL", "TROLL");
         PutInContainer("TROLL", "AXE");
@@ -1016,9 +1026,9 @@ public class World
         PlaceInRoom("DOME", "RAILI");
         PlaceInRoom("BWELL", "BUCKE");
         PlaceInRoom("TREAS", "THIEF");
-        PlaceInRoom("LLD1", "GHOST", "GATES", "CORPS");
+        PlaceInRoom("LLD1", "GHOST", "CORPS");
         PlaceInRoom("TEMP1", "BELL");
-        PlaceInRoom("TEMP2", "BOOK");
+        PlaceInRoom("TEMP2", "BOOK", "CANDL");
         PlaceInRoom("DOCK", "IBOAT", "STICK");
         PutInContainer("RBOAT", "LABEL");
         var rboat = FindObject("RBOAT");

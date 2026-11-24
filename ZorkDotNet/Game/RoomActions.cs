@@ -324,13 +324,52 @@ public static class RoomActions
 
     public static void Rivr4Enter(GameState state) => Rivr4Room(state, "WALK-IN");
 
-    /// <summary>LLD1 (Entrance to Hades): LOOK text.</summary>
+    /// <summary>act1.38 CAVE2-ROOM: walking in, PROB 50 that the wind blows the candles you carry out.</summary>
+    public static void Cave2Room(GameState state, string verb)
+    {
+        if (verb != "WALK-IN") return;
+        var candles = state.Winner.Inventory.FirstOrDefault(o => o.Id == "CANDL");
+        if (candles != null && candles.LightAmount > 0 && state.Random.Next(100) < 50)
+        {
+            candles.LightAmount = -1;
+            state.Output.WriteLine("The cave is very windy at the moment and your candles have blown out.");
+        }
+    }
+
+    public static void Cave2Enter(GameState state) => Cave2Room(state, "WALK-IN");
+
+    /// <summary>
+    /// act1.38 LLD-ROOM (the entrance to Hades): its description, and EXORCISE. With the bell, the book and lit
+    /// candles the spirits flee; without the spirits here, you are the one dismissed.
+    /// </summary>
     public static void LldRoom(GameState state, string verb)
     {
-        if (verb != "LOOK") return;
-        state.Output.WriteLine("You are outside a large gateway, on which is inscribed \"Abandon every hope, all ye who enter here.\" The gate is open; through it you can see a desolation, with a pile of mangled corpses in one corner.  Thousands of voices, lamenting some hideous fate, can be heard.");
-        if (!state.GetFlag("LLD-FLAG!-FLAG"))
-            state.Output.WriteLine("The way through the gate is barred by evil spirits, who jeer at your attempts to pass.");
+        if (verb == "LOOK")
+        {
+            state.Output.WriteLine("You are outside a large gateway, on which is inscribed \"Abandon every hope, all ye who enter here.\"  The gate is open; through it you can see a desolation, with a pile of mangled corpses in one corner.  Thousands of voices, lamenting some hideous fate, can be heard.");
+            if (!state.GetFlag("LLD-FLAG!-FLAG"))
+                state.Output.WriteLine("The way through the gate is barred by evil spirits, who jeer at your attempts to pass.");
+        }
+        else if (verb == "EXORCISE")
+        {
+            var ghost = state.World?.FindObject("GHOST");
+            if (ghost != null && ghost.InRoom == state.Here)
+            {
+                var inv = state.Winner.Inventory;
+                var candles = inv.FirstOrDefault(o => o.Id == "CANDL");
+                if (inv.Exists(o => o.Id == "BELL") && inv.Exists(o => o.Id == "BOOK") && candles != null && candles.LightAmount > 0)
+                {
+                    state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, fiends!\"  The spirits, sensing the presence of a greater power, flee through the walls.");
+                    state.Here.Objects.Remove(ghost);
+                    ghost.InRoom = null;
+                    state.SetFlag("LLD-FLAG!-FLAG", true);
+                }
+                else
+                    state.Output.WriteLine("You are not equipped for an exorcism.");
+            }
+            else
+                state.JigsUp("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, chomper!\"  Apparently, the voice thinks you are an evil spirit, and dismisses you from the realm of the living.");
+        }
     }
 
     /// <summary>CAROUSEL (Round room): LOOK text; compass message when CAROUSEL-FLIP is false.</summary>
