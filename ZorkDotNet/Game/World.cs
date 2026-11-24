@@ -88,6 +88,8 @@ public class World
         _state.SetFlag("IN-BALLOON!-FLAG", false);
         _state.SetFlag("RIDDLE-FLAG!-FLAG", false);
         _state.SetFlag("LIGHT-LOAD!-FLAG", false);
+        _state.SetFlag("BUOY-FLAG!-FLAG", true);
+        _state.SetFlag("DEFLATE!-FLAG", true);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -312,6 +314,8 @@ public class World
         RegisterCarouselExitActions();
         RegisterCoffinCure();
         _beforeExitActions[(NormId("STUDI"), "UP")] = ChimneyFunction;
+        _beforeExitActions[(NormId("WCLF1"), "SOUTH")] = RoomActions.CliffPath;
+        _beforeExitActions[(NormId("WCLF2"), "NORTH")] = RoomActions.CliffPath;
 
         AddRoom("CANY1",
             "You are on the south edge of a deep canyon.  Passages lead off to the east, south, and northwest.  You can hear the sound of flowing water below.",
@@ -637,7 +641,8 @@ public class World
             "You are on a large sandy beach at the shore of the river, which is flowing quickly by.  A path runs beside the river to the south here.",
             "Sandy Beach",
             false,
-            new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR4"), ["SOUTH"] = new("FANTE") });
+            new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR4"), ["SOUTH"] = new("FANTE") },
+            roomAction: RoomActions.BeachRoom);
         AddRoom("VAIR2", "You are about two hundred feet above the volcano floor.  Looming above is the rim of the volcano.  There is a small ledge on the west side.", "Volcano Core", false,
             new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR3"), ["DOWN"] = new("VAIR1") });
         AddRoom("VAIR3", "You are high above the floor of the volcano.  From here the rim of the volcano looks very narrow and you are very near it.  To the east is what appears to be a viewing ledge, too thin to land on.", "Volcano Core", false,
@@ -693,13 +698,13 @@ public class World
         AddRoom("RIVR3", "The river descends here into a valley.  There is a narrow beach on the east below the cliffs and there is some shore on the west which may be suitable.  In the distance a faint rumbling can be heard.", "Frigid River", false,
             new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR4"), ["EAST"] = new("WCLF1"), ["WEST"] = new("RCAVE"), ["LAND"] = ExitTarget.Blocked("You must specify which direction here.") });
         AddRoom("RIVR4", "The river is running faster here and the sound ahead appears to be that of rushing water.  On the west shore is a sandy beach.  A small area of beach can also be seen below the Cliffs.", "Frigid River", false,
-            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR5"), ["EAST"] = new("WCLF2"), ["WEST"] = new("BEACH"), ["LAND"] = ExitTarget.Blocked("Specify the direction to land.") });
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("RIVR5"), ["EAST"] = new("WCLF2"), ["WEST"] = new("BEACH"), ["LAND"] = ExitTarget.Blocked("Specify the direction to land.") }, roomAction: RoomActions.Rivr4Room, onEnter: RoomActions.Rivr4Enter);
         AddRoom("RIVR5", "The sound of rushing water is nearly unbearable here.  On the west shore is a large landing area.", "Frigid River", false,
             new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("FCHMP"), ["LAND"] = new("FANTE") });
         AddRoom("WCLF1", "You are on a narrow strip of beach which runs along the base of the White Cliffs.  The only path here is a narrow one, heading south along the Cliffs.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("WCLF2"), ["LAUNC"] = new("RIVR3") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new ExitTarget("DEFLATE!-FLAG", "WCLF2", "The path is too narrow."), ["LAUNC"] = new("RIVR3") }, roomAction: RoomActions.CliffFunction);
         AddRoom("WCLF2", "You are on a rocky, narrow strip of beach beside the Cliffs.  A narrow path leads north along the shore.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("WCLF1"), ["LAUNC"] = new("RIVR4") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new ExitTarget("DEFLATE!-FLAG", "WCLF1", "The path is too narrow."), ["LAUNC"] = new("RIVR4") }, roomAction: RoomActions.CliffFunction);
         AddRoom("FCHMP", "", "Moby lossage", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
             roomAction: RoomActions.OverFallsLook,
@@ -799,7 +804,8 @@ public class World
             "You are in a small cave whose exits are on the south and northwest.",
             "Small Cave",
             false,
-            new Dictionary<string, ExitTarget> { ["NW"] = new("CHAS3"), ["SOUTH"] = new("RCAVE") });
+            new Dictionary<string, ExitTarget> { ["NW"] = new("CHAS3"), ["SOUTH"] = new("RCAVE") },
+            roomAction: RoomActions.TcaveRoom);
         AddRoom("CHAS3",
             "A chasm, evidently produced by an ancient river, runs through the cave here.  Passages lead off in all directions.",
             "Ancient Chasm",
@@ -882,7 +888,18 @@ public class World
         AddObject("TBASK", "At the end of the chain is a basket.", "basket", null, ObjectActions.Dumbwaiter, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Transparent, 0, 0, 0, 100, 50, new[] { "CAGE", "DUMBW", "BASKE" });
         AddObject("FBASK", "", "", null, ObjectActions.Dumbwaiter, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "CAGE", "DUMBW", "BASKE" });
         AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "RAIL" });
-        AddObject("PUMP", "There is a small pump here.", "hand-held air pump", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "AIR-P", "AIRPU" });
+        AddObject("PUMP", "There is a small pump here.", "hand-held air pump", null, null, ObjectFlags.Tool | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 5, 0, new[] { "AIR-P", "AIRPU" });
+
+        // The river trip (dung.56)
+        AddObject("IBOAT", "There is a folded pile of plastic here which has a small valve attached.", "plastic inflatable boat", null, ObjectActions.IboatFunction, ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "BOAT", "PLAST", "PILE" });
+        AddObject("DBOAT", "There is a pile of plastic here with a large hole in it.", "plastic boat (with hole)", null, ObjectActions.DboatFunction, ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "BOAT", "PLAST", "PILE" });
+        AddObject("RBOAT", "There is an inflated boat here.", "magic boat", null, ObjectActions.RboatFunction, ObjectFlags.Vehicle | ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 100, new[] { "BOAT" }, new[] { "PLAST", "SEAWO" });
+        AddObject("LABEL", "There is a tan label here.", "tan label", null, null, ObjectFlags.Burnable | ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Take, 0, 0, 0, 2, 0, new[] { "FINEP" }, new[] { "TAN" });
+        AddObject("BUOY", "There is a red buoy here (probably a warning).", "red buoy", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 10, 20, adjectives: new[] { "RED" });
+        AddObject("EMERA", "There is an emerald here.", "large emerald", null, null, ObjectFlags.Visible | ObjectFlags.Take, 0, 5, 10, 5, 0);
+        AddObject("SHOVE", "There is a large shovel here.", "shovel", null, null, ObjectFlags.Tool | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 15, 0);
+        AddObject("GUANO", "There is a hunk of bat guano here.", "hunk of bat guano", null, null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "CRAP", "SHIT", "HUNK" });
+        AddObject("STATU", "There is a beautiful statue here.", "statue", null, null, ObjectFlags.Take, 0, 10, 13, 8, 0, new[] { "SCULP", "ROCK" });
         AddObject("MSWIT", "A screw is here.", "switch", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 1, 0, new[] { "SWITC" });
         AddObject("SCREW", "There is a screwdriver here.", "screwdriver", null, null, ObjectFlags.Tool | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
 
@@ -972,7 +989,16 @@ public class World
         PlaceInRoom("LLD1", "GHOST", "GATES", "CORPS");
         PlaceInRoom("TEMP1", "BELL");
         PlaceInRoom("TEMP2", "BOOK");
-        PlaceInRoom("CANY1", "STICK");
+        PlaceInRoom("DOCK", "IBOAT", "STICK");
+        PutInContainer("RBOAT", "LABEL");
+        var rboat = FindObject("RBOAT");
+        if (rboat != null) rboat.Open = true; // dung.56: <PUT <FIND-OBJ "RBOAT"> ,OOPEN? T>
+        PlaceInRoom("RIVR4", "BUOY");
+        PutInContainer("BUOY", "EMERA");
+        PlaceInRoom("TCAVE", "GUANO", "SHOVE");
+        PlaceInRoom("BEACH", "STATU");
+        foreach (var river in new[] { "RIVR1", "RIVR2", "RIVR3", "RIVR4", "RIVR5" })
+            FindRoom(river)!.IsWater = true;
 
         // Reading texts (dung.56 ADD-DESC)
         foreach (var (id, text) in ReadTexts.ByObject)
