@@ -148,10 +148,17 @@ public static class VerbTable
             new Syntax(VArg.Empty, VArg.Empty, "INVENTORY", isDriver: true)));
 
         // OPEN / CLOSE (NO-TAKE: use in place, don't take first)
-        AddWords(new[] { "OPEN", "UNLO" }, V("OPEN", "open",
+        AddWords(new[] { "OPEN" }, V("OPEN", "open",
             new Syntax(ArgRoomNoTake, VArg.Empty, "OPEN", isDriver: true)));
-        AddWords(new[] { "CLOSE", "SHUT", "LOCK" }, V("CLOSE", "close",
+        AddWords(new[] { "CLOSE", "SHUT" }, V("CLOSE", "close",
             new Syntax(ArgRoomNoTake, VArg.Empty, "CLOSE", isDriver: true)));
+
+        // UNLOCK obj WITH tool (UNLOCKER) / LOCK obj (LOCKER): their own verbs in dung.56, not OPEN/CLOSE.
+        // UNLOCK is a driver so "unlock grate" reaches UNLOCKER, which picks the tool GWIM-style.
+        AddWords(new[] { "UNLOCK" }, V("UNLOCK", "unlock",
+            new Syntax(ArgRoomNoTake, ArgInvWith, "UNLOCK", isDriver: true)));
+        AddWords(new[] { "LOCK" }, V("LOCK", "lock",
+            new Syntax(ArgRoomNoTake, VArg.Empty, "LOCK", isDriver: true)));
 
         // READ (verb that takes object)
         AddWords(new[] { "READ" }, V("READ", "read",

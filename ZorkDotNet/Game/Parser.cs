@@ -255,11 +255,11 @@ public static class Parser
         // Dispatch
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
-        Dispatch(state, chosen.Action, dobj, words);
+        Dispatch(state, chosen.Action, dobj, iobj, words);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
-    private static void Dispatch(GameState state, string action, GameObject? direct, string[] words)
+    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect, string[] words)
     {
         switch (action)
         {
@@ -289,6 +289,15 @@ public static class Parser
             case "CLOSE":
                 if (direct != null) DoClose(state, direct);
                 else state.Output.WriteLine("What do you want to close?");
+                break;
+            case "UNLOCK":
+                // np.93 ORTELL wording for a missing object.
+                if (direct != null) ObjectActions.Unlocker(state, direct, indirect);
+                else state.Output.WriteLine("Unlock what?");
+                break;
+            case "LOCK":
+                if (direct != null) ObjectActions.Locker(state, direct);
+                else state.Output.WriteLine("Lock what?");
                 break;
             case "READ":
                 if (direct != null) ObjectActions.ReadObject(state, direct);

@@ -599,9 +599,6 @@ public class GameTests
         Assert.True(runner.State.GetFlag("MAGIC-FLAG!-FLAG"));
     }
 
-    /// <summary>Place the player directly in a room (for testing areas that are far from the start).</summary>
-    private static void Teleport(GameRunner runner, string roomId) =>
-        runner.State.Winner.CurrentRoom = runner.State.World!.FindRoom(roomId)!;
 
     [Fact]
     public void Each_command_counts_as_one_move_including_walking()
@@ -616,7 +613,7 @@ public class GameTests
     public void Being_carried_off_by_the_bat_counts_as_one_move()
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Bat_counts_one_move", _logDir));
-        Teleport(runner, "SQUEE");
+        runner.Teleport("SQUEE");
         runner.Execute("WEST");
 
         Assert.Equal(1, runner.State.Moves);
@@ -662,11 +659,11 @@ public class GameTests
     public void Falls_north_leads_to_shore_and_canyon_has_no_north_exit()
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Falls_north_leads_to_shore", _logDir));
-        Teleport(runner, "FALLS");
+        runner.Teleport("FALLS");
         runner.Execute("NORTH");
         Assert.Equal("FANTE", runner.State.Here?.Id);
 
-        Teleport(runner, "CANY1");
+        runner.Teleport("CANY1");
         runner.Execute("NORTH");
         Assert.Equal("CANY1", runner.State.Here?.Id);
     }
@@ -677,7 +674,7 @@ public class GameTests
     public void Going_down_over_the_falls_is_fatal(string fromRoom)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Going_down_over_the_falls_" + fromRoom, _logDir));
-        Teleport(runner, fromRoom);
+        runner.Teleport(fromRoom);
         runner.Execute("DOWN");
 
         Assert.Contains("gone over Aragain Falls", runner.GetOutput());
@@ -693,7 +690,7 @@ public class GameTests
     public void River_cannot_be_travelled_upstream(string room)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("River_upstream_" + room, _logDir));
-        Teleport(runner, room);
+        runner.Teleport(room);
         runner.Execute("UP");
 
         Assert.Contains("You cannot go upstream due to strong currents.", runner.GetOutput());
@@ -712,7 +709,7 @@ public class GameTests
     public void River_launch_and_land_exits(string from, string command, string expected)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_{command}_{from}", _logDir));
-        Teleport(runner, from);
+        runner.Teleport(from);
         runner.Execute(command);
 
         Assert.Equal(expected, runner.State.Here?.Id);
@@ -726,7 +723,7 @@ public class GameTests
     public void River_blocked_exits_print_original_messages(string room, string command, string message)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_blocked_{room}_{command}", _logDir));
-        Teleport(runner, room);
+        runner.Teleport(room);
         runner.Execute(command);
 
         Assert.Contains(message, runner.GetOutput());

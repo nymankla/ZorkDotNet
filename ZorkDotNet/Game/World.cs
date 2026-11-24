@@ -64,7 +64,8 @@ public class World
         _state.SetFlag("TRAP-DOOR!-FLAG", false);
         _state.SetFlag("MAGIC-FLAG!-FLAG", false);
         _state.SetFlag("TROLL-FLAG!-FLAG", false);
-        _state.SetFlag("KEY-FLAG!-FLAG", false);
+        _state.SetFlag("KEY-FLAG!-FLAG", false); // grating open
+        _state.SetFlag("GRUNLOCK!-FLAG", false); // grating unlocked
         _state.SetFlag("BRIEF!-FLAG", false);
         _state.SetFlag("SUPER-BRIEF!-FLAG", false);
         _state.SetFlag("GLACIER-FLAG!-FLAG", false);
@@ -821,8 +822,8 @@ public class World
         AddObject("BONES", "A skeleton, probably the remains of a luckless adventurer, lies here.", "", null, ObjectActions.Skeleton, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SKELE", "BODY" });
         AddObject("BAGCO", "An old leather bag, bulging with coins, is here.", "bag of coins", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 5, 15, 0, new[] { "BAG", "COINS" });
         AddObject("BAR", "There is a large platinum bar here.", "platinum bar", null, null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 12, 10, 20, 0, new[] { "PLATI" });
-        AddObject("GRAT1", "A grating is here.", "grating", null, null, ObjectFlags.None, 0, 0, 0, 100, 0); // visible when leaves moved/burned
-        AddObject("GRAT2", "A grating is here.", "grating", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0);
+        AddObject("GRAT1", "A grating is here.", "grating", null, ObjectActions.Grating1Function, ObjectFlags.None, 0, 0, 0, 100, 0); // visible when leaves moved/burned
+        AddObject("GRAT2", "A grating is here.", "grating", null, ObjectActions.Grating2Function, ObjectFlags.Visible, 0, 0, 0, 100, 0);
         AddObject("LEAVE", "There is a pile of leaves on the ground.", "pile of leaves", null, ObjectActions.LeafPile, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 25, 0, new[] { "LEAF", "PILE" });
         AddObject("JADE", "There is an exquisite jade figurine here.", "jade figurine", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 5, 5, 10, 0, new[] { "FIGUR" });
         AddObject("BAT", "", "vampire bat", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0);

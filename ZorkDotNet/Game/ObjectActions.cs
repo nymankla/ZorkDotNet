@@ -5,6 +5,118 @@ namespace ZorkDotNet.Game;
 /// </summary>
 public static class ObjectActions
 {
+    /// <summary>act1.38 DUMMY: replies for doing something that is already done.</summary>
+    private static readonly string[] Dummy = ["Look around.", "You think it isn't?", "I think you've already done that."];
+
+    /// <summary>
+    /// act1.38 OPEN-CLOSE: OPEN sets the flag (or a DUMMY reply if already set), CLOSE clears it (or DUMMY).
+    /// Other verbs do nothing and return false.
+    /// </summary>
+    private static bool OpenClose(GameState state, string verb, string flag, string openText, string closeText)
+    {
+        if (verb == "OPEN")
+        {
+            if (state.GetFlag(flag)) state.Output.WriteLine(Dummy[Random.Shared.Next(Dummy.Length)]);
+            else { state.Output.WriteLine(openText); state.SetFlag(flag, true); }
+            return true;
+        }
+        if (verb == "CLOSE")
+        {
+            if (state.GetFlag(flag)) { state.Output.WriteLine(closeText); state.SetFlag(flag, false); }
+            else state.Output.WriteLine(Dummy[Random.Shared.Next(Dummy.Length)]);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>act1.38 GRAT1-FUNCTION: the grating seen from the clearing.</summary>
+    public static void Grating1Function(GameState state, string verb, GameObject? _)
+    {
+        if (state.GetFlag("GRUNLOCK!-FLAG"))
+            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens.", "The grating is closed.");
+        else
+            state.Output.WriteLine("The grating is locked.");
+    }
+
+    /// <summary>act1.38 GRAT2-FUNCTION: the grating seen from below (MGRAT); working it makes GRAT1 visible above.</summary>
+    public static void Grating2Function(GameState state, string verb, GameObject? _)
+    {
+        if (state.GetFlag("GRUNLOCK!-FLAG"))
+        {
+            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens to reveal trees above you.", "The grating is closed.");
+            var grat1 = state.World?.FindObject("GRAT1");
+            if (grat1 != null) grat1.Flags |= ObjectFlags.Visible;
+        }
+        else
+        {
+            state.Output.WriteLine("The grating is locked.");
+        }
+    }
+
+    /// <summary>
+    /// act1.38 UNLOCKER: only the grating from below (GRAT2) can be unlocked, and only with the skeleton keys.
+    /// A missing tool is chosen like np.93 GWIM (the single tool carried, else the single tool in the room).
+    /// </summary>
+    public static void Unlocker(GameState state, GameObject obj, GameObject? tool)
+    {
+        tool ??= FindOnlyTool(state);
+        if (tool == null)
+        {
+            state.Output.WriteLine("With what?");
+            return;
+        }
+        if (obj.Id != "GRAT2")
+        {
+            state.Output.WriteLine("It doesn't seem to work.");
+            return;
+        }
+        if (tool.Id != "KEYS")
+        {
+            state.Output.WriteLine("Can you unlock a grating with a " + tool.DescriptionShort + "?");
+            return;
+        }
+        state.SetFlag("GRUNLOCK!-FLAG", true);
+        state.Output.WriteLine("The grate is unlocked.");
+        SetGratingExitMessage(state.World?.FindRoom("MGRAT"), "The grate is closed.");
+    }
+
+    /// <summary>act1.38 LOCKER: locks the grating from below (GRAT2).</summary>
+    public static void Locker(GameState state, GameObject obj)
+    {
+        if (obj.Id != "GRAT2")
+        {
+            state.Output.WriteLine("It doesn't seem to work.");
+            return;
+        }
+        state.SetFlag("GRUNLOCK!-FLAG", false);
+        state.Output.WriteLine("The grate is locked.");
+        SetGratingExitMessage(state.Here, "The grate is locked.");
+    }
+
+    /// <summary>Change the "else" text of the room's KEY-FLAG exit (MDL PUT ... ,CXSTR).</summary>
+    private static void SetGratingExitMessage(Room? room, string message)
+    {
+        if (room == null) return;
+        foreach (var (dir, exit) in room.Exits.ToList())
+        {
+            if (exit.ConditionFlag == "KEY-FLAG!-FLAG")
+            {
+                room.Exits[dir] = new ExitTarget(exit.ConditionFlag, exit.RoomId!, message);
+                return;
+            }
+        }
+    }
+
+    /// <summary>np.93 GWIM for a tool: the only visible tool carried, else the only visible takeable tool in the room.</summary>
+    private static GameObject? FindOnlyTool(GameState state)
+    {
+        static bool IsTool(GameObject o) => o.IsVisible && (o.Flags & ObjectFlags.Tool) != 0;
+        var carried = state.Winner.Inventory.Where(IsTool).ToList();
+        if (carried.Count > 0) return carried.Count == 1 ? carried[0] : null;
+        var inRoom = state.Here.Objects.Where(o => IsTool(o) && o.CanTake).ToList();
+        return inRoom.Count == 1 ? inRoom[0] : null;
+    }
+
     public static void WindowFunction(GameState state, string verb, GameObject? _)
     {
         if (verb == "OPEN")

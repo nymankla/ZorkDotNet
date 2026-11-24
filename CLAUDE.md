@@ -48,7 +48,7 @@ The goal is a complete port of the original game. Behavior should match the MDL 
 
 **Every change needs tests.** Each bug fix, ported feature, room, object, verb or puzzle gets a test that would fail without the change. Puzzles get a test that plays the whole solution. Keep `dotnet test` green and the lint check clean before you commit.
 
-`ZorkDotNet.Tests/GameRunner` builds a fresh `GameState` + `World`, sends commands with `Run(...)`/`Execute(...)`, and captures the output (`GetOutput()`). A test usually checks substrings of the output and `runner.State.Here?.Id`. Each test also writes a transcript to `ZorkDotNet.Tests/TestLogs/` (the folder is wiped when the test class loads), which helps when debugging a failing scenario. `GameRunner` doesn't run the intro `LOOK`. To test an area far from the start, put the player there with the `Teleport` helper in `GameTests` instead of walking.
+`ZorkDotNet.Tests/GameRunner` builds a fresh `GameState` + `World`, sends commands with `Run(...)`/`Execute(...)`, and captures the output (`GetOutput()`). A test usually checks substrings of the output and `runner.State.Here?.Id`. Each test also writes a transcript to `ZorkDotNet.Tests/TestLogs/` (the folder is wiped when the test class loads), which helps when debugging a failing scenario. `GameRunner` doesn't run the intro `LOOK`. To test an area far from the start, use `runner.Teleport(roomId)` and `runner.Give(objectId)` instead of walking there and collecting things. `GetOutputSince(mark)` returns only what one command printed. Put tests for one puzzle or feature in their own file (e.g. `GratingTests.cs`).
 
 ### Checking against the original (`ZorkDotNet.Tests/Original/`)
 
