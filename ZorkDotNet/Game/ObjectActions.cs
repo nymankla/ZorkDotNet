@@ -141,13 +141,14 @@ public static class ObjectActions
         }
     }
 
-    public static void Rug(GameState state, string verb, GameObject? obj)
+    /// <summary>act1.38 RUG. (The third argument is the indirect object, which the rug never uses.)</summary>
+    public static void Rug(GameState state, string verb, GameObject? _)
     {
-        if (verb == "TAKE" && obj != null)
-            state.Output.WriteLine("The rug is too heavy to move.");
-        else if (verb == "LIFT" && obj != null)
+        if (verb == "TAKE")
+            state.Output.WriteLine("The rug is extremely heavy and cannot be carried.");
+        else if (verb == "LIFT")
             state.Output.WriteLine("The rug is too heavy to lift, but in trying to take it you have noticed an irregularity beneath it.");
-        else if (verb == "MOVE" && obj != null)
+        else if (verb == "MOVE")
         {
             if (state.GetFlag("RUG-MOVED!-FLAG"))
                 state.Output.WriteLine("Having moved the carpet previously, you find it impossible to move it again.");
@@ -756,12 +757,11 @@ public static class ObjectActions
 
     public static void ReadObject(GameState state, GameObject? obj)
     {
+        // act1.38 READER
         if (obj == null) return;
-        if ((obj.Flags & ObjectFlags.Readable) == 0) { state.Output.WriteLine("You can't read that."); return; }
-        if (obj.Id == "PAPER")
-            state.Output.WriteLine("\"ZORK I: The Great Underground Empire\"\nCopyright (c) 1981, 1982, 1983 Infocom, Inc. All rights reserved.\nZork is a registered trademark of Infocom, Inc.");
-        else
-            state.Output.WriteLine("Nothing interesting.");
+        if (!GameState.IsLit(state)) { state.Output.WriteLine("It is impossible to read in the dark."); return; }
+        if ((obj.Flags & ObjectFlags.Readable) == 0) { state.Output.WriteLine("How can I read a " + obj.DescriptionShort + "?"); return; }
+        state.Output.WriteLine(obj.ReadText ?? "");
     }
 
     public static void EatObject(GameState state, GameObject? obj)

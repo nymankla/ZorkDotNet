@@ -29,7 +29,7 @@ public class LightingTests
         runner.Teleport("CELLA");
 
         Assert.False(GameState.IsLit(runner.State));
-        Assert.Contains("It is too dark to see.", Do(runner, "LOOK"));
+        Assert.Contains("It is pitch black.  You are likely to be eaten by a grue.", Do(runner, "LOOK"));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class LightingTests
         var output = Do(runner, "TURN ON LAMP");
 
         Assert.Contains("The lamp is now on.", output);
-        Assert.Contains("Cellar", output);
+        Assert.Contains("You are in a dark and damp cellar", output);
         Assert.True(GameState.IsLit(runner.State));
         Assert.Contains("It is already on.", Do(runner, "TURN ON LAMP"));
     }
@@ -64,12 +64,17 @@ public class LightingTests
     }
 
     [Fact]
-    public void A_lamp_that_is_not_carried_cannot_be_turned_on()
+    public void A_lamp_on_the_floor_is_taken_before_it_is_turned_on()
     {
+        // TURN ON's slot is AOBJS ROBJS without NO-TAKE, so np.93 TAKE-IT-OR-LEAVE-IT takes the lamp first.
         using var runner = new GameRunner();
         runner.Teleport("LROOM");
 
-        Assert.Contains("You can't turn that on.", Do(runner, "TURN ON LAMP"));
+        var output = Do(runner, "TURN ON LAMP");
+
+        Assert.Contains("Taken.", output);
+        Assert.Contains("The lamp is now on.", output);
+        Assert.Contains(runner.State.World!.FindObject("LAMP")!, runner.State.Winner.Inventory);
     }
 
     [Fact]

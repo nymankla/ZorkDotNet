@@ -20,8 +20,11 @@ public class World
     public IEnumerable<Room> Rooms => _rooms.Values;
     public IEnumerable<GameObject> Objects => _objects.Values;
 
-    /// <summary>Optional exit functions (e.g. CAROUSEL-EXIT). When conditional exit is blocked, run this instead.</summary>
-    private readonly Dictionary<(string roomId, string direction), Action<GameState, string>> _exitActions = new();
+    /// <summary>
+    /// MDL CXACTION of a conditional exit (e.g. CAROUSEL-EXIT). As in rooms.99 WALK it runs before the exit's flag is
+    /// checked; it returns true when it has dealt with the move, false to let the flag decide.
+    /// </summary>
+    private readonly Dictionary<(string roomId, string direction), Func<GameState, string, bool>> _exitActions = new();
     /// <summary>Runs before evaluating conditional exit (e.g. COFFIN-CURE sets EGYPT-FLAG from inventory).</summary>
     private readonly Dictionary<(string roomId, string direction), Action<GameState>> _beforeExitActions = new();
 
@@ -37,7 +40,7 @@ public class World
         return false;
     }
 
-    public bool TryGetExitAction(string roomId, string direction, out Action<GameState, string>? action)
+    public bool TryGetExitAction(string roomId, string direction, out Func<GameState, string, bool>? action)
     {
         var key = (NormId(roomId), direction);
         if (_exitActions.TryGetValue(key, out var act))
@@ -83,6 +86,8 @@ public class World
         _state.SetFlag("RAINBOW!-FLAG", false);
         _state.SetFlag("BINF!-FLAG", false);
         _state.SetFlag("IN-BALLOON!-FLAG", false);
+        _state.SetFlag("RIDDLE-FLAG!-FLAG", false);
+        _state.SetFlag("LIGHT-LOAD!-FLAG", false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -185,6 +190,7 @@ public class World
                 ["WEST"] = ExitTarget.Blocked("You try to ascend the ramp, but it is impossible, and you slide back down.")
             },
             objectIds: new[] { "TDOOR" },
+            roomAction: RoomActions.Cellar,
             visitScore: 25,
             onEnter: RoomActions.OnEnterCellar);
 
@@ -297,12 +303,15 @@ public class World
                 ["NW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "CANY1", null),
                 ["NE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS5", null),
                 ["SE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS4", null),
-                ["SW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MAZE1", null)
+                ["SW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MAZE1", null),
+                // Its CAROUSEL-OUT action always picks a random exit first, so PASS3 is never actually reached.
+                ["EXIT"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS3", "")
             },
             objectIds: new[] { "IRBOX" },
             roomAction: RoomActions.CarouselRoom);
         RegisterCarouselExitActions();
         RegisterCoffinCure();
+        _beforeExitActions[(NormId("STUDI"), "UP")] = ChimneyFunction;
 
         AddRoom("CANY1",
             "You are on the south edge of a deep canyon.  Passages lead off to the east, south, and northwest.  You can hear the sound of flowing water below.",
@@ -321,9 +330,9 @@ public class World
             },
             roomAction: RoomActions.FallsRoom);
         AddRoom("RAINB",
-            "You are on top of a rainbow (I bet you never thought you would walk on a rainbow), with a magnificent view of the Falls.  The rainbow travels east-west here.",
+            "You are on top of a rainbow (I bet you never thought you would walk on a rainbow), with a magnificent view of the Falls.  The rainbow travels east-west here.  There is an NBC Commissary here.",
             "Rainbow Room",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["EAST"] = new("POG"), ["WEST"] = new("FALLS") });
 
         AddRoom("MGRAT", "", "Grating Room", false,
@@ -396,18 +405,23 @@ public class World
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("LAVA"), ["SOUTH"] = new("ICY") },
             objectIds: new[] { "RUBY" });
-        AddRoom("CHAS1", "", "East of Chasm", false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("RAVI1") });
+        AddRoom("CHAS1", "A chasm runs southwest to northeast.  You are on the south edge; the path exits to the south and to the east.", "Chasm", false,
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("RAVI1"), ["EAST"] = new("PASS5"), ["DOWN"] = ExitTarget.Blocked("Are you out of your mind?") });
         AddRoom("CRAW1",
             "You are in a crawlway with a three-foot high ceiling.  Your footing is very unsure here due to the assortment of rocks underfoot. Passages can be seen in the east, west, and northwest corners of the passage.",
             "Rocky Crawl",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("RAVI1"), ["EAST"] = new("DOME"), ["NW"] = new("EGYPT") });
         AddRoom("DOME", "", "Dome Room", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("CRAW1") },
+            new Dictionary<string, ExitTarget>
+            {
+                ["EAST"] = new("CRAW1"),
+                ["DOWN"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones."),
+                ["CLIMB"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones.")
+            },
             objectIds: new[] { "RAILI" });
-        AddRoom("PASS5", "You are in a cold and damp corridor where a long east-west passageway intersects with a northward path.", "Cold Passage", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("MIRR2"), ["WEST"] = new("SLIDE"), ["NORTH"] = new("CRAW2") });
+        AddRoom("PASS5", "You are in a high north-south passage, which forks to the northeast.", "North-South Passage", false,
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS1"), ["NE"] = new("ECHO"), ["SOUTH"] = new("CAROU") });
         AddRoom("SLIDE",
             "You are in a small chamber, which appears to have been part of a coal mine. On the south wall of the chamber the letters \"Granite Wall\" are etched in the rock. To the east is a long passage and there is a steep metal slide twisting downward. From the appearance of the slide, an attempt to climb up it would be impossible.  To the north is a small opening.",
             "Slide Room",
@@ -499,11 +513,11 @@ public class World
                 ["EAST"] = new("MIRR2"),
                 ["NORTH"] = ExitTarget.Blocked("You hear the whir of the carousel room but can find no entrance.")
             });
-        AddRoom("CAVE4", "", "Cave", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAROU") });
+        AddRoom("CAVE4", "You have entered a cave with passages leading north and southeast.", "Engravings Cave", false,
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("CAROU"), ["SE"] = new("RIDDL") });
         AddRoom("MGRAI", "You are standing in a small circular room with a pedestal.  A set of stairs leads up, and passages leave to the east and west.", "Grail Room", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CRAW3"), ["WEST"] = new("CAROU"), ["EAST"] = new("CRAW3"), ["UP"] = new("TEMP1") });
-        AddRoom("DAM", "", "Dam", false,
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("CAROU"), ["EAST"] = new("CRAW3"), ["UP"] = new("TEMP1") });
+        AddRoom("DAM", "", "Dam", true,
             new Dictionary<string, ExitTarget>
             {
                 ["SOUTH"] = new("CANY1"),
@@ -515,7 +529,7 @@ public class World
         AddRoom("LOBBY",
             "This room appears to have been the waiting room for groups touring the dam.  There are exits here to the north and east marked 'Private', though the doors are open, and an exit to the south.",
             "Dam Lobby",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("DAM"), ["NORTH"] = new("MAINT"), ["EAST"] = new("MAINT") });
         AddRoom("MAINT",
             "You are in what appears to have been the maintenance room for Flood Control Dam #3, judging by the assortment of tool chests around the room.  Apparently, this room has been ransacked recently, for most of the valuable equipment is gone. On the wall in front of you is a panel of buttons, which are labelled in EBCDIC. However, they are of different colors:  Blue, Yellow, Brown, and Red. The doors to this room are in the west and south ends.",
@@ -525,17 +539,17 @@ public class World
         AddRoom("DOCK",
             "You are at the base of Flood Control Dam #3, which looms above you and to the north.  The river Frigid is flowing by here.  Across the river are the White Cliffs which seem to form a giant wall stretching from north to south along the east shore of the river as it winds its way downstream.",
             "Dam Base",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("DAM"), ["UP"] = new("DAM"), ["LAUNC"] = new("RIVR1") });
         AddRoom("TEMP1",
             "You are in the west end of a large temple.  On the south wall is an ancient inscription, probably a prayer in a long-forgotten language. The north wall is solid granite.  The entrance at the west end of the room is through huge marble pillars.",
             "Temple",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("MGRAI"), ["EAST"] = new("TEMP2") });
         AddRoom("TEMP2",
             "You are in the east end of a large temple.  In front of you is what appears to be an altar.",
             "Altar",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("TEMP1") });
         AddRoom("LAVA",
             "You are in a small room, whose walls are formed by an old lava flow. There are exits here to the west and the south.",
@@ -566,16 +580,16 @@ public class World
                 ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", "The gnome blocks your way.")
             });
         AddRoom("VAIR1",
-            "You are in the basket of a hot-air balloon.  The balloon is in the air above the ledge.",
-            "Balloon (in air)",
+            "You are about one hundred feet above the bottom of the volcano.  The top of the volcano is clearly visible here.",
+            "Volcano Core",
             false,
             new Dictionary<string, ExitTarget> { ["DOWN"] = new("LEDG4"), ["UP"] = new("VAIR2") });
         AddRoom("SAFE", "", "Dusty Room", true,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("LEDG4") },
             roomAction: RoomActions.SafeRoom);
-        AddRoom("STUDI", "", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4") });
-        AddRoom("GALLE", "", "Gallery", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS2") });
-        AddRoom("CYCLO", "", "Cyclops", false,
+        AddRoom("STUDI", "You are in what appears to have been an artist's studio.  The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here.  At the north and northwest of the room are open doors (also covered with paint).  An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4"), ["NW"] = new("GALLE"), ["UP"] = new ExitTarget("LIGHT-LOAD!-FLAG", "KITCH", "The chimney is too narrow for you and all of your baggage.") });
+        AddRoom("GALLE", "You are in an art gallery.  Most of the paintings which were here have been stolen by vandals with exceptional taste.  The vandals left through either the north or south exits.", "Gallery", true, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS2"), ["SOUTH"] = new("STUDI") });
+        AddRoom("CYCLO", "", "Cyclops Room", false,
             new Dictionary<string, ExitTarget>
             {
                 ["WEST"] = new("MAZ15"),
@@ -585,27 +599,33 @@ public class World
             objectIds: new[] { "CYCLO" },
             roomAction: RoomActions.CyclopsRoom);
         AddRoom("BLROO", "You are in a long passage.  To the south is one entrance.  On the east there is an old wooden door, with a large hole in it (about cyclops sized).", "Strange Passage", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CYCLO"), ["EAST"] = new("LROOM") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CYCLO"), ["EAST"] = new("LROOM") }, visitScore: 10);
         AddRoom("CLTOP",
             "You are at the top of the Great Canyon on its south wall.  From here there is a marvelous view of the Canyon and parts of the Frigid River upstream.  Across the canyon, the walls of the White Cliffs still appear to loom far above.  Following the Canyon upstream (north and northwest), Aragain Falls may be seen, complete with rainbow.  Fortunately, my vision is better than average and I can discern the top of the Flood Control Dam #3 far to the distant north.  To the west and south can be seen an immense forest, stretching for miles around.  It is possible to climb down into the canyon from here.",
             "Canyon View",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["DOWN"] = new("CLMID"), ["CLIMB"] = new("CLMID"), ["SOUTH"] = new("FORE4"), ["WEST"] = new("FORE5") });
         AddRoom("CLMID",
             "You are on a ledge about halfway up the wall of the river canyon.  You can see from here that the main flow from Aragain Falls twists along a passage which it is impossible to enter.  Below you is the canyon bottom.  Above you is more cliff, which still appears climbable.",
             "Rocky Ledge",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["UP"] = new("CLTOP"), ["CLIMB"] = new("CLTOP"), ["DOWN"] = new("CLBOT") });
         AddRoom("CLBOT",
             "You are beneath the walls of the river canyon which may be climbable here.  There is a small stream here, which is the lesser part of the runoff of Aragain Falls.  To the north is a narrow path.",
             "Canyon Bottom",
-            false,
+            true,
             new Dictionary<string, ExitTarget> { ["UP"] = new("CLMID"), ["CLIMB"] = new("CLMID"), ["NORTH"] = new("POG") });
         AddRoom("POG",
             "You are on a small beach on the continuation of the Frigid River past the Falls.  The beach is narrow due to the presence of the White Cliffs.  The river canyon opens here and sunlight shines in from above.  A rainbow crosses over the falls to the west and a narrow path continues to the southeast.",
             "End of Rainbow",
-            false,
-            new Dictionary<string, ExitTarget> { ["SE"] = new("CLBOT"), ["NORTH"] = new("FANTE") });
+            true,
+            new Dictionary<string, ExitTarget>
+            {
+                ["SE"] = new("CLBOT"),
+                ["WEST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
+                ["NW"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
+                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null)
+            });
         AddRoom("FANTE",
             "You are on the shore of the River.  The river here seems somewhat treacherous.  A path travels from north to south here, the south end quickly turning around a sharp corner.",
             "Shore",
@@ -616,11 +636,11 @@ public class World
             "Sandy Beach",
             false,
             new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR4"), ["SOUTH"] = new("FANTE") });
-        AddRoom("VAIR2", "You are in the basket of a hot-air balloon.  The balloon is in the air.", "Balloon (in air)", false,
+        AddRoom("VAIR2", "You are about two hundred feet above the volcano floor.  Looming above is the rim of the volcano.  There is a small ledge on the west side.", "Volcano Core", false,
             new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR3"), ["DOWN"] = new("VAIR1") });
-        AddRoom("VAIR3", "You are in the basket of a hot-air balloon.  The balloon is in the air.", "Balloon (in air)", false,
+        AddRoom("VAIR3", "You are high above the floor of the volcano.  From here the rim of the volcano looks very narrow and you are very near it.  To the east is what appears to be a viewing ledge, too thin to land on.", "Volcano Core", false,
             new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR4"), ["DOWN"] = new("VAIR2") });
-        AddRoom("VAIR4", "You are in the basket of a hot-air balloon.  The balloon is in the air near the rim of the volcano.", "Balloon (in air)", false,
+        AddRoom("VAIR4", "You are near the rim of the volcano which is only about 15 feet across.  To the west, there is a place to land on a wide ledge.", "Volcano Core", false,
             new Dictionary<string, ExitTarget> { ["DOWN"] = new("VAIR3") });
         AddRoom("LEDG2",
             "You are on a narrow ledge overlooking the inside of an old dormant volcano.  This ledge appears to be about in the middle between the floor below and the rim above.  There is an exit here to the south.",
@@ -647,17 +667,23 @@ public class World
                 ["NE"] = new("CMACH"), ["NW"] = new("ALICE"), ["SW"] = new("ALICE"), ["SE"] = new("ALICE")
             });
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("The cage door is closed.") });
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") });
         AddRoom("ALISM",
-            "You are in an enormous room, in the center of which are four wooden posts delineating a rectangular area, above which is what appears to be a wooden roof.  In fact, all objects in this room appear to be abnormally large.  To the east is a passageway.  There is a large chasm on the west and the northwest.",
+            "You are in an enormous room, in the center of which are four wooden posts delineating a rectanular area, above which is what appears to be a wooden roof.  In fact, all objects in this room appear to be abnormally large. To the east is a passageway.  There is a large chasm on the west and the northwest.",
             "Posts Room",
             false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALITR") });
+            new Dictionary<string, ExitTarget>
+            {
+                ["EAST"] = new("ALITR"),
+                ["NW"] = ExitTarget.Blocked("There is a chasm too large to jump across."),
+                ["WEST"] = ExitTarget.Blocked("There is a chasm too large to jump across."),
+                ["DOWN"] = ExitTarget.Blocked("There is a chasm too large to jump across.")
+            });
         AddRoom("ALITR",
             "You are in a large room, one half of which is depressed.  There is a large leak in the ceiling through which brown colored goop is falling.  The only exit to this room is to the west.",
             "Pool Room",
             false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("ALISM") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("ALISM"), ["EXIT"] = new("ALISM") });
         AddRoom("RIVR1", "You are on the River Frigid in the vicinity of the Dam.  The river flows quietly here.  There is a landing on the west shore.", "Frigid River", false,
             new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["WEST"] = new("DOCK"), ["LAND"] = new("DOCK"), ["DOWN"] = new("RIVR2"), ["EAST"] = ExitTarget.Blocked(Cliffs) });
         AddRoom("RIVR2", "The River turns a corner here making it impossible to see the Dam.  The White Cliffs loom on the east bank and large rocks prevent landing on the west.", "Frigid River", false,
@@ -672,20 +698,21 @@ public class World
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("WCLF2"), ["LAUNC"] = new("RIVR3") });
         AddRoom("WCLF2", "You are on a rocky, narrow strip of beach beside the Cliffs.  A narrow path leads north along the shore.", "White Cliffs Beach", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("WCLF1"), ["LAUNC"] = new("RIVR4") });
-        AddRoom("FCHMP", "You have gone over Aragain Falls.  Not a very smart thing to do, apparently.", "Moby lossage", false,
-            new Dictionary<string, ExitTarget>(),
+        AddRoom("FCHMP", "", "Moby lossage", false,
+            new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
+            roomAction: RoomActions.OverFallsLook,
             onEnter: RoomActions.OverFalls);
         AddRoom("RCAVE", "You are on the west shore of the river.  An entrance to a cave is to the northwest.  The shore is very rocky here.", "Rocky Shore", false,
             new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR3"), ["NW"] = new("TCAVE") });
-        AddRoom("BARRE", "You are in a barrel.  Congratulations.  Etched into the side of the barrel is the word 'Geronimo!'", "Barrel", false,
-            new Dictionary<string, ExitTarget> { ["EXIT"] = new("FALLS"), ["OUT"] = new("FALLS") });
+        AddRoom("BARRE", "You are in a barrel.  Congratulations.  Etched into the side of the barrel is the word 'Geronimo!'.", "Barrel", false,
+            new Dictionary<string, ExitTarget> { ["EXIT"] = new("FALLS") });
         AddRoom("ATLAN", "You are in an ancient room, long buried by the Reservoir.  There are exits here to the southeast and upward.", "Atlantis Room", false,
             new Dictionary<string, ExitTarget> { ["SE"] = new("RESEN"), ["UP"] = new("CAVE1") },
             objectIds: new[] { "TRIDE" });
         AddRoom("RESEN", "", "Reservoir North", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("ATLAN") },
             objectIds: new[] { "PUMP" });
-        AddRoom("LLD1", "", "Entrance to Hades", false,
+        AddRoom("LLD1", "", "Entrance to Hades", true,
             new Dictionary<string, ExitTarget>
             {
                 ["UP"] = new("CAVE2"),
@@ -693,15 +720,15 @@ public class World
                 ["ENTER"] = new ExitTarget("LLD-FLAG!-FLAG", "LLD2", "Some invisible force prevents you from passing through the gate.")
             },
             roomAction: RoomActions.LldRoom);
-        AddRoom("LLD2", "", "Land of the Living Dead", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("TOMB"), ["WEST"] = new("LLD1") },
-            roomAction: RoomActions.Lld2Room);
+        AddRoom("LLD2", "", "Land of the Living Dead", true,
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("TOMB"), ["WEST"] = new("LLD1"), ["EXIT"] = new("LLD1") },
+            roomAction: RoomActions.Lld2Room, visitScore: 30);
         AddRoom("TOMB",
             "You are in the Tomb of the Unknown Implementer. A hollow voice says:  \"That's not a bug, it's a feature!\"",
             "Tomb of the Unknown Implementer",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("LLD2") });
-        AddRoom("TREAS", "", "Treasury", false, new Dictionary<string, ExitTarget>());
+        AddRoom("TREAS", "This is a large room, whose north wall is solid granite.  A number of discarded bags, which crumble at your touch, are scattered about on the floor.", "Treasure Room", false, new Dictionary<string, ExitTarget> { ["DOWN"] = new("CYCLO") }, visitScore: 25);
         AddRoom("MPEAR",
             "This is a former broom closet.  The exits are to the east and west.",
             "Pearl Room",
@@ -711,26 +738,26 @@ public class World
             "This is a room which is bare on all sides.  There is an exit down.  To the east is a great door made of stone.  Above the stone, the following words are written: 'No man shall enter this room without solving this riddle: What is tall as a house, round as a cup, and all the king's horses can't draw it up?'",
             "Riddle Room",
             false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("BWELL"), ["EAST"] = ExitTarget.Blocked("The stone door is locked."), ["WEST"] = new("MPEAR") });
+            new Dictionary<string, ExitTarget> { ["DOWN"] = new("CAVE4"), ["EAST"] = new ExitTarget("RIDDLE-FLAG!-FLAG", "MPEAR", "Your way is blocked by an invisible force.") });
         AddRoom("TWELL",
             "You are at the top of the well.  Well done.  There are etchings on the side of the well. There is a small crack across the floor at the entrance to a room on the east, but it can be crossed easily.",
             "Top of Well",
             false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALICE"), ["DOWN"] = ExitTarget.Blocked("It's a long way down!") });
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("ALICE"), ["DOWN"] = ExitTarget.Blocked("It's a long way down!") }, visitScore: 10);
         AddRoom("BWELL",
             "You are in a damp circular room, whose walls are made of brick and mortar.  The roof of this room is not visible, but there appear to be some etchings on the walls.  There is a passageway to the west.",
             "Circular Room",
             false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("MPEAR"), ["UP"] = new("RIDDL") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("MPEAR"), ["UP"] = ExitTarget.Blocked("The walls cannot be climbed.") });
         AddRoom("ALICE",
-            "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea.  It is clear from the objects on the table that the users were indeed mad.  In the eastern corner of the room is a small hole (no more than four inches high).  There are passageways leading away to the west and the northwest.",
+            "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea.  It is clear from the objects on the table that the users were indeed mad.  In the eastern corner of the room is a small hole (no more that four inches high). There are passageways leading away to the west and the northwest.",
             "Tea Room",
             false,
             new Dictionary<string, ExitTarget> { ["WEST"] = new("TWELL"), ["NW"] = new("MAGNE"), ["EAST"] = ExitTarget.Blocked("Only a mouse could get in there.") });
-        AddRoom("CMACH", "", "Control Machine", false,
+        AddRoom("CMACH", "", "Machine Room", false,
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("CAGER"), ["WEST"] = new("MAGNE") });
         AddRoom("CAGER",
-            "You are in a dingy closet adjacent to the machine room.  On one wall is a small sticker which says: Protected by FROBOZZ Magic Alarm Company (Hello, footpad!)",
+            "You are in a dingy closet adjacent to the machine room.  On one wall is a small sticker which says Protected by FROBOZZ Magic Alarm Company (Hello, footpad!)",
             "Dingy Closet",
             false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("CMACH") });
@@ -744,16 +771,16 @@ public class World
         AddRoom("TIMBE", "You are in a long and narrow passage, which is cluttered with broken timbers.  A wide passage comes from the north and turns at the southwest corner of the room into a very narrow passageway.", "Timber Room", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("BLADD"), ["SW"] = new("BSHAF") });
         AddRoom("BSHAF", "You are in a small square room which is at the bottom of a long shaft. To the east is a passageway and to the northeast a very narrow passage. In the shaft can be seen a heavy iron chain.", "Lower Shaft", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new("TIMBE"), ["NE"] = new("TIMBE") },
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new("TIMBE"), ["NE"] = new("TIMBE"), ["UP"] = ExitTarget.Blocked("Not a chance."), ["CLIMB"] = ExitTarget.Blocked("The chain is not climbable.") },
             objectIds: new[] { "FBASK" });
         AddRoom("MACHI", "", "Machine Room", false,
             new Dictionary<string, ExitTarget> { ["NW"] = new("BSHAF") },
             objectIds: new[] { "MSWIT", "MACHI" },
             roomAction: RoomActions.MachineRoom);
         AddRoom("MTORC", "", "Torch Room", false,
-            new Dictionary<string, ExitTarget> { ["WEST"] = new("MTORC"), ["DOWN"] = new("CRAW4") },
+            new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked("You cannot reach the rope."), ["WEST"] = new("MTORC"), ["DOWN"] = new("CRAW4") },
             objectIds: new[] { "TORCH" });
-        AddRoom("ECHO", "You are in a large room with a ceiling which cannot be detected from the ground. There is a narrow passage from east to west and a stone stairway leading upward.  The room is extremely noisy.", "Loud Room", false,
+        AddRoom("ECHO", "You are in a large room with a ceiling which cannot be detected from the ground. There is a narrow passage from east to west and a stone stairway leading upward.  The room is extremely noisy.  In fact, it is difficult to hear yourself think.", "Loud Room", false,
             new Dictionary<string, ExitTarget> { ["EAST"] = new("CHAS3"), ["WEST"] = new("PASS5"), ["UP"] = new("CAVE3") },
             objectIds: new[] { "BAR" });
         AddRoom("DEAD5", "Dead end", "Dead end", false,
@@ -790,10 +817,11 @@ public class World
         AddRoom("MINE7", mindesc, mindesc, false, new Dictionary<string, ExitTarget> { ["EAST"] = new("MINE1"), ["WEST"] = new("MINE5"), ["DOWN"] = new("TLADD"), ["SOUTH"] = new("MINE6") });
 
         // ---- Objects (from dung.56 #OBJECT / ADD-OBJECT) ----
-        AddObject("FDOOR", "The door is closed.", "door", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("MAILB", "The small mailbox is here.", "mailbox", "The small mailbox is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 5, 0);
-        AddObject("WIND1", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("WIND2", "", "window", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("FDOOR", "The door is closed.", "door", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "DOOR" });
+        AddObject("MAILB", "There is a small mailbox here.", "mailbox", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 10, new[] { "BOX" });
+        AddObject("ADVER", "There is a small leaflet here.", "leaflet", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "PAMPH", "LEAFL", "BOOKL" });
+        AddObject("WIND1", "", "window", null, ObjectActions.WindowFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "WINDO" });
+        AddObject("WIND2", "", "window", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "WINDO" });
         AddObject("SBAG", "A sandwich bag is here.", "sandwich bag", "On the table is an elongated brown sack, smelling of hot peppers.", null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Burnable, 0, 0, 0, 3, 15,
             synonyms: new[] { "BAG", "SACK", "BAGGI" });
         AddObject("GARLI", "There is a clove of garlic here.", "clove of garlic", null, null, ObjectFlags.Take | ObjectFlags.Food | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "CLOVE" });
@@ -802,19 +830,19 @@ public class World
         AddObject("WATER", "Water", "quantity of water", "There is some water here", ObjectActions.WaterFunction, ObjectFlags.Drinkable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 4, 0, new[] { "LIQUI", "H2O" });
         AddObject("ROPE", "There is a large coil of rope here.", "rope", "A large coil of rope is lying in the corner.", ObjectActions.RopeFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 0, new[] { "HEMP", "COIL" });
         AddObject("KNIFE", "There is a nasty-looking knife lying here.", "knife", "On a table is a nasty-looking knife.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 5, 0, new[] { "BLADE" });
-        AddObject("BRICK", "A pile of bricks is here.", "pile of bricks", null, ObjectActions.BrickFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 20, 0);
+        AddObject("BRICK", "There is a square brick here which feels like clay.", "brick", null, ObjectActions.BrickFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 9, 2, new[] { "BRICK" });
         AddObject("SWORD", "There is an elvish sword here.", "sword", "On hooks above the mantelpiece hangs an elvish sword of great antiquity.", null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 30, 0, new[] { "ORCRI", "GLAMD", "BLADE" });
         AddObject("LAMP", "There is a brass lantern (battery-powered) here.", "lamp", "A battery-powered brass lantern is on the trophy case.", ObjectActions.Lantern, ObjectFlags.Take | ObjectFlags.Visible, -1, 0, 0, 15, 0, new[] { "LANTE" });
-        AddObject("BLAMP", "There is a broken brass lantern here.", "broken lamp", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 15, 0, new[] { "LAMP", "LANTE" });
-        AddObject("MATCH", "A match is here.", "match", null, ObjectActions.MatchFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0);
-        AddObject("CANDL", "Some candles are here.", "candles", null, ObjectActions.CandlesFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "CANDLE" });
+        AddObject("BLAMP", "There is a broken brass lantern here.", "broken lamp", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "LAMP", "LANTE" });
+        AddObject("MATCH", "There is a matchbook whose cover says 'Visit Beautiful FCD#3' here.", "matchbook", null, ObjectActions.MatchFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "FLINT" });
+        AddObject("CANDL", "Some candles are here.", "pair of candles", null, ObjectActions.CandlesFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 0, new[] { "CANDLE" });
         AddObject("RUG", "", "carpet", null, ObjectActions.Rug, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "CARPE" });
         AddObject("TCASE", "There is a trophy case here.", "trophy case", null, ObjectActions.TrophyCase, ObjectFlags.Container | ObjectFlags.Transparent | ObjectFlags.Visible, 0, 0, 0, 100, 100, new[] { "CASE" });
-        AddObject("PAPER", "There is a leaflet here.", "leaflet", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 1, 0);
-        AddObject("WDOOR", "", "wooden door", null, null, ObjectFlags.Door | ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("DOOR", "The trap door is closed.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Door, 0, 0, 0, 100, 0, new[] { "TRAP" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
-        AddObject("TDOOR", "The trap door is open.", "trap door", null, ObjectActions.TrapDoor, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TRAP" });
-        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 2);
+        AddObject("PAPER", "", "newspaper", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 2, 0, new[] { "NEWSP", "ISSUE", "REPOR", "MAGAZ", "NEWS" });
+        AddObject("WDOOR", "", "door", null, null, ObjectFlags.Door | ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "DOOR" });
+        AddObject("DOOR", "The trap door is closed.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" }); // visible when rug moved; "TRAP" so OPEN TRAP is unambiguous
+        AddObject("TDOOR", "The trap door is open.", "door", null, ObjectActions.TrapDoor, ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 100, 0, new[] { "TRAP", "TRAPD", "TRAP-" });
+        AddObject("TROLL", "A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.", "troll", null, null, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 2);
         AddObject("AXE", "There is a bloody axe here.", "bloody axe", null, null, ObjectFlags.Visible | ObjectFlags.Weapon, 0, 0, 0, 25, 0);
         AddObject("RKNIF", "There is a rusty knife here.", "rusty knife", "Beside the skeleton is a rusty knife.", null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Weapon, 0, 0, 0, 20, 0, new[] { "KNIFE" });
         AddObject("BLANT", "There is a burned-out lantern here.", "burned-out lantern", "The deceased adventurer's useless lantern is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 20, 0, new[] { "LANTE", "LAMP" });
@@ -822,11 +850,11 @@ public class World
         AddObject("BONES", "A skeleton, probably the remains of a luckless adventurer, lies here.", "", null, ObjectActions.Skeleton, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SKELE", "BODY" });
         AddObject("BAGCO", "An old leather bag, bulging with coins, is here.", "bag of coins", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 5, 15, 0, new[] { "BAG", "COINS" });
         AddObject("BAR", "There is a large platinum bar here.", "platinum bar", null, null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 12, 10, 20, 0, new[] { "PLATI" });
-        AddObject("GRAT1", "A grating is here.", "grating", null, ObjectActions.Grating1Function, ObjectFlags.None, 0, 0, 0, 100, 0); // visible when leaves moved/burned
-        AddObject("GRAT2", "A grating is here.", "grating", null, ObjectActions.Grating2Function, ObjectFlags.Visible, 0, 0, 0, 100, 0);
+        AddObject("GRAT1", "A grating is here.", "grating", null, ObjectActions.Grating1Function, ObjectFlags.None, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" }); // visible when leaves moved/burned
+        AddObject("GRAT2", "A grating is here.", "grating", null, ObjectActions.Grating2Function, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "GRATI", "GRATE" });
         AddObject("LEAVE", "There is a pile of leaves on the ground.", "pile of leaves", null, ObjectActions.LeafPile, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 25, 0, new[] { "LEAF", "PILE" });
         AddObject("JADE", "There is an exquisite jade figurine here.", "jade figurine", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 5, 5, 10, 0, new[] { "FIGUR" });
-        AddObject("BAT", "", "vampire bat", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("BAT", "", "bat", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "VAMPI" });
         AddObject("BRACE", "There is a sapphire-encrusted bracelet here.", "sapphire bracelet", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 5, 3, 10, 0, new[] { "JEWEL" });
         AddObject("COAL", "There is a small heap of coal here.", "small pile of coal", null, null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 20, 0, new[] { "HEAP", "CHARC" });
         AddObject("MACHI", "", "machine", null, ObjectActions.MachineFunction, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 50, new[] { "PDP10", "DRYER", "LID" });
@@ -838,43 +866,46 @@ public class World
         AddObject("REFL1", "", "mirror", null, ObjectActions.MirrorFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MIRRO" });
         AddObject("REFL2", "", "mirror", null, ObjectActions.MirrorFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MIRRO" });
         AddObject("IRBOX", "There is a dented iron box here.", "iron box", null, ObjectActions.IronBoxFunction, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Container, 0, 0, 0, 40, 20, new[] { "BOX", "IRON", "DENTE" });
-        AddObject("CYCLO", "", "cyclops", null, ObjectActions.CyclopsFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 0, new[] { "ONE-E", "MONST" });
-        AddObject("TRUNK", "A trunk is here.", "trunk", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 30, 30);
-        AddObject("FUSE", "A fuse is here.", "fuse", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("CYCLO", "", "cyclops", null, ObjectActions.CyclopsFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 10000, new[] { "ONE-E", "MONST" });
+        AddObject("TRUNK", "There is an old trunk here, bulging with assorted jewels.", "trunk with jewels", "Lying half buried in the mud is an old trunk, bulging with jewels.", null, ObjectFlags.Container | ObjectFlags.Visible, 0, 15, 8, 35, 0, new[] { "CHEST" });
+        AddObject("FUSE", "There is a coil of thin shiny wire here.", "wire coil", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0, new[] { "COIL", "WIRE" });
         AddObject("COFFI", "There is a solid-gold coffin, used for the burial of Ramses II, here.", "gold coffin", null, null, ObjectFlags.Container | ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 3, 7, 55, 35, new[] { "CASKE" });
         AddObject("TRIDE", "Neptune's own crystal trident is here.", "crystal trident", "On the shore lies Neptune's own crystal trident.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 4, 11, 20, 0, new[] { "FORK" });
         AddObject("TBASK", "At the end of the chain is a basket.", "basket", null, ObjectActions.Dumbwaiter, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Transparent, 0, 0, 0, 100, 50, new[] { "CAGE", "DUMBW", "BASKE" });
         AddObject("FBASK", "", "", null, ObjectActions.Dumbwaiter, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "CAGE", "DUMBW", "BASKE" });
-        AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("PUMP", "A pump is here.", "pump", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("MSWIT", "A screw is here.", "screw", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 1, 0);
-        AddObject("SCREW", "A tiny screw is here.", "screw", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0);
-        AddObject("THIEF", "A seedy-looking individual with a large bag is here.", "thief", null, ObjectActions.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 0, new[] { "ROBBE", "SEEDY" });
-        AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 6, 0);
-        AddObject("BALLO", "A cloth balloon is here.", "cloth balloon", null, ObjectActions.BalloonFunction, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Vehicle, 0, 0, 0, 100, 100, new[] { "BALLOON" });
-        AddObject("GNOME", "", "volcano gnome", null, ObjectActions.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0);
-        AddObject("BUCKE", "A bucket is here.", "bucket", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 100, 100);
+        AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "RAIL" });
+        AddObject("PUMP", "There is a small pump here.", "hand-held air pump", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "AIR-P", "AIRPU" });
+        AddObject("MSWIT", "A screw is here.", "switch", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 1, 0, new[] { "SWITC" });
+        AddObject("SCREW", "There is a screwdriver here.", "screwdriver", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("THIEF", "There is a suspicious-looking individual, holding a bag, leaning against one wall.  He is armed with a vicious-looking stilletto.", "thief", null, ObjectActions.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 4, new[] { "ROBBE", "SEEDY", "CROOK", "CRIME", "CRIMI", "BANDI", "GENT", "GENTL", "MAN", "SHADY", "THUG", "BAGMA", "MAFIA" });
+        AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 6);
+        AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind. Attached to the basket on the outside is a piece of wire.", "basket", null, ObjectActions.BalloonFunction, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Vehicle, 0, 0, 0, 70, 100, new[] { "BALLOON", "BASKE" });
+        AddObject("GNOME", "There is a nervous Volcano Gnome here.", "Volcano Gnome", null, ObjectActions.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TROLL" });
+        AddObject("BUCKE", "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", "wooden bucket", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 100, 100);
         // LLD (Hades): exorcism
-        AddObject("GHOST", "", "evil spirits", null, ObjectActions.GhostFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SPIRI", "FIEND" });
+        AddObject("GHOST", "", "", null, ObjectActions.GhostFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SPIRI", "FIEND" });
         AddObject("GATES", "", "gate", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "GATE" });
-        AddObject("CORPS", "A pile of mangled corpses lies in one corner.", "pile of corpses", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MANGL" });
-        AddObject("BELL", "There is a small brass bell here.", "small brass bell", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
-        AddObject("BOOK", "There is a large black book here.", "large black book", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK" });
-        AddObject("STICK", "There is a small wooden stick here.", "small wooden stick", null, ObjectActions.StickFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 5, 0, new[] { "WAND", "MAGIC" });
-        AddObject("GRAIL", "The Holy Grail is here.", "Holy Grail", "The Holy Grail is on the pedestal.", null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 15, 15, 5, 0, new[] { "CUP" });
-        AddObject("PEARL", "A large, glowing pearl is here.", "large pearl", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 9, 9, 5, 0);
+        AddObject("CORPS", "A pile of mangled corpses lies in one corner.", "corpses", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MANGL" });
+        AddObject("BELL", "There is a small brass bell here.", "bell", "Lying in a corner of the room is a small brass bell.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("BOOK", "There is a large black book here.", "book", "On the altar is a large black book, open to page 569.", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 0, new[] { "BIBLE", "BLACK", "PRAYE", "GOODB" });
+        AddObject("STICK", "There is a broken sharp stick here.", "broken sharp stick", "A sharp stick, which appears to have been broken at one end, is here.", ObjectActions.StickFunction, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 3, 0, new[] { "WAND", "MAGIC" });
+        AddObject("GRAIL", "There is an extremely valuable (perhaps original) grail here.", "grail", null, null, ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 2, 5, 10, 5, new[] { "CUP" });
+        AddObject("PEARL", "There is a pearl necklace here with hundreds of large pearls.", "pearl necklace", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 9, 5, 10, 0, new[] { "NECKL" });
         AddObject("ZORKM", "There is an engraved zorkmid coin here.", "priceless zorkmid", "On the floor is a gold zorkmid coin (a valuable collector's item).", null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 10, 12, 10, 0, new[] { "COIN", "GOLD" });
         AddObject("HOOK1", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("HOOK2", "There is a small hook attached to the rock here.", "hook", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "HOOK" });
         AddObject("POT", "There is a pot of gold here.", "pot filled with gold", "At the end of the rainbow is a pot of gold.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 10, 10, 15, 0, new[] { "GOLD" });
         AddObject("SPHER", "There is a beautiful crystal sphere here.", "crystal sphere", null, null, ObjectFlags.Sacred | ObjectFlags.Visible | ObjectFlags.Take, 0, 6, 6, 10, 0, new[] { "BALL", "CRYST", "GLASS" });
         AddObject("CAGE", "There is a mangled cage here.", "mangled cage", null, null, ObjectFlags.Visible, 0, 0, 0, 60, 0, new[] { "IRON" });
-        AddObject("RCAGE", "There is an iron cage in the middle of the room.", "iron cage", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "CAGE", "IRON" });
+        AddObject("RCAGE", "There is an iron cage in the middle of the room.", "iron cage", null, null, ObjectFlags.Visible, 0, 0, 0, 0, 0, new[] { "CAGE", "IRON" });
 
         // Place objects in starting rooms
         PlaceInRoom("WHOUS", "FDOOR", "MAILB");
         PlaceInRoom("EHOUS", "WIND1");
-        PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL", "MATCH");
+        PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
+        PlaceInRoom("LOBBY", "MATCH");
+        PlaceInRoom("CYCLO", "CYCLO");
+        PutInContainer("MAILB", "ADVER");
         PutInContainer("SBAG", "GARLI", "FOOD");
         PutInContainer("BOTTL", "WATER");
         PlaceInRoom("ATTIC", "BRICK", "ROPE", "KNIFE");
@@ -917,6 +948,13 @@ public class World
         PlaceInRoom("TEMP2", "BOOK");
         PlaceInRoom("CANY1", "STICK");
 
+        // Reading texts (dung.56 ADD-DESC)
+        foreach (var (id, text) in ReadTexts.ByObject)
+        {
+            var o = FindObject(id);
+            if (o != null) o.ReadText = text;
+        }
+
         // Starting location (BLOC = WHOUS in original)
         var start = FindRoom("WHOUS")!;
         _state.Winner.CurrentRoom = start;
@@ -928,16 +966,45 @@ public class World
 
     private void RegisterCarouselExitActions()
     {
-        var carouselRooms = new[] { "CAVE4", "MGRAI", "PASS1", "CANY1", "PASS5", "PASS4", "MAZE1", "PASS3" };
-        void CarouselOut(GameState state, string _)
+        // act1.38 CAROUSEL-OUT: a random one of the eight compass exits (NORTH and SOUTH both lead to CAVE4).
+        var carouselRooms = new[] { "CAVE4", "CAVE4", "MGRAI", "PASS1", "CANY1", "PASS5", "PASS4", "MAZE1" };
+        void CarouselOut(GameState state)
         {
-            state.Output.WriteLine("Unfortunately, it is impossible to tell directions in here.");
             var room = FindRoom(carouselRooms[Random.Shared.Next(carouselRooms.Length)]);
             if (room != null)
                 Parser.MoveToRoom(state, room);
         }
+        // act1.38 CAROUSEL-EXIT: while the carousel spins, every direction is random.
+        bool CarouselExit(GameState state, string _)
+        {
+            if (state.GetFlag("CAROUSEL-FLIP!-FLAG")) return false;
+            state.Output.WriteLine("Unfortunately, it is impossible to tell directions in here.");
+            CarouselOut(state);
+            return true;
+        }
         foreach (var dir in new[] { "NORTH", "SOUTH", "EAST", "WEST", "NW", "NE", "SE", "SW" })
-            _exitActions[(NormId("CAROU"), dir)] = CarouselOut;
+            _exitActions[(NormId("CAROU"), dir)] = CarouselExit;
+        _exitActions[(NormId("CAROU"), "EXIT")] = (state, _) =>
+        {
+            CarouselOut(state);
+            return true;
+        };
+    }
+
+    /// <summary>
+    /// act1.38 CHIMNEY-FUNCTION, before the studio's UP exit: you fit up the chimney carrying at most two things,
+    /// one of them the lamp. Coming up this way, the trap door will slam again (if it's closed now).
+    /// </summary>
+    private void ChimneyFunction(GameState state)
+    {
+        var inventory = state.Winner.Inventory;
+        var light = inventory.Count <= 2 && inventory.Exists(o => o.Id == "LAMP");
+        state.SetFlag("LIGHT-LOAD!-FLAG", light);
+        if (light && !state.GetFlag("TRAP-DOOR!-FLAG"))
+        {
+            var door = FindObject("DOOR");
+            if (door != null) door.Touched = false;
+        }
     }
 
     private void RegisterCoffinCure()

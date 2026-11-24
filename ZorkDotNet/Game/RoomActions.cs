@@ -49,6 +49,9 @@ public static class RoomActions
     }
 
     /// <summary>OVER-FALLS (act2.27, FCHMP room action): going over Aragain Falls is fatal (JIGS-UP).</summary>
+    /// <summary>act2.27 OVER-FALLS on LOOK: prints nothing (the room has no description); the death comes on WALK-IN.</summary>
+    public static void OverFallsLook(GameState _1, string _2) { }
+
     public static void OverFalls(GameState state)
     {
         state.Output.WriteLine("Oh dear, you seem to have gone over Aragain Falls.  Not a very smart thing to do, apparently.");
@@ -76,20 +79,35 @@ public static class RoomActions
         var batDrops = new[] { "MINE1", "MINE2", "MINE3", "MINE4", "MINE5", "MINE6", "MINE7", "TLADD", "BLADD" };
         var pick = batDrops[Random.Shared.Next(batDrops.Length)];
         state.Output.WriteLine("A deranged giant vampire bat (a reject from WUMPUS) swoops down from his belfry and lifts you away....");
+        // act2.27 FLY-ME: GOTO the room, then ROOM-DESC describes it.
         var next = state.World?.FindRoom(pick);
-        if (next != null)
-        {
-            state.Winner.CurrentRoom = next;
-            if (!next.Seen) state.Winner.Score += next.VisitScore;
-            next.Seen = true;
-        }
+        if (next != null) Parser.MoveToRoom(state, next);
     }
 
-    /// <summary>On entering CELLA: if trap door was open, it slams shut.</summary>
+    /// <summary>act1.38 WELL: answering the riddle in the Riddle Room opens its east door.</summary>
+    public static void Well(GameState state)
+    {
+        if (!state.GetFlag("RIDDLE-FLAG!-FLAG") && state.Here?.Id == "RIDDL")
+        {
+            state.SetFlag("RIDDLE-FLAG!-FLAG", true);
+            state.Output.WriteLine("There is a clap of thunder and the east door opens.");
+        }
+        else
+            state.Output.WriteLine("Well what?");
+    }
+
+    /// <summary>act1.38 CELLAR on LOOK: the room's description (CELLA has no RDESC1 of its own).</summary>
+    public static void Cellar(GameState state, string verb)
+    {
+        if (verb == "LOOK")
+            state.Output.WriteLine("You are in a dark and damp cellar with a narrow passageway leading east, and a crawlway to the south.  On the west is the bottom of a steep metal ramp which is unclimbable.");
+    }
+
+    /// <summary>act1.38 CELLAR on WALK-IN: the first time you come down an open trap door, it slams shut.</summary>
     public static void OnEnterCellar(GameState state)
     {
         if (!state.GetFlag("TRAP-DOOR!-FLAG")) return;
-        var door = state.World?.FindObject("TDOOR");
+        var door = state.World?.FindObject("DOOR");
         if (door != null && door.Touched) return;
         state.SetFlag("TRAP-DOOR!-FLAG", false);
         if (door != null) door.Touched = true;

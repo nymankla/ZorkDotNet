@@ -58,7 +58,9 @@ public sealed class SaveRestoreTests : IDisposable
 
         using var restored = NewGame();
         restored.Run("NORTH", "NORTH"); // a different game, to be overwritten
-        restored.Execute("RESTORE");
+        // Restore outside a turn: the RESTORE command's own turn then runs the clocks (the lamp burns a move), as the
+        // original's restored image goes on to run the demons of the turn it was saved in.
+        GameSave.Restore(restored.State);
 
         // Capturing the restored game must give the saved file back, field for field.
         Assert.Equal(saved, Snapshot(restored));
