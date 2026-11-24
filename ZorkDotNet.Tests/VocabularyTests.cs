@@ -261,10 +261,10 @@ public class VocabularyTests
     {
         using var runner = new GameRunner();
         runner.Give("LAMP").LightAmount = 1;
-        var before = runner.State.LampTicks;
+        var before = runner.State.Lights.LampTicks;
 
         Assert.Contains("Time passes...", Do(runner, "WAIT"));
-        Assert.Equal(before - 4, runner.State.LampTicks); // three for WAIT, one for the turn itself
+        Assert.Equal(before - 4, runner.State.Lights.LampTicks); // three for WAIT, one for the turn itself
     }
 
     [Fact]

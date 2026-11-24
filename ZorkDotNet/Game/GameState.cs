@@ -12,44 +12,33 @@ public record ScheduledEvent(int TriggerMove, string Name, string? Argument = nu
 public class GameState
 {
     public Adventurer Winner { get; } = new();
+
+    /// <summary>Counters and the state of clocks, demons and puzzles; saved whole (see <see cref="Game.Progress"/>).</summary>
+    public Progress Progress { get; set; } = new();
+    /// <summary>The thief's demon (MDL ROBBER).</summary>
+    public RobberState Robber => Progress.Robber;
+    /// <summary>The lamp, the candles and the matches.</summary>
+    public LightState Lights => Progress.Lights;
+    /// <summary>Per-object counters (MDL OTVAL / ORAND slots).</summary>
+    public Dictionary<string, int> ObjectState => Progress.ObjectState;
+    /// <summary>Villain health in the port's melee.</summary>
+    public Dictionary<string, int> VillainStrength => Progress.VillainStrength;
     public Room Here => Winner.CurrentRoom;
     public int Moves => Winner.Moves;
     public Dictionary<string, bool> Flags { get; } = new();
     public List<Room> Rooms { get; } = new();
     public List<GameObject> AllObjects { get; } = new();
     public bool Running { get; set; } = true;
-    /// <summary>MDL HS: how many times the player has said HELLO (act1.38 HELLO).</summary>
-    public int HelloCount { get; set; }
     /// <summary>Real-time clock for TIME (rooms.99 PLAY-TIME); tests can replace it.</summary>
     public TimeProvider Clock { get; set; } = TimeProvider.System;
     /// <summary>When this game started, for TIME.</summary>
     public DateTimeOffset StartedAt { get; set; } = TimeProvider.System.GetUtcNow();
 
-    /// <summary>Candle clock (CNDIN): moves left until the next LIGHT-INT step; 0 until the candles are first touched.</summary>
-    public int CandleTicks { get; set; }
-    /// <summary>Candle clock: LIGHT-INT steps taken so far (the count in the candles' ORAND).</summary>
-    public int CandleStage { get; set; }
-    /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
-    public int MatchesLeft { get; set; } = 5;
 
-    /// <summary>The thief's demon (MDL HACK): the room he works in (HROOM).</summary>
-    public string ThiefRoom { get; set; } = Thief.Rooms[0];
-    /// <summary>The thief's demon: the index in <see cref="Thief.Rooms"/> of the next room he goes to (HROOMS).</summary>
-    public int ThiefNext { get; set; }
-    /// <summary>The thief's bag (HOBJS), most recent first.</summary>
-    public List<string> ThiefBag { get; } = new();
-    /// <summary>The thief's demon still runs (HACTION); false once he is dead.</summary>
-    public bool ThiefActive { get; set; } = true;
-    /// <summary>The thief has shown himself in this room (HFLAG).</summary>
-    public bool ThiefAnnounced { get; set; }
     /// <summary>The robot as an adventurer (its ADV in dung.56): its room and what it carries.</summary>
     public Adventurer Robot { get; } = new();
     /// <summary>The robot is carrying out a TELL ROBOT command (MDL WINNER is the robot).</summary>
     public bool RobotActing { get; set; }
-    /// <summary>MDL BLOC: the room the balloon is in, or heading for (act2.27).</summary>
-    public string BalloonLocation { get; set; } = "VLBOT";
-    /// <summary>act2.27 LIGHT-SHAFT: the points for lighting the bottom of the shaft have been given.</summary>
-    public bool LightShaftScored { get; set; }
     /// <summary>
     /// act1.38 ECHO-ROOM: the Loud Room is drowning out everything; each line is echoed until you walk out or say
     /// ECHO. Never true across a SAVE (SAVE would be echoed too).
@@ -58,8 +47,6 @@ public class GameState
     /// <summary>The objects the Loud Room hid while listening (MDL ECHO-ROOM-BIT).</summary>
     public List<string> EchoHidden { get; } = new();
 
-    /// <summary>MDL DEATHS: how many times the player has died.</summary>
-    public int Deaths { get; set; }
     /// <summary>JIGS-UP asked "Do you want me to try to patch you?"; the next input line is the answer.</summary>
     public bool AwaitingPatchAnswer { get; set; }
     /// <summary>The player died during a command, so that turn's clocks run after being patched up.</summary>
@@ -85,10 +72,6 @@ public class GameState
     /// <summary>When ResolveObject finds multiple matches (GWIM-style), list of candidates for "Which X - the A, the B, or the C?".</summary>
     public List<GameObject>? PendingAmbiguousCandidates { get; set; }
     public string[]? PendingWords { get; set; }
-    /// <summary>Lamp clock (LNTIN): moves while lit until the next LIGHT-INT step. Starts at 350 (dung.56).</summary>
-    public int LampTicks { get; set; } = LampFirstInterval;
-    /// <summary>Lamp clock: LIGHT-INT steps taken so far (MDL ORAND count), indexes LAMP-TICKS / LAMP-TELLS.</summary>
-    public int LampStage { get; set; }
 
     /// <summary>dung.56: &lt;CLOCK-INT ,LNTIN 350&gt;.</summary>
     public const int LampFirstInterval = 350;
@@ -99,10 +82,6 @@ public class GameState
     private static readonly string[] LampTells = [Dimmer, Dimmer, Dimmer, Dimmer, "The lamp is dying."];
     /// <summary>Scheduled events (MATCH burnout, FUSE explode, etc.) fired when Moves >= TriggerMove.</summary>
     public List<ScheduledEvent> ScheduledEvents { get; } = new();
-    /// <summary>Sword glow state (0=none, 1=faint, 2=bright). MDL OTVAL on sword.</summary>
-    public Dictionary<string, int> ObjectState { get; } = new();
-    /// <summary>Villain health in melee (e.g. TROLL -> 2 hits to kill).</summary>
-    public Dictionary<string, int> VillainStrength { get; } = new();
     public TextWriter Output { get; set; } = Console.Out;
     /// <summary>SCORE-MAX, computed by World from room and object values (see Scoring.ComputeMaxScore).</summary>
     public int MaxScore { get; set; }
@@ -122,11 +101,11 @@ public class GameState
         if (World == null) return;
         // Lamp clock: enabled while the lamp is on (LANTERN CLOCK-ENABLE / CLOCK-DISABLE), wherever the lamp is.
         var lamp = World.FindObject(Obj.Lamp);
-        if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
+        if (lamp != null && lamp.LightAmount > 0 && --Lights.LampTicks <= 0)
             LampLightInt(lamp);
         // Candle clock: runs while the candles burn, once they have been touched (act1.38 CANDLES).
         var candles = World.FindObject(Obj.Candl);
-        if (candles != null && candles.LightAmount > 0 && CandleTicks > 0 && --CandleTicks <= 0)
+        if (candles != null && candles.LightAmount > 0 && Lights.CandleTicks > 0 && --Lights.CandleTicks <= 0)
             CandleLightInt(candles);
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
@@ -146,16 +125,16 @@ public class GameState
     /// <summary>act1.38 LIGHT-INT for the candles: the next step of CANDLE-TICKS, told if they are with you or here.</summary>
     private void CandleLightInt(GameObject candles)
     {
-        CandleStage++;
-        CandleTicks = CandleTickTable[Math.Min(CandleStage, CandleTickTable.Length) - 1];
+        Lights.CandleStage++;
+        Lights.CandleTicks = CandleTickTable[Math.Min(Lights.CandleStage, CandleTickTable.Length) - 1];
         var seen = candles.InRoom == null || candles.InRoom == Here;
-        if (CandleTicks == 0)
+        if (Lights.CandleTicks == 0)
         {
             if (seen) Output.WriteLine("I hope you have more light than from a pair of candles.");
             candles.LightAmount = 0;
         }
         else if (seen)
-            Output.WriteLine(CandleTells[CandleStage - 1]);
+            Output.WriteLine(CandleTells[Lights.CandleStage - 1]);
     }
 
     /// <summary>
@@ -167,7 +146,7 @@ public class GameState
         if (World == null) return false;
         var fired = false;
         var lamp = World.FindObject(Obj.Lamp);
-        if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
+        if (lamp != null && lamp.LightAmount > 0 && --Lights.LampTicks <= 0)
         {
             LampLightInt(lamp);
             fired = true;
@@ -186,17 +165,17 @@ public class GameState
     /// </summary>
     private void LampLightInt(GameObject lamp)
     {
-        LampStage++;
-        LampTicks = LampTickTable[Math.Min(LampStage, LampTickTable.Length) - 1];
+        Lights.LampStage++;
+        Lights.LampTicks = LampTickTable[Math.Min(Lights.LampStage, LampTickTable.Length) - 1];
         var nearby = lamp.InRoom == null || lamp.InRoom == Here;
-        if (LampTicks == 0)
+        if (Lights.LampTicks == 0)
         {
             if (nearby) Output.WriteLine("I hope you have more light than from a " + lamp.DescriptionShort + ".");
             lamp.LightAmount = 0;
         }
         else if (nearby)
         {
-            Output.WriteLine(LampTells[LampStage - 1]);
+            Output.WriteLine(LampTells[Lights.LampStage - 1]);
         }
     }
 

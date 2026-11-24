@@ -33,7 +33,7 @@ public class DeathTests
         Assert.EndsWith("Do you want me to try to patch you?", output.TrimEnd());
         Assert.True(runner.State.AwaitingPatchAnswer);
         Assert.Equal(15, runner.State.Winner.Score);
-        Assert.Equal(1, runner.State.Deaths);
+        Assert.Equal(1, runner.State.Progress.Deaths);
     }
 
     [Fact]

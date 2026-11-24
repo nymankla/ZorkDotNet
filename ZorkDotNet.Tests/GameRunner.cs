@@ -26,7 +26,7 @@ public sealed class GameRunner : IDisposable
         // Chance events (the grue's PROB 75) never happen unless a test asks for them with its own FixedRandom.
         _state.Random = new FixedRandom(99);
         // The thief's demon roams and robs; tests that want him switch him back on.
-        _state.ThiefActive = false;
+        _state.Robber.Active = false;
         _capture = new StringWriter(new StringBuilder());
         if (!string.IsNullOrEmpty(logPath))
         {

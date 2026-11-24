@@ -4,7 +4,7 @@ namespace ZorkDotNet.Game;
 /// The thief (act1.38 ROBBER, ROBBER-FUNCTION, SNARF-OBJECT, CHALICE, TREASURE-ROOM; defs.63 ROB-ROOM, ROB-ADV). His
 /// demon walks the dungeon one room per move in the order of the original's ROOMS list, skipping the sacred rooms;
 /// he robs rooms you have seen, and where you are he may appear, rob you blind and leave. What he takes goes into
-/// his bag (<see cref="GameState.ThiefBag"/>, MDL HOBJS); treasures end up in his hideaway, the Treasure Room.
+/// his bag (<see cref="RobberState.Bag"/>, MDL HOBJS); treasures end up in his hideaway, the Treasure Room.
 /// Fighting him uses the port's melee (<see cref="Combat"/>): the original's melee code isn't in the MIT archive.
 /// </summary>
 public static class Thief
@@ -57,7 +57,7 @@ public static class Thief
     {
         Remove(o);
         o.Touched = true;
-        state.ThiefBag.Insert(0, o.Id);
+        state.Robber.Bag.Insert(0, o.Id);
     }
 
     private static bool Valuable(GameObject o) => o.TrophyScore > 0 && (o.Flags & ObjectFlags.Sacred) == 0;
@@ -88,21 +88,21 @@ public static class Thief
     /// <summary>act1.38 ROBBER: the thief's demon, run every move.</summary>
     public static void Demon(GameState state)
     {
-        if (!state.ThiefActive || state.World == null) return;
+        if (!state.Robber.Active || state.World == null) return;
         var world = state.World;
         var thief = world.FindObject(Obj.Thief)!;
         var still = world.FindObject(Obj.Still)!;
         var treas = world.FindRoom(RoomId.Treas)!;
         var wroom = state.Here;
-        var rm = world.FindRoom(state.ThiefRoom)!;
+        var rm = world.FindRoom(state.Robber.Room)!;
         var seen = rm.Seen;
         var once = false;
         while (true)
         {
             Room? here = thief.InRoom;
             if (here != null) rm = here;
-            var before = state.ThiefBag.ToList();
-            bool Robbed() => !before.SequenceEqual(state.ThiefBag);
+            var before = state.Robber.Bag.ToList();
+            bool Robbed() => !before.SequenceEqual(state.Robber.Bag);
 
             if (rm == treas && rm != wroom)
             {
@@ -112,12 +112,12 @@ public static class Thief
                     Remove(thief);
                     here = null;
                 }
-                foreach (var id in state.ThiefBag.ToList())
+                foreach (var id in state.Robber.Bag.ToList())
                 {
                     var o = world.FindObject(id)!;
                     if (o.TrophyScore > 0)
                     {
-                        state.ThiefBag.Remove(id);
+                        state.Robber.Bag.Remove(id);
                         Insert(o, rm);
                     }
                 }
@@ -125,7 +125,7 @@ public static class Thief
             else if (rm == wroom) // "Adventurer is in room:  CHOMP, CHOMP"
             {
                 if (rm == treas) { } // "Don't move, Gertrude"
-                else if (!state.ThiefAnnounced)
+                else if (!state.Robber.Announced)
                 {
                     if (here == null && Prob(state, 30))
                     {
@@ -133,7 +133,7 @@ public static class Thief
                         {
                             Insert(thief, rm);
                             state.Output.WriteLine("Someone carrying a large bag is casually leaning against one of the walls here.  He does not speak, but it is clear from his aspect that the bag will be taken only over his dead body.");
-                            state.ThiefAnnounced = true;
+                            state.Robber.Announced = true;
                         }
                         return;
                     }
@@ -156,11 +156,11 @@ public static class Thief
                         return;
                     }
                     if (Prob(state, 70)) return;
-                    if (state.ThiefBag.Remove(still.Id))
+                    if (state.Robber.Bag.Remove(still.Id))
                         still.MoveTo(thief, first: true);
                     RobRoom(state, rm, 100);
                     RobAdventurer(state, state.Winner);
-                    state.ThiefAnnounced = true;
+                    state.Robber.Announced = true;
                     if (Robbed() && here == null)
                         state.Output.WriteLine("A seedy-looking individual with a large bag just wandered through the room.  On the way through, he quietly abstracted all valuables from the room and from your possession, mumbling something about \"Doing unto others before..\"");
                     else if (here != null)
@@ -180,7 +180,7 @@ public static class Thief
                     if (!Prob(state, 30)) return;
                     RobRoom(state, rm, 100);
                     RobAdventurer(state, state.Winner);
-                    if (state.ThiefBag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
+                    if (state.Robber.Bag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
                     state.Output.WriteLine(Robbed()
                         ? "The other occupant just left, still carrying his large bag.  You may not have noticed that he robbed you blind first."
                         : "The other occupant (he of the large bag), finding nothing of value, left disgusted.");
@@ -206,23 +206,23 @@ public static class Thief
             // Move to the next room of ROOMS where he may work.
             do
             {
-                rm = world.FindRoom(Rooms[state.ThiefNext])!;
-                state.ThiefNext = (state.ThiefNext + 1) % Rooms.Length;
+                rm = world.FindRoom(Rooms[state.Robber.Next])!;
+                state.Robber.Next = (state.Robber.Next + 1) % Rooms.Length;
             }
             while (Sacred.Contains(rm.Id));
-            state.ThiefRoom = rm.Id;
-            state.ThiefAnnounced = false;
+            state.Robber.Room = rm.Id;
+            state.Robber.Announced = false;
             seen = rm.Seen;
         }
 
         // Drop worthless cruft, sometimes.
         if (rm == treas) return;
-        foreach (var id in state.ThiefBag.ToList())
+        foreach (var id in state.Robber.Bag.ToList())
         {
             var o = world.FindObject(id)!;
             if (o.TrophyScore == 0 && Prob(state, 30))
             {
-                state.ThiefBag.Remove(id);
+                state.Robber.Bag.Remove(id);
                 Insert(o, rm);
                 if (rm == wroom) state.Output.WriteLine("The robber, rummaging through his bag, dropped a few items he found valueless.");
             }
@@ -252,7 +252,7 @@ public static class Thief
             if (rm == wroom) state.Output.WriteLine("You suddenly notice that the " + o.DescriptionShort + " vanished.");
             break;
         }
-        if (state.ThiefBag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
+        if (state.Robber.Bag.Contains("ROPE")) state.SetFlag(Flag.Dome, false);
     }
 
     /// <summary>act1.38 ROBBER-FUNCTION: what is done to the thief himself (his melee hooks are in <see cref="Combat"/>).</summary>
@@ -264,13 +264,13 @@ public static class Thief
         {
             if (Prob(state, 10))
             {
-                var bag = state.ThiefBag.ToList();
+                var bag = state.Robber.Bag.ToList();
                 if (bag.Count == 0)
                     state.Output.WriteLine("You evidently frightened the robber, though you didn't hit him.  He flees.");
                 else
                 {
                     foreach (var id in bag) Insert(world.FindObject(id)!, state.Here);
-                    state.ThiefBag.Clear();
+                    state.Robber.Bag.Clear();
                     state.Output.WriteLine("You evidently frightened the robber, though you didn't hit him.  He flees, but the contents of his bag fall on the floor.");
                 }
                 Remove(thief);
@@ -290,7 +290,7 @@ public static class Thief
             else
             {
                 Remove(other);
-                state.ThiefBag.Insert(0, other.Id);
+                state.Robber.Bag.Insert(0, other.Id);
                 state.Output.WriteLine("The thief places the " + other.DescriptionShort + " in his bag and thanks you politely.");
             }
         }
@@ -308,12 +308,12 @@ public static class Thief
         var here = state.Here;
         var chalice = world.FindObject(Obj.Chali)!;
         var thief = world.FindObject(Obj.Thief)!;
-        var booty = new HashSet<string>(state.ThiefBag);
+        var booty = new HashSet<string>(state.Robber.Bag);
         if (booty.Count > 0)
         {
             state.Output.WriteLine("  His booty remains.");
-            foreach (var id in state.ThiefBag) Insert(world.FindObject(id)!, here);
-            state.ThiefBag.Clear();
+            foreach (var id in state.Robber.Bag) Insert(world.FindObject(id)!, here);
+            state.Robber.Bag.Clear();
         }
         chalice.Flags |= ObjectFlags.Take;
         if (here.Id == RoomId.Treas)
@@ -330,7 +330,7 @@ public static class Thief
                 state.Output.WriteLine("  A " + o.DescriptionShort);
             }
         }
-        state.ThiefActive = false;
+        state.Robber.Active = false;
     }
 
     /// <summary>act1.38 CHALICE: while the thief fights for his hideaway, his chalice is out of reach.</summary>
@@ -340,7 +340,7 @@ public static class Thief
         var world = state.World!;
         var chalice = world.FindObject(Obj.Chali)!;
         var thief = world.FindObject(Obj.Thief)!;
-        if (chalice.Container == null && chalice.InRoom?.Id == RoomId.Treas && thief.InRoom?.Id == RoomId.Treas && thief.Fighting && state.ThiefActive)
+        if (chalice.Container == null && chalice.InRoom?.Id == RoomId.Treas && thief.InRoom?.Id == RoomId.Treas && thief.Fighting && state.Robber.Active)
             state.Output.WriteLine("Realizing just in time that you'd be stabbed in the back if you attempted to take the chalice, you return to the fray.");
     }
 
@@ -350,7 +350,7 @@ public static class Thief
     /// </summary>
     public static void TreasureRoom(GameState state, string verb)
     {
-        if (verb != "WALK-IN" || !state.ThiefActive) return;
+        if (verb != "WALK-IN" || !state.Robber.Active) return;
         var world = state.World!;
         var here = state.Here;
         var thief = world.FindObject(Obj.Thief)!;
@@ -358,9 +358,9 @@ public static class Thief
         {
             state.Output.WriteLine("You hear a scream of anguish as you violate the robber's hideaway.  Using passages unknown to you, he rushes to its defense.");
             Insert(thief, here);
-            state.ThiefRoom = here.Id;
+            state.Robber.Room = here.Id;
             var at = Array.IndexOf(Rooms, here.Id);
-            state.ThiefNext = (at + 1) % Rooms.Length;
+            state.Robber.Next = (at + 1) % Rooms.Length;
         }
         thief.Flags |= ObjectFlags.Fighting;
         state.VillainStrength.TryAdd("THIEF", Combat.ThiefStrength);

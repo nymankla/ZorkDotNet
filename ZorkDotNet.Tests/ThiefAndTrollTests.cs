@@ -21,8 +21,8 @@ public class ThiefAndTrollTests
         var runner = new GameRunner();
         runner.Give("LAMP").LightAmount = 1;
         runner.Teleport(roomId);
-        runner.State.ThiefActive = true;
-        runner.State.ThiefRoom = roomId;
+        runner.State.Robber.Active = true;
+        runner.State.Robber.Room = roomId;
         runner.State.Random = new FixedRandom(random);
         return runner;
     }
@@ -44,7 +44,7 @@ public class ThiefAndTrollTests
 
         Assert.Contains("he quietly abstracted all valuables from the room and from your possession", Do(runner, "LOOK"));
         Assert.DoesNotContain(pearl, runner.State.Winner.Inventory);
-        Assert.Contains("PEARL", runner.State.ThiefBag);
+        Assert.Contains("PEARL", runner.State.Robber.Bag);
     }
 
     [Fact]
@@ -59,20 +59,20 @@ public class ThiefAndTrollTests
     public void Treasures_in_his_bag_end_up_in_his_hideaway()
     {
         using var runner = WithThief("MAZE5", 99);
-        runner.State.ThiefRoom = "TREAS";
-        runner.State.ThiefBag.Add("PEARL");
+        runner.State.Robber.Room = "TREAS";
+        runner.State.Robber.Bag.Add("PEARL");
 
         Do(runner, "LOOK");
 
         Assert.Equal("TREAS", runner.State.World!.FindObject("PEARL")!.InRoom?.Id);
-        Assert.Empty(runner.State.ThiefBag);
+        Assert.Empty(runner.State.Robber.Bag);
     }
 
     [Fact]
     public void The_thief_defends_his_hideaway_and_guards_the_chalice_until_he_dies()
     {
         using var runner = WithThief("CYCLO", 0);
-        runner.State.ThiefRoom = "MAZE1";
+        runner.State.Robber.Room = "MAZE1";
         runner.State.SetFlag("CYCLOPS-FLAG!-FLAG", true);
         runner.Give("SWORD");
 
@@ -81,9 +81,9 @@ public class ThiefAndTrollTests
         Assert.Contains("Realizing just in time that you'd be stabbed in the back", Do(runner, "TAKE CHALICE"));
 
         var fight = "";
-        for (var i = 0; i < 3 && runner.State.ThiefActive; i++) fight += Do(runner, "ATTACK THIEF WITH SWORD");
+        for (var i = 0; i < 3 && runner.State.Robber.Active; i++) fight += Do(runner, "ATTACK THIEF WITH SWORD");
         Assert.Contains("The thief is killed by the force of your attack.", fight);
-        Assert.False(runner.State.ThiefActive);
+        Assert.False(runner.State.Robber.Active);
         Assert.Contains("Taken.", Do(runner, "TAKE CHALICE"));
     }
 
@@ -92,11 +92,11 @@ public class ThiefAndTrollTests
     {
         using var runner = WithThief("MAZE5", 0);
         Do(runner, "LOOK"); // he appears
-        runner.State.ThiefActive = false;
+        runner.State.Robber.Active = false;
         runner.Give("SWORD");
 
         Assert.Contains("The thief places the sword in his bag and thanks you politely.", Do(runner, "GIVE SWORD TO THIEF"));
-        Assert.Contains("SWORD", runner.State.ThiefBag);
+        Assert.Contains("SWORD", runner.State.Robber.Bag);
         Assert.Contains("Once you got him, what would you do with him?", Do(runner, "TAKE THIEF"));
     }
 

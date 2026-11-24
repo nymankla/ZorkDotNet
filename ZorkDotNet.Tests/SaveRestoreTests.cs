@@ -165,4 +165,42 @@ public sealed class SaveRestoreTests : IDisposable
         Assert.Equal("WHOUS", restored.State.Here.Id);
         Assert.Equal("WHOUS", restored.State.World!.FindObject("MAILB")!.InRoom?.Id);
     }
+
+    [Fact]
+    public void Progress_is_saved_and_restored_whole()
+    {
+        string saved;
+        using (var game = NewGame())
+        {
+            var progress = game.State.Progress;
+            progress.Robber.Room = "MAZE5";
+            progress.Robber.Next = 3;
+            progress.Robber.Bag.Add("PEARL");
+            progress.Robber.Announced = true;
+            progress.Lights.MatchesLeft = 2;
+            progress.Lights.LampStage = 1;
+            progress.HelloCount = 3;
+            progress.Deaths = 1;
+            progress.BalloonLocation = "VAIR1";
+            progress.LightShaftScored = true;
+            progress.ObjectState["SWORD"] = 2;
+            saved = JsonSerializer.Serialize(progress, SaveJsonContext.Default.Progress);
+            game.Execute("SAVE");
+        }
+
+        using var restored = NewGame();
+        Do(restored, "RESTORE");
+
+        Assert.Equal(saved, JsonSerializer.Serialize(restored.State.Progress, SaveJsonContext.Default.Progress));
+    }
+
+    [Fact]
+    public void Every_progress_value_can_be_restored()
+    {
+        // The save writes Progress as it is; a property without a public setter would be written but never read back.
+        var types = new[] { typeof(Progress) }.Concat(typeof(Progress).GetProperties().Select(p => p.PropertyType).Where(t => t.Namespace == typeof(Progress).Namespace));
+        foreach (var type in types)
+            foreach (var property in type.GetProperties())
+                Assert.True(property.SetMethod?.IsPublic == true, type.Name + "." + property.Name + " needs a public setter to be restored");
+    }
 }

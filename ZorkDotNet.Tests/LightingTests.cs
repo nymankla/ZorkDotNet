@@ -132,7 +132,7 @@ public class LightingTests
         Assert.DoesNotContain(Dimmer, runner.GetOutput());
 
         Assert.Contains(Dimmer, Do(runner, "LOOK"));
-        Assert.Equal(50, runner.State.LampTicks);
+        Assert.Equal(50, runner.State.Lights.LampTicks);
     }
 
     [Fact]
@@ -141,11 +141,11 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "LOOK", "TURN OFF LAMP");
-        var ticks = runner.State.LampTicks;
+        var ticks = runner.State.Lights.LampTicks;
 
         runner.Run("LOOK", "LOOK", "LOOK");
 
-        Assert.Equal(ticks, runner.State.LampTicks);
+        Assert.Equal(ticks, runner.State.Lights.LampTicks);
     }
 
     [Fact]
@@ -154,10 +154,10 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "DROP LAMP");
-        var ticks = runner.State.LampTicks;
+        var ticks = runner.State.Lights.LampTicks;
 
         runner.Run("LOOK", "LOOK");
 
-        Assert.Equal(ticks - 2, runner.State.LampTicks);
+        Assert.Equal(ticks - 2, runner.State.Lights.LampTicks);
     }
 }

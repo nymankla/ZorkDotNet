@@ -362,7 +362,7 @@ public static class Verbs
     /// <summary>act1.38 HELLO; HS counts every hello, as in the original.</summary>
     private static void Hello(GameState state, GameObject? obj)
     {
-        var count = ++state.HelloCount;
+        var count = ++state.Progress.HelloCount;
         if (obj == null)
             state.Output.WriteLine(PickOne(Hellos));
         else if (obj.Id == Obj.Sailo)

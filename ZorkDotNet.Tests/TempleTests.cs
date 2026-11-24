@@ -72,7 +72,7 @@ public class TempleTests
         var output = "";
         for (var i = 0; i < 50; i++) output += Do(runner, "LOOK");
         Assert.Contains("The candles grow shorter.", output);
-        Assert.Equal(19, runner.State.CandleTicks); // 50 counted down (the TAKE turn included), then 20, one gone
+        Assert.Equal(19, runner.State.Lights.CandleTicks); // 50 counted down (the TAKE turn included), then 20, one gone
     }
 
     [Fact]

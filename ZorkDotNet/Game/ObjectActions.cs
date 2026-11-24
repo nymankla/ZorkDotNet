@@ -625,7 +625,7 @@ public static class ObjectActions
         if (match == null) return;
         if (verb == "TURNON" && state.LastDirectObject == match) // LIGHT MATCH, not LIGHT something WITH MATCH
         {
-            if (--state.MatchesLeft <= 0)
+            if (--state.Lights.MatchesLeft <= 0)
             {
                 state.Output.WriteLine("I'm afraid that you have run out of matches.");
                 return;
@@ -663,7 +663,7 @@ public static class ObjectActions
     {
         var candles = state.World?.FindObject(Obj.Candl);
         if (candles == null) return;
-        if (state.CandleTicks == 0 && state.CandleStage == 0) state.CandleTicks = 50; // ORAND set on first use
+        if (state.Lights.CandleTicks == 0 && state.Lights.CandleStage == 0) state.Lights.CandleTicks = 50; // ORAND set on first use
         if (verb == "TURNON")
         {
             if (candles.LightAmount == 0)
@@ -798,7 +798,7 @@ public static class ObjectActions
                 if (state.GetFlag(Flag.Btie))
                 {
                     var bottom = world.FindRoom(RoomId.Vlbot)!;
-                    state.BalloonLocation = "VLBOT";
+                    state.Progress.BalloonLocation = "VLBOT";
                     var ball = world.FindObject(Obj.Ballo)!;
                     ball.MoveTo(null);
                     world.FindObject(Obj.Dball)!.MoveTo(bottom);

@@ -26,13 +26,13 @@ public static class Death
         if (message != null) state.Output.WriteLine(message);
         state.Winner.Score -= 10;
         state.Winner.Vehicle = null;
-        if (state.Deaths >= 2)
+        if (state.Progress.Deaths >= 2)
         {
             state.Output.WriteLine("You clearly are a suicidal maniac.  We don't allow psychotics in the cave, since they may harm other adventurers.  Your remains will installed in the Land of the Living Dead, where your fellow adventurers may gloat over them.");
             Scoring.Finish(state);
             return;
         }
-        state.Deaths++;
+        state.Progress.Deaths++;
         state.Output.WriteLine("Do you want me to try to patch you?");
         state.AwaitingPatchAnswer = true;
     }

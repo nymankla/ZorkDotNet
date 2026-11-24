@@ -4,7 +4,7 @@ namespace ZorkDotNet.Game;
 /// The hot-air balloon in the volcano (act2.27 BALLOON, RISE-AND-SHINE, DECLINE-AND-FALL, PUT-BALLOON, WIRE-FUNCTION,
 /// BURNUP, LEDGE-FUNCTION, VOLGNOME, GNOME-FUNCTION). The balloon (BALLO, a basket) is a vehicle for the air rooms
 /// VAIR1-4. While something burns in its receptacle (BINF), its clock (BINT) makes it rise every three moves, and
-/// otherwise it sinks; <see cref="GameState.BalloonLocation"/> is MDL BLOC, where the balloon is or is heading.
+/// otherwise it sinks; <see cref="Progress.BalloonLocation"/> is MDL BLOC, where the balloon is or is heading.
 /// </summary>
 public static class Balloon
 {
@@ -32,7 +32,7 @@ public static class Balloon
                     return true;
                 }
                 var target = exit.RoomId != null ? state.World?.FindRoom(exit.RoomId) : null;
-                if (target != null && !target.Munged) state.BalloonLocation = target.Id;
+                if (target != null && !target.Munged) state.Progress.BalloonLocation = target.Id;
                 return false;
             }
             state.Output.WriteLine("I'm afraid you can't control the balloon in this way.");
@@ -116,7 +116,7 @@ public static class Balloon
     {
         var world = state.World!;
         var ball = world.FindObject(Obj.Ballo)!;
-        var bl = state.BalloonLocation;
+        var bl = state.Progress.BalloonLocation;
         var inIt = InIt(state);
         StartClock(state);
         if (bl.StartsWith("VAIR", StringComparison.Ordinal))
@@ -127,7 +127,7 @@ public static class Balloon
                 StopClock(state);
                 Remove(ball);
                 Put(world.FindObject(Obj.Dball)!, world.FindRoom(RoomId.Vlbot)!);
-                state.BalloonLocation = "VLBOT";
+                state.Progress.BalloonLocation = "VLBOT";
                 if (inIt)
                     state.JigsUp("Your balloon has hit the rim of the volcano, ripping the cloth and causing you a 500 foot drop.  Did you get your flight insurance?");
                 else
@@ -155,7 +155,7 @@ public static class Balloon
     private static void DeclineAndFall(GameState state)
     {
         var world = state.World!;
-        var bl = state.BalloonLocation;
+        var bl = state.Progress.BalloonLocation;
         var inIt = InIt(state);
         StartClock(state);
         if (!bl.StartsWith("VAIR", StringComparison.Ordinal)) return;
@@ -166,7 +166,7 @@ public static class Balloon
                 PutBalloon(state, "VLBOT", "lands.");
                 return;
             }
-            state.BalloonLocation = "VLBOT";
+            state.Progress.BalloonLocation = "VLBOT";
             var bottom = world.FindRoom(RoomId.Vlbot)!;
             Parser.Goto(state, bottom);
             if (state.GetFlag(Flag.Binf))
@@ -192,7 +192,7 @@ public static class Balloon
     /// <summary>GOTO the new room in the balloon, tell how, and describe it (ROOM-INFO T).</summary>
     private static void Fly(GameState state, string roomId, string message)
     {
-        state.BalloonLocation = roomId;
+        state.Progress.BalloonLocation = roomId;
         var room = state.World!.FindRoom(roomId)!;
         var ball = state.World.FindObject(Obj.Ballo)!;
         Remove(ball);
@@ -210,7 +210,7 @@ public static class Balloon
         var ball = state.World!.FindObject(Obj.Ballo)!;
         Remove(ball);
         Put(ball, state.World.FindRoom(roomId)!);
-        state.BalloonLocation = roomId;
+        state.Progress.BalloonLocation = roomId;
     }
 
     private static void Remove(GameObject o) => o.MoveTo(null);

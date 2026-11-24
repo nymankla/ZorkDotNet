@@ -15,7 +15,7 @@ public static class GameSave
     public const string DefaultScriptPath = "zork.log";
 
     /// <summary>Bump when the format changes incompatibly; older files are then refused.</summary>
-    public const int FormatVersion = 1;
+    public const int FormatVersion = 2;
 
     /// <summary>
     /// DO-SAVE: "Saving.", write the file, then FINISH without asking: the score is shown and the game ends,
@@ -85,22 +85,7 @@ public static class GameSave
                 Inventory = w.Inventory.Select(o => o.Id).ToList(),
             },
             Flags = new Dictionary<string, bool>(state.Flags),
-            ObjectState = new Dictionary<string, int>(state.ObjectState),
-            VillainStrength = new Dictionary<string, int>(state.VillainStrength),
-            LampTicks = state.LampTicks,
-            LampStage = state.LampStage,
-            HelloCount = state.HelloCount,
-            Deaths = state.Deaths,
-            CandleTicks = state.CandleTicks,
-            CandleStage = state.CandleStage,
-            MatchesLeft = state.MatchesLeft,
-            LightShaftScored = state.LightShaftScored,
-            BalloonLocation = state.BalloonLocation,
-            ThiefRoom = state.ThiefRoom,
-            ThiefNext = state.ThiefNext,
-            ThiefBag = state.ThiefBag.ToList(),
-            ThiefActive = state.ThiefActive,
-            ThiefAnnounced = state.ThiefAnnounced,
+            Progress = state.Progress,
             RobotRoom = state.Robot.CurrentRoom?.Id,
             RobotInventory = state.Robot.Inventory.Select(o => o.Id).ToList(),
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
@@ -147,9 +132,11 @@ public static class GameSave
         if (data.Player.Vehicle != null && !IsObject(data.Player.Vehicle)) return "unknown vehicle " + data.Player.Vehicle;
         if (data.Player.Inventory.FirstOrDefault(i => !IsObject(i)) is { } badInv) return "unknown object " + badInv;
         if (data.RobotRoom != null && !IsRoom(data.RobotRoom)) return "unknown room " + data.RobotRoom;
-        if (data.ThiefRoom != null && !IsRoom(data.ThiefRoom)) return "unknown room " + data.ThiefRoom;
-        if (data.ThiefBag.FirstOrDefault(i => !IsObject(i)) is { } badBag) return "unknown object " + badBag;
-        if (data.ThiefNext < 0 || data.ThiefNext >= Thief.Rooms.Length) return "bad thief route";
+        var robber = data.Progress.Robber;
+        if (!IsRoom(robber.Room)) return "unknown room " + robber.Room;
+        if (robber.Bag.FirstOrDefault(i => !IsObject(i)) is { } badBag) return "unknown object " + badBag;
+        if (robber.Next < 0 || robber.Next >= Thief.Rooms.Length) return "bad thief route";
+        if (!IsRoom(data.Progress.BalloonLocation)) return "unknown room " + data.Progress.BalloonLocation;
         if (data.RobotInventory.FirstOrDefault(i => !IsObject(i)) is { } badRobot) return "unknown object " + badRobot;
         if (data.Events.FirstOrDefault(e => !Clocks.IsKnown(e.Name)) is { } badEvent) return "unknown clock event " + badEvent.Name;
         foreach (var r in data.Rooms)
@@ -221,25 +208,7 @@ public static class GameSave
 
         state.Flags.Clear();
         foreach (var (k, v) in data.Flags) state.Flags[k] = v;
-        state.ObjectState.Clear();
-        foreach (var (k, v) in data.ObjectState) state.ObjectState[k] = v;
-        state.VillainStrength.Clear();
-        foreach (var (k, v) in data.VillainStrength) state.VillainStrength[k] = v;
-        state.LampTicks = data.LampTicks;
-        state.LampStage = data.LampStage;
-        state.HelloCount = data.HelloCount;
-        state.Deaths = data.Deaths;
-        state.CandleTicks = data.CandleTicks;
-        state.CandleStage = data.CandleStage;
-        state.MatchesLeft = data.MatchesLeft;
-        state.LightShaftScored = data.LightShaftScored;
-        state.BalloonLocation = data.BalloonLocation ?? "VLBOT";
-        state.ThiefRoom = data.ThiefRoom ?? Thief.Rooms[0];
-        state.ThiefNext = data.ThiefNext;
-        state.ThiefBag.Clear();
-        state.ThiefBag.AddRange(data.ThiefBag);
-        state.ThiefActive = data.ThiefActive;
-        state.ThiefAnnounced = data.ThiefAnnounced;
+        state.Progress = data.Progress;
         if (data.RobotRoom != null) state.Robot.CurrentRoom = world.FindRoom(data.RobotRoom)!;
         foreach (var id in data.RobotInventory) world.FindObject(id)!.MoveTo(state.Robot);
         state.ScheduledEvents.Clear();
@@ -268,22 +237,8 @@ internal sealed class SaveData
     public int Version { get; set; }
     public PlayerData Player { get; set; } = new();
     public Dictionary<string, bool> Flags { get; set; } = new();
-    public Dictionary<string, int> ObjectState { get; set; } = new();
-    public Dictionary<string, int> VillainStrength { get; set; } = new();
-    public int LampTicks { get; set; }
-    public int LampStage { get; set; }
-    public int HelloCount { get; set; }
-    public int Deaths { get; set; }
-    public int CandleTicks { get; set; }
-    public int CandleStage { get; set; }
-    public int MatchesLeft { get; set; }
-    public bool LightShaftScored { get; set; }
-    public string? BalloonLocation { get; set; }
-    public string? ThiefRoom { get; set; }
-    public int ThiefNext { get; set; }
-    public List<string> ThiefBag { get; set; } = new();
-    public bool ThiefActive { get; set; } = true;
-    public bool ThiefAnnounced { get; set; }
+    /// <summary>Counters and the state of clocks, demons and puzzles, saved as they are (<see cref="Game.Progress"/>).</summary>
+    public Progress Progress { get; set; } = new();
     public string? RobotRoom { get; set; }
     public List<string> RobotInventory { get; set; } = new();
     public List<EventData> Events { get; set; } = new();
@@ -349,4 +304,5 @@ internal sealed class ObjectData
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(SaveData))]
+[JsonSerializable(typeof(Progress))]
 internal sealed partial class SaveJsonContext : JsonSerializerContext;

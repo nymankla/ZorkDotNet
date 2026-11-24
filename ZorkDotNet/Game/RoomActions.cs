@@ -403,10 +403,10 @@ public static class RoomActions
     public static void NoObjs(GameState state, string _)
     {
         EmptyHanded(state);
-        if (state.Here.Id == RoomId.Bshaf && !state.LightShaftScored && GameState.IsLit(state))
+        if (state.Here.Id == RoomId.Bshaf && !state.Progress.LightShaftScored && GameState.IsLit(state))
         {
             state.Winner.Score += Scoring.LightShaftPoints;
-            state.LightShaftScored = true;
+            state.Progress.LightShaftScored = true;
         }
     }
 
