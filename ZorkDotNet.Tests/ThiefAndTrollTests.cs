@@ -101,6 +101,31 @@ public class ThiefAndTrollTests
     }
 
     [Fact]
+    public void Swinging_a_weapon_at_a_villain_attacks_him_with_it()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Give("SWORD");
+        runner.Teleport("MTROL");
+
+        Do(runner, "SWING SWORD AT TROLL");
+
+        Assert.True(runner.State.World!.FindObject("TROLL")!.Fighting);
+        Assert.Same(runner.State.World.FindObject("SWORD"), runner.State.LastIndirectObject);
+    }
+
+    [Fact]
+    public void Attacking_with_the_rusty_knife_turns_it_on_you()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Give("RKNIF");
+        runner.Teleport("MTROL");
+
+        Assert.Contains("The knife seems to sing as it savagely slits your throat.", Do(runner, "ATTACK TROLL WITH RUSTY KNIFE"));
+    }
+
+    [Fact]
     public void Wounds_heal_one_at_a_time_with_the_cure_clock()
     {
         using var runner = new GameRunner();

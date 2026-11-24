@@ -11,14 +11,6 @@ public static class Parser
         ["U"] = "UP", ["D"] = "DOWN", ["IN"] = "ENTER", ["OUT"] = "EXIT", ["LEAVE"] = "EXIT"
     };
 
-    /// <summary>PREPVEC synonym: WITH, USING, THROU (dung.56 SYNONYM "WITH" "USING" "THROU").</summary>
-    private static bool IsPrepWith(string normWord) =>
-        normWord == "WITH" || normWord == "USING" || normWord == "THROU";
-
-    /// <summary>PREPVEC synonym: IN, INSID, INTO (dung.56 SYNONYM "IN" "INSID" "INTO").</summary>
-    private static bool IsPrepIn(string normWord) =>
-        normWord == "IN" || normWord == "INSID" || normWord == "INTO";
-
     /// <summary>GWIM-style: ask "Which X?" and list options when multiple match.</summary>
     private static void WriteWhichPrompt(GameState state, string ambiguousWord)
     {
@@ -152,7 +144,7 @@ public static class Parser
                 state.PendingAmbiguousWord = null;
                 var orphanSpec = VerbTable.GetByActionName(verb);
                 if (orphanSpec != null)
-                    SynMatch(state, orphanSpec, obj, null, null, words);
+                    SynMatch(state, orphanSpec, obj, null, null);
                 else
                     DispatchOrphanVerb(state, verb, obj);
                 return;
@@ -205,7 +197,7 @@ public static class Parser
         }
 
         // SYN-MATCH: find syntax, optionally GWIM, then dispatch
-        SynMatch(state, spec, o1, prep2, o2, words, prep1);
+        SynMatch(state, spec, o1, prep2, o2, prep1);
     }
 
     /// <summary>SPARSE: parse words after verb into direct object and optional (prep, indirect object).</summary>
@@ -265,7 +257,7 @@ public static class Parser
     }
 
     /// <summary>SYN-MATCH: try syntaxes, GWIM if missing object, then dispatch (np.93).</summary>
-    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string[] words, string? prep1 = null)
+    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string? prep1 = null)
     {
         state.LastVerb = spec.ActionName;
         Syntax? driver = null;
@@ -292,7 +284,7 @@ public static class Parser
         // Dispatch
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
-        Dispatch(state, chosen.Action, dobj, iobj, words);
+        Dispatch(state, chosen.Action, dobj, iobj);
         // rooms.99 RDCOM: after the verb, the room's own action gets its turn (the dam's buttons, digging on the beach).
         // After LOOK, ROOM-INFO has swapped the verb for the innocuous FOO, so the description isn't repeated.
         if (state.Running && !state.AwaitingPatchAnswer)
@@ -300,7 +292,7 @@ public static class Parser
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
-    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect, string[] words)
+    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect)
     {
         switch (action)
         {
@@ -310,7 +302,7 @@ public static class Parser
                 break;
             case "TAKE":
                 if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
-                if (direct?.Id is "EVERY" or "VALUA") { DoLots(state, "TAKE", direct, null, words); break; }
+                if (direct?.Id is "EVERY" or "VALUA") { DoLots(state, "TAKE", direct, null); break; }
                 if (direct != null)
                 {
                     // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
@@ -324,7 +316,7 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to take?");
                 break;
             case "DROP":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "DROP", direct, null, words);
+                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "DROP", direct, null);
                 else if (direct != null) DoDrop(state, direct);
                 else state.Output.WriteLine("What do you want to drop?");
                 break;
@@ -358,12 +350,12 @@ public static class Parser
                 if (direct != null) ObjectActions.DrinkObject(state, direct);
                 else state.Output.WriteLine("What do you want to drink?");
                 break;
-            case "THROW": DoThrow(state, words); break;
+            case "THROW": DoThrow(state, direct, indirect); break;
             case "WAVE":
                 if (direct != null) DoWave(state, direct);
                 else state.Output.WriteLine("What do you want to wave?");
                 break;
-            case "ATTACK": DoAttack(state, words); break;
+            case "ATTACK": DoAttack(state, direct, indirect); break;
             case "MOVE":
                 if (direct != null) DoMove(state, direct);
                 else state.Output.WriteLine("What do you want to move?");
@@ -373,10 +365,10 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to lift?");
                 break;
             case "PUT":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "PUT", direct, indirect, words);
-                else DoPut(state, words);
+                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "PUT", direct, indirect);
+                else DoPut(state, direct, indirect);
                 break;
-            case "GIVE": DoGive(state, words); break;
+            case "GIVE": DoGive(state, direct, indirect); break;
             case "RAISE":
                 if (direct == null || !ObjectActions.Try(state, direct, "RAISE", null))
                     state.Output.WriteLine("You can't raise that.");
@@ -389,8 +381,8 @@ public static class Parser
                 if (direct != null) DoBurn(state, direct);
                 else state.Output.WriteLine("What do you want to burn?");
                 break;
-            case "FILL": DoFill(state, words); break;
-            case "TIE": DoTie(state, words); break;
+            case "FILL": DoFill(state, direct); break;
+            case "TIE": DoTie(state, direct, indirect); break;
             case "UNTIE":
                 if (direct == null || !ObjectActions.Try(state, direct, "UNTIE", null))
                     state.Output.WriteLine("What do you want to untie?");
@@ -459,21 +451,19 @@ public static class Parser
             case "WALK": state.Output.WriteLine("Go where?"); break;
             case "STRIKE":
                 // dung.56 STRIKE: a villain is attacked, anything else is lit.
-                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect, words);
+                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect);
                 break;
             case "POKE":
                 // act1.38 MUNGER: a villain with a weapon is attacked; the rest is Verbs' MUNG.
                 if (direct?.IsVillain == true && indirect != null && (indirect.Flags & ObjectFlags.Weapon) != 0)
-                    Dispatch(state, "ATTACK", direct, indirect, words);
+                    Dispatch(state, "ATTACK", direct, indirect);
                 else
                     Verbs.Run(state, "MUNG", direct, indirect);
                 break;
             case "SWING":
                 // act1.38 SWINGER: SWING weapon AT villain is ATTACK villain WITH weapon.
                 if (indirect == null) { state.Output.WriteLine("Swing at what?"); break; }
-                state.LastDirectObject = indirect;
-                state.LastIndirectObject = direct;
-                Dispatch(state, "ATTACK", indirect, direct, words);
+                Dispatch(state, "ATTACK", indirect, direct);
                 break;
             default:
                 if (!Verbs.Run(state, action, direct, indirect)) state.Output.WriteLine("I don't know how to do that.");
@@ -961,14 +951,10 @@ public static class Parser
     }
 
 
-    private static void DoThrow(GameState state, string[] words)
+    private static void DoThrow(GameState state, GameObject? obj, GameObject? atObj)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to throw?"); return; }
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        var atStart = 2;
-        if (words.Length > 3 && (NormWord(words[2]) == "AT" || string.Equals(words[2], "at", StringComparison.OrdinalIgnoreCase))) atStart = 3;
-        var atObj = state.LastIndirectObject ?? (words.Length >= atStart + 1 ? ResolveObject(state, words, atStart, out _) : null);
         state.LastDirectObject = obj;
         state.LastIndirectObject = atObj;
         if (state.Here.Id == "ICY" && atObj?.Id == "ICE" && obj.Id == "TORCH" && obj.LightAmount > 0)
@@ -995,21 +981,19 @@ public static class Parser
         state.Output.WriteLine("Nothing happens.");
     }
 
-    private static void DoAttack(GameState state, string[] words)
+    private static void DoAttack(GameState state, GameObject? obj, GameObject? withObj)
     {
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = withObj;
         // OBJECT-ACTION asks the weapon too: the rusty knife turns on its owner.
-        if (state.LastIndirectObject?.Id == "RKNIF") { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
+        if (withObj?.Id == "RKNIF") { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
         if (obj == null) { state.Output.WriteLine("What do you want to attack?"); return; }
-        var withStart = 2;
-        if (words.Length > 3 && IsPrepWith(NormWord(words[2]))) withStart = 3;
-        var withObj = state.LastIndirectObject ?? (words.Length >= withStart + 1 ? ResolveObject(state, words, withStart, out _) : state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0));
+        withObj ??= state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0);
         if (obj.Id is "TROLL" or "THIEF" && obj.InRoom == state.Here)
         {
             Combat.Attack(state, obj, withObj);
             return;
         }
-        state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "ATTACK", withObj)) return;
         state.Output.WriteLine("Violence isn't the answer to this one.");
     }
@@ -1040,7 +1024,7 @@ public static class Parser
     /// rooms.99 EVERYTHING / VALUABLES and FROB-LOTS: TAKE, DROP or PUT each object in turn ("lamp:" and then what
     /// happened), stopping if one of them moves you.
     /// </summary>
-    private static void DoLots(GameState state, string action, GameObject which, GameObject? into, string[] words)
+    private static void DoLots(GameState state, string action, GameObject which, GameObject? into)
     {
         var valuablesOnly = which.Id == "VALUA";
         bool Counts(GameObject o) => !valuablesOnly || o.TrophyScore != 0;
@@ -1069,21 +1053,16 @@ public static class Parser
                     else DoTake(state, o);
                     break;
                 case "DROP": DoDrop(state, o); break;
-                default: DoPut(state, words); break;
+                default: DoPut(state, o, into); break;
             }
             if (state.Here != here) break;
         }
     }
 
     /// <summary>rooms.99 PUTTER: PUT obj IN container (anything open, or a container or vehicle).</summary>
-    private static void DoPut(GameState state, string[] words)
+    private static void DoPut(GameState state, GameObject? obj, GameObject? cont)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to put?"); return; }
-        var inIdx = Array.FindIndex(words, i => IsPrepIn(NormWord(i)));
-        var cont = state.LastIndirectObject;
-        if (cont == null && inIdx >= 0 && inIdx + 1 < words.Length)
-            cont = ResolveObject(state, words, inIdx + 1, out _);
         if (cont == null) { state.Output.WriteLine("What do you want to put that in?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = cont;
@@ -1106,14 +1085,11 @@ public static class Parser
         state.Output.WriteLine("Done.");
     }
 
-    private static void DoGive(GameState state, string[] words)
+    private static void DoGive(GameState state, GameObject? obj, GameObject? toObj)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to give?"); return; }
         // Held, or inside something held (the water in the bottle), as the AOBJS search finds it.
         if (obj.Holder != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
-        var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
@@ -1141,9 +1117,8 @@ public static class Parser
         state.Output.WriteLine("You can't burn that.");
     }
 
-    private static void DoFill(GameState state, string[] words)
+    private static void DoFill(GameState state, GameObject? obj)
     {
-        var obj = ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to fill?"); return; }
         var fillableRooms = new[] { "RESES", "STREA" };
         if (!fillableRooms.Contains(state.Here.Id)) { state.Output.WriteLine("I can't find any water here."); return; }
@@ -1158,12 +1133,9 @@ public static class Parser
         state.Output.WriteLine("The bottle is now full of water.");
     }
 
-    private static void DoTie(GameState state, string[] words)
+    private static void DoTie(GameState state, GameObject? obj, GameObject? toObj)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to tie?"); return; }
-        var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
-        var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
         if (!ObjectActions.Try(state, obj, "TIE", toObj))
