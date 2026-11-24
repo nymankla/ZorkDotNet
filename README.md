@@ -3,12 +3,12 @@
 # Team Resurgent Presents, ZorkDotNet
 
 [![License: MIT No Attribution](https://img.shields.io/badge/License-MIT%20No%20Attribution-green.svg)](LICENSE.md)
-[![Build and test](https://github.com/Team-Resurgent/ZorkDotNet/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/Team-Resurgent/ZorkDotNet/actions/workflows/dotnet-desktop.yml)
+[![Build and test](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J7L5UMN)
 [![Patreon](https://img.shields.io/badge/Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/teamresurgent)
 
-[![Download](https://img.shields.io/badge/download-latest-brightgreen.svg?style=for-the-badge&logo=github)](https://github.com/Team-Resurgent/ZorkDotNet/releases/latest)
+[![Download](https://img.shields.io/badge/download-latest-brightgreen.svg?style=for-the-badge&logo=github)](https://github.com/nymankla/ZorkDotNet/releases/latest)
 
 <img src="Images/Cover.png" alt="Zork cover art" width="400" height="400" />
 
@@ -17,6 +17,17 @@ A .NET port of [Zork](https://en.wikipedia.org/wiki/Zork), the classic interacti
 </div>
 
 *You are standing in an open field west of a white house.* The Great Underground Empire, with its treasures, grues, and twisty little passages, rebuilt in .NET. One executable, any platform. No pictures. Just words and your imagination.
+
+## About this fork
+
+This repository is a fork of **[Team-Resurgent/ZorkDotNet](https://github.com/Team-Resurgent/ZorkDotNet)**, which created the .NET port.
+
+Work here is ongoing, with two goals:
+
+- **Fixing bugs** in the port.
+- **Closing every gap to the original 1977 version**, so that the rooms, objects, puzzles, vocabulary and messages match the MDL source exactly.
+
+The original dungeon data is checked automatically against the port, and every remaining difference is tracked in [issue #1](https://github.com/nymankla/ZorkDotNet/issues/1).
 
 ## Original source
 
