@@ -1,7 +1,10 @@
 namespace ZorkDotNet.Game;
 
-/// <summary>Event to run when Moves >= TriggerMove.</summary>
-public record ScheduledEvent(int TriggerMove, Action<GameState> Action);
+/// <summary>
+/// A clock event (MDL CEVENT) that runs when Moves >= TriggerMove. It is data, not a delegate, so SAVE can
+/// store it: <see cref="Name"/> picks the routine in <see cref="Clocks"/>, <see cref="Argument"/> is its input.
+/// </summary>
+public record ScheduledEvent(int TriggerMove, string Name, string? Argument = null);
 
 /// <summary>
 /// Global game state (MDL: WINNER, HERE, PRSVEC, MOVES, flags, etc.).
@@ -42,6 +45,13 @@ public class GameState
     /// <summary>QUIT asked "Do you wish to leave the game?"; the next input line is the answer (rooms.99 FINISH).</summary>
     public bool AwaitingQuitConfirmation { get; set; }
 
+    /// <summary>Path used by SAVE and RESTORE.</summary>
+    public string SavePath { get; set; } = GameSave.DefaultSavePath;
+
+    /// <summary>Schedule clock event <paramref name="name"/> (a <see cref="Clocks"/> constant) to run in <paramref name="delay"/> moves.</summary>
+    public void Schedule(int delay, string name, string? argument = null) =>
+        ScheduledEvents.Add(new ScheduledEvent(Moves + delay, name, argument));
+
     /// <summary>Run each move after parser (CEVENTs: lantern burn, match/fuse/candles, MAINT leak, etc.).</summary>
     public void ProcessClocks()
     {
@@ -59,7 +69,7 @@ public class GameState
         }
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
-        foreach (var e in toRun) e.Action(this);
+        foreach (var e in toRun) Clocks.Run(this, e);
         if (Here?.Id == "MAINT")
         {
             if (MaintLeakAtMove == 0) MaintLeakAtMove = Moves + 3;
@@ -81,7 +91,7 @@ public class GameState
         if (Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) == true && !GetFlag("VOLGNOME-SCHEDULED!-FLAG"))
         {
             SetFlag("VOLGNOME-SCHEDULED!-FLAG", true);
-            ScheduledEvents.Add(new ScheduledEvent(Moves + 10, ObjectActions.Volgnome));
+            Schedule(10, Clocks.Volgnome);
         }
         // Demons (SWORD-DEMON, FIGHT-DEMON, ROBBER-DEMON)
         Combat.SwordDemon(this);

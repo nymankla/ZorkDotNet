@@ -15,4 +15,9 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Tests check the save model (GameSave.Capture) directly. -->
+    <InternalsVisibleTo Include="ZorkDotNet.Tests" />
+  </ItemGroup>
+
 </Project>

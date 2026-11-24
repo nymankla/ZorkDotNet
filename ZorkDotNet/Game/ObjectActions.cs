@@ -215,15 +215,19 @@ public static class ObjectActions
                 return;
             }
             obj.LightAmount = 1;
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 5, _ =>
-            {
-                if (obj.LightAmount > 0)
-                {
-                    obj.LightAmount = 0;
-                    _.Output.WriteLine("The match has burned out.");
-                }
-            }));
+            state.Schedule(5, Clocks.MatchOut, obj.Id);
             state.Output.WriteLine("The match is now lit.");
+        }
+    }
+
+    /// <summary>MATCH-FUNCTION clock: a lit match burns out.</summary>
+    public static void MatchBurnout(GameState state, string? matchId)
+    {
+        var match = state.World?.FindObject(matchId ?? "MATCH");
+        if (match != null && match.LightAmount > 0)
+        {
+            match.LightAmount = 0;
+            state.Output.WriteLine("The match has burned out.");
         }
     }
 
@@ -254,37 +258,39 @@ public static class ObjectActions
             return;
         }
         obj.LightAmount = 1;
-        state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 2, _ =>
-        {
-            var fuse = _.World?.FindObject("FUSE");
-            if (fuse?.Container?.Id != "BRICK")
-            {
-                _.Output.WriteLine("The fuse has burned to the end.");
-                _.Output.WriteLine("The wire rapidly burns into nothingness.");
-                if (fuse != null) fuse.LightAmount = 0;
-                return;
-            }
-            _.Output.WriteLine("The fuse has burned to the end.");
-            var brick = _.World?.FindObject("BRICK");
-            string? brickRoomId = null;
-            if (brick != null)
-            {
-                if (brick.InRoom != null) brickRoomId = brick.InRoom.Id;
-                else if (brick.Carrier != null) brickRoomId = brick.Carrier.CurrentRoom?.Id;
-            }
-            brickRoomId ??= _.Here?.Id;
-            if (brickRoomId != null && _.Here?.Id == brickRoomId)
-            {
-                _.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
-                _.Output.WriteLine("   BOOOOOOOOOOOM      ");
-                _.Running = false;
-                return;
-            }
-            _.Output.WriteLine("There is an explosion nearby.");
-            var capturedRoom = brickRoomId;
-            _.ScheduledEvents.Add(new ScheduledEvent(_.Moves + 5, s => SafeMung(s, capturedRoom)));
-        }));
+        state.Schedule(2, Clocks.Fuse);
         state.Output.WriteLine("The fuse is lit.");
+    }
+
+    /// <summary>FUSE-FUNCTION clock: the lit fuse burns down (explodes the brick if it is in it).</summary>
+    public static void FuseBurnedDown(GameState state)
+    {
+        var fuse = state.World?.FindObject("FUSE");
+        if (fuse?.Container?.Id != "BRICK")
+        {
+            state.Output.WriteLine("The fuse has burned to the end.");
+            state.Output.WriteLine("The wire rapidly burns into nothingness.");
+            if (fuse != null) fuse.LightAmount = 0;
+            return;
+        }
+        state.Output.WriteLine("The fuse has burned to the end.");
+        var brick = state.World?.FindObject("BRICK");
+        string? brickRoomId = null;
+        if (brick != null)
+        {
+            if (brick.InRoom != null) brickRoomId = brick.InRoom.Id;
+            else if (brick.Carrier != null) brickRoomId = brick.Carrier.CurrentRoom?.Id;
+        }
+        brickRoomId ??= state.Here?.Id;
+        if (brickRoomId != null && state.Here?.Id == brickRoomId)
+        {
+            state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
+            state.Output.WriteLine("   BOOOOOOOOOOOM      ");
+            state.Running = false;
+            return;
+        }
+        state.Output.WriteLine("There is an explosion nearby.");
+        state.Schedule(5, Clocks.SafeMung, brickRoomId);
     }
 
     /// <summary>SAFE-MUNG (CEVENT): if player in munged room → death; else tell rumbling; if SAFE, schedule LEDGE-MUNG in 8; mung room.</summary>
@@ -304,7 +310,7 @@ public static class ObjectActions
         if (mungedRoomId == "SAFE")
         {
             state.SetFlag("SAFE-FLAG!-FLAG", true);
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 8, LedgeMung));
+            state.Schedule(8, Clocks.LedgeMung);
         }
         state.MungRoom(mungedRoomId, "The way is blocked by debris from an explosion.");
     }
@@ -383,7 +389,7 @@ public static class ObjectActions
             gnome.Carrier = null;
             gnome.Container = null;
             state.Here.Objects.Add(gnome);
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 5, GnomeLeave));
+            state.Schedule(5, Clocks.GnomeLeave);
         }
     }
 
@@ -413,7 +419,7 @@ public static class ObjectActions
             state.SetFlag("BUCKET-TOP!-FLAG", true);
             var twell = state.World?.FindRoom("TWELL");
             if (twell != null && bucket.InRoom != null) { bucket.InRoom.Objects.Remove(bucket); bucket.InRoom = twell; twell.Objects.Add(bucket); }
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 100, BucketTick));
+            state.Schedule(100, Clocks.Bucket);
         }
     }
 
@@ -447,7 +453,7 @@ public static class ObjectActions
         state.Output.WriteLine("The " + obj.DescriptionShort + " burns inside the receptacle.");
         obj.LightAmount = 1;
         var ticks = Math.Max(1, obj.Size * 20);
-        state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + ticks, _ => Burnup(_)));
+        state.Schedule(ticks, Clocks.Burnup);
         if (!state.GetFlag("BINF!-FLAG"))
         {
             state.Output.WriteLine("The cloth bag inflates as it fills with hot air.");
@@ -517,7 +523,7 @@ public static class ObjectActions
                 cont.Contents.Add(obj);
                 state.Output.WriteLine("The bucket is now full of water.");
                 if (state.Here?.Id == "BWELL")
-                    state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 100, BucketTick));
+                    state.Schedule(100, Clocks.Bucket);
             }
             else if (cont != null && cont != bottle)
             {

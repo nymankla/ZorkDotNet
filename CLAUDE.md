@@ -29,7 +29,7 @@ CI (`.github/workflows/dotnet-desktop.yml`) runs the tests and then publishes se
 
 ## Architecture
 
-Everything lives in `ZorkDotNet/Game/` (namespace `ZorkDotNet.Game`). The main loop in `Program.cs` is the same as `GameRunner.Execute` in the tests: increment `Winner.Moves`, call `Parser.Execute(state, line)`, then call `state.ProcessClocks()`.
+Everything lives in `ZorkDotNet/Game/` (namespace `ZorkDotNet.Game`). The main loop in `Program.cs` and `GameRunner.Execute` in the tests both call `Parser.PlayTurn(state, line)` (see **Turns** below).
 
 - **`GameState`**: all mutable state. It holds the player (`Winner`, an `Adventurer`; `Here` is the current room), string-keyed boolean `Flags` (MDL-style names such as `"TRAP-DOOR!-FLAG"`), `ObjectState`/`VillainStrength` dictionaries, the `ScheduledEvents` timers, and the pending "Which X?" disambiguation fields. All output goes through `state.Output` (a `TextWriter`), never `Console` directly, so tests can capture it. `ProcessClocks()` runs the per-turn daemons: lamp burn, scheduled events, the thief/robber, and the combat demons.
 - **`World`**: builds the whole dungeon in code (`BuildWorld`). It sets the global flags first, then adds rooms (`AddRoom`), then objects (`AddObject`), and finally places objects with `PlaceInRoom`/`PutInContainer`. The `objectIds` argument of `AddRoom` only works for objects that already exist, which is why most placement happens later. Exits are `new("ROOM")`, `new ExitTarget(flag, room, elseMessage)` (MDL `#CEXIT`) or `ExitTarget.Blocked(message)` (MDL `#NEXIT`). Always use the factory for blocked exits: a bare string is read as a room id. It also registers special exit hooks (`_exitActions`, `_beforeExitActions`, e.g. the carousel and the coffin check) and assigns `state.World = this`.
@@ -38,7 +38,10 @@ Everything lives in `ZorkDotNet/Game/` (namespace `ZorkDotNet.Game`). The main l
 - **`VerbSyntax.cs`**: `VerbTable` maps each normalized verb word to a `VerbSpec`, which lists one or more `Syntax` patterns (slot `VArg` flags: `VABIT` = inventory, `VRBIT` = room, `VTBIT` = no implicit take). To add a verb, register it here with `AddWords(...)` and add a matching `case` in `Parser.Dispatch`.
 - **Behavior hooks**: object-specific behavior is `GameObject.ObjectAction(state, verb, obj)`, implemented as static methods in `ObjectActions`. Room-specific behavior is `Room.RoomAction(state, verb)` (often dynamic LOOK text) and `Room.OnEnter`, implemented in `RoomActions`. You wire them up by passing the method to `AddObject`/`AddRoom` in `World`.
 - **`Combat`**: weapon and light-source checks, the troll/thief melee, the sword glow, and room robbing. Several features use `Random.Shared`, so tests should not assert on random outcomes.
-- **`GameSave`**: a simple line-based SAVE/RESTORE. It stores only room, score, moves, modes, flags and inventory, not the positions of objects in the world.
+- **`Clocks`**: named clock events (MDL `CEVENT`). Schedule with `state.Schedule(delay, Clocks.X, argument)`, never with a lambda, so pending events can be saved. A new clock needs a constant, a case in `Clocks.Run`, and an entry in `Known`.
+- **`GameSave`**: SAVE/RESTORE of the complete state as JSON (source-generated, so it's safe for trimming): player, flags, clock events, every room (seen, light, exits, contents) and every object (flags, texts, light, contents). Anything new that can change during play must be added to `Capture`/`Apply`. `SaveRestoreTests` checks that a restored game captures back to exactly the saved file. As in the original, SAVE ends the game, and RESTORE validates the whole file before changing anything.
+- **`Scoring`**: `SCORE-MAX` is computed from room and object values plus the light shaft. It also holds the original score report and rank table, and QUIT with its yes/no question.
+- **Turns**: `Parser.PlayTurn` is one `RDCOM` turn (count the move, run the command, run the clocks). `Program` and `GameRunner` both use it, so code that moves the player must not change `Moves`.
 
 ## Goal: a complete, faithful port
 
