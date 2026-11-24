@@ -1,6 +1,6 @@
 <div align="center">
 
-# Team Resurgent Presents, ZorkDotNet
+# ZorkDotNet
 
 [![License: MIT No Attribution](https://img.shields.io/badge/License-MIT%20No%20Attribution-green.svg)](LICENSE.md)
 [![Build and test](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml)
