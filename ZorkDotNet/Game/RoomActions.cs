@@ -75,13 +75,7 @@ public static class RoomActions
     /// <summary>On entering BATS room without garlic: bat flies player to random room.</summary>
     public static void OnEnterBats(GameState state)
     {
-        if (state.Winner.Inventory.Any(o => o.Id == "GARLI")) return;
-        var batDrops = new[] { "MINE1", "MINE2", "MINE3", "MINE4", "MINE5", "MINE6", "MINE7", "TLADD", "BLADD" };
-        var pick = batDrops[Random.Shared.Next(batDrops.Length)];
-        state.Output.WriteLine("A deranged giant vampire bat (a reject from WUMPUS) swoops down from his belfry and lifts you away....");
-        // act2.27 FLY-ME: GOTO the room, then ROOM-DESC describes it.
-        var next = state.World?.FindRoom(pick);
-        if (next != null) Parser.MoveToRoom(state, next);
+        if (!state.Winner.Inventory.Any(o => o.Id == "GARLI")) FlyMe(state);
     }
 
     /// <summary>act1.38 WELL: answering the riddle in the Riddle Room opens its east door.</summary>
@@ -323,6 +317,97 @@ public static class RoomActions
     }
 
     public static void Rivr4Enter(GameState state) => Rivr4Room(state, "WALK-IN");
+
+    /// <summary>
+    /// act1.38 ECHO-ROOM: until ECHO-FLAG, the Loud Room hides its objects and echoes every line you type
+    /// (Parser.EchoTurn) until you walk out or say ECHO.
+    /// </summary>
+    public static void EchoRoom(GameState state, string _)
+    {
+        if (state.GetFlag("ECHO-FLAG!-FLAG") || state.EchoListening) return;
+        foreach (var o in state.Here.Objects.Where(o => o.IsVisible))
+        {
+            o.Flags &= ~ObjectFlags.Visible;
+            state.EchoHidden.Add(o.Id);
+        }
+        state.EchoListening = true;
+    }
+
+    public static void EchoEnter(GameState state) => EchoRoom(state, "WALK-IN");
+
+    /// <summary>The objects ECHO-ROOM hid (ECHO-ROOM-BIT) come back.</summary>
+    public static void EchoRestore(GameState state)
+    {
+        foreach (var id in state.EchoHidden)
+        {
+            var o = state.World?.FindObject(id);
+            if (o != null) o.Flags |= ObjectFlags.Visible;
+        }
+        state.EchoHidden.Clear();
+    }
+
+    /// <summary>act1.38 DOME-ROOM (its JUMP branch can't be reached: LEAPER never succeeds here).</summary>
+    public static void DomeRoom(GameState state, string verb)
+    {
+        if (verb != "LOOK") return;
+        state.Output.WriteLine("You are at the periphery of a large dome, which forms the ceiling of another room below.  Protecting you from a precipitous drop is a wooden railing which circles the dome.");
+        if (state.GetFlag("DOME-FLAG!-FLAG"))
+            state.Output.WriteLine("Hanging down from the railing is a rope which ends about ten feet from the floor below.");
+    }
+
+    /// <summary>act1.38 TORCH-ROOM</summary>
+    public static void TorchRoom(GameState state, string verb)
+    {
+        if (verb != "LOOK") return;
+        state.Output.WriteLine("You are in a large room with a prominent doorway leading to a down staircase. To the west is a narrow twisting tunnel.  Above you is a large dome painted with scenes depicting elfin hacking rites. Up around the edge of the dome (20 feet up) is a wooden railing. In the center of the room there is a white marble pedestal.");
+        if (state.GetFlag("DOME-FLAG!-FLAG"))
+            state.Output.WriteLine("A large piece of rope descends from the railing above, ending some five feet above your head.");
+    }
+
+    /// <summary>act1.38 MAZE-11 (the grating room)</summary>
+    public static void Maze11(GameState state, string verb)
+    {
+        if (verb != "LOOK") return;
+        state.Output.WriteLine("You are in a small room near the maze. There are twisty passages in the immediate vicinity.");
+        if (state.GetFlag("KEY-FLAG!-FLAG"))
+            state.Output.WriteLine("Above you is an open grating with sunlight pouring in.");
+        else if (state.GetFlag("GRUNLOCK!-FLAG"))
+            state.Output.WriteLine("Above you is a grating.");
+        else
+            state.Output.WriteLine("Above you is a grating locked with a skull-and-crossbones lock.");
+    }
+
+    /// <summary>The strange passage's room action is MDL TIME, which does nothing.</summary>
+    public static void Time(GameState _1, string _2) { }
+
+    /// <summary>
+    /// act2.27 NO-OBJS (timber room and shaft bottom): only the empty-handed fit through (EMPTY-HANDED), and lighting
+    /// the bottom of the shaft is worth LIGHT-SHAFT points, once.
+    /// </summary>
+    public static void NoObjs(GameState state, string _)
+    {
+        EmptyHanded(state);
+        if (state.Here.Id == "BSHAF" && !state.LightShaftScored && GameState.IsLit(state))
+        {
+            state.Winner.Score += Scoring.LightShaftPoints;
+            state.LightShaftScored = true;
+        }
+    }
+
+    public static void NoObjsEnter(GameState state) => NoObjs(state, "WALK-IN");
+
+    public static void EmptyHanded(GameState state) =>
+        state.SetFlag("EMPTY-HANDED!-FLAG", state.Winner.Inventory.Count == 0);
+
+    /// <summary>act2.27 FLY-ME: the bat carries you to a random room of BAT-DROPS, which is then described.</summary>
+    public static void FlyMe(GameState state)
+    {
+        var batDrops = new[] { "MINE1", "MINE2", "MINE3", "MINE4", "MINE5", "MINE6", "MINE7", "TLADD", "BLADD" };
+        var pick = batDrops[state.Random.Next(batDrops.Length)];
+        state.Output.WriteLine("A deranged giant vampire bat (a reject from WUMPUS) swoops down from his belfry and lifts you away....");
+        var next = state.World?.FindRoom(pick);
+        if (next != null) Parser.MoveToRoom(state, next);
+    }
 
     /// <summary>act1.38 CAVE2-ROOM: walking in, PROB 50 that the wind blows the candles you carry out.</summary>
     public static void Cave2Room(GameState state, string verb)

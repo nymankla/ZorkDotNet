@@ -1,8 +1,6 @@
 # Differences between the port and the original dung.56 that are not fixed yet.
 # One per line; checked by OriginalWorldTests. Delete a line when you fix it.
 # Regenerate with ZORK_UPDATE_KNOWN_DIFFERENCES=1 (see Original/README.md).
-Exit condition: BSHAF NE: original EMPTY-HANDED, port none
-Exit condition: BSHAF OUT: original EMPTY-HANDED, port none
 Exit condition: MAGNE EAST: original FROBOZZ, port none
 Exit condition: MAGNE NE: original FROBOZZ, port none
 Exit condition: MAGNE NORTH: original FROBOZZ, port none
@@ -11,7 +9,6 @@ Exit condition: MAGNE SE: original FROBOZZ, port none
 Exit condition: MAGNE SOUTH: original FROBOZZ, port none
 Exit condition: MAGNE SW: original FROBOZZ, port none
 Exit condition: MAGNE WEST: original FROBOZZ, port none
-Exit condition: TIMBE SW: original EMPTY-HANDED, port none
 Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
 Exit missing: LEDG2 LAUNC -> VAIR2
 Exit missing: LEDG4 LAUNC -> VAIR4
@@ -28,11 +25,8 @@ Exit not in original: VAIR2 UP -> VAIR3
 Exit not in original: VAIR3 DOWN -> VAIR2
 Exit not in original: VAIR3 UP -> VAIR4
 Exit not in original: VAIR4 DOWN -> VAIR3
-Object action missing: BAT: FLY-ME
 Object action missing: BUCKE: BUCKET
-Object action missing: RKNIF: RUSTY-KNIFE
 Object action missing: SPHER: SPHERE-FUNCTION
-Object action missing: SWORD: SWORD
 Object action missing: TROLL: TROLL
 Object bit not modelled: BAT: TRYTAKEBIT
 Object bit not modelled: BODIE: TRYTAKEBIT
@@ -95,23 +89,14 @@ Object missing: TRBUT (button)
 Object missing: VALUA (valuables)
 Object missing: WHBK (white book)
 Object start location: BALLO: original room VLBOT, port room LEDG4
-Object start location: BAR: original room ECHO, port nowhere
 Object start location: CAGE: original room CAGED, port nowhere
-Object start location: FBASK: original room BSHAF, port nowhere
 Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
 Object start location: MSWIT: original room MACHI, port nowhere
 Object start location: RCAGE: original nowhere, port room CAGED
 Object start location: THIEF: original nowhere, port room TREAS
-Room action missing: BLROO: TIME
-Room action missing: BSHAF: NO-OBJS
 Room action missing: CAGED: CAGED-ROOM
 Room action missing: CMACH: CMACH-ROOM
-Room action missing: DOME: DOME-ROOM
-Room action missing: ECHO: ECHO-ROOM
 Room action missing: LEDG4: LEDGE-FUNCTION
 Room action missing: MAGNE: MAGNET-ROOM
-Room action missing: MGRAT: MAZE-11
-Room action missing: MTORC: TORCH-ROOM
-Room action missing: TIMBE: NO-OBJS
 Room action missing: TREAS: TREASURE-ROOM
