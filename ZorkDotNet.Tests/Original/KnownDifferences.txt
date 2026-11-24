@@ -76,8 +76,6 @@ Object action missing: BAT: FLY-ME
 Object action missing: BOOK: BLACK-BOOK
 Object action missing: BUCKE: BUCKET
 Object action missing: FDOOR: DDOOR-FUNCTION
-Object action missing: GRAT1: GRAT1-FUNCTION
-Object action missing: GRAT2: GRAT2-FUNCTION
 Object action missing: RKNIF: RUSTY-KNIFE
 Object action missing: SPHER: SPHERE-FUNCTION
 Object action missing: SWORD: SWORD
@@ -389,6 +387,8 @@ Room visit score: LLD2: original 30, port 0
 Room visit score: TREAS: original 25, port 0
 Room visit score: TWELL: original 10, port 0
 Verb not understood: ATTAC: HACK FROB HURT INJUR DAMAG
+Verb not understood: BACK: BACK
+Verb not understood: BLAST: BLAST
 Verb not understood: BRAND: BRAND FLAUN
 Verb not understood: BRUSH: BRUSH CLEAN
 Verb not understood: BURN: INCIN IGNIT
@@ -397,14 +397,19 @@ Verb not understood: CURSE: CURSE SHIT FUCK DAMN
 Verb not understood: DEFLA: DEFLA
 Verb not understood: DIG: DIG
 Verb not understood: DRINK: IMBIB
+Verb not understood: DUNGE: DUNGE
 Verb not understood: EAT: CONSU GOBBL MUNCH TASTE
 Verb not understood: EXAMI: DESCR WHAT WHATS WHAT'
 Verb not understood: EXORC: XORCI
 Verb not understood: EXTIN: EXTIN DOUSE
 Verb not understood: FIND: FIND
+Verb not understood: FIRST: FIRST
+Verb not understood: FROBO: FROBO
+Verb not understood: GERON: GERON
 Verb not understood: GIVE: HAND DONAT
 Verb not understood: GRANI: GRANI
 Verb not understood: HELLO: HELLO HI
+Verb not understood: HELP: HELP
 Verb not understood: INFLA: INFLA
 Verb not understood: INVEN: LIST
 Verb not understood: JARGO: JARGO FOO BLETC
@@ -420,9 +425,11 @@ Verb not understood: ODYSS: ODYSS ULYSS
 Verb not understood: PLUG: PLUG GLUE PATCH
 Verb not understood: POKE: POKE JAB
 Verb not understood: POUR: SPILL
+Verb not understood: PRAY: PRAY
 Verb not understood: PUSH: PRESS
 Verb not understood: PUT: STUFF PLACE INSER
 Verb not understood: READ: SKIM SCAN
+Verb not understood: REPEN: REPEN
 Verb not understood: RING: RING PEAL
 Verb not understood: RUB: CARES TOUCH FONDL
 Verb not understood: SKIP: SKIP HOP
@@ -431,11 +438,17 @@ Verb not understood: SWIM: SWIM BATHE WADE
 Verb not understood: SWING: SWING THRUS
 Verb not understood: TAKE: HOLD
 Verb not understood: TELL: TELL COMMA REQUE
+Verb not understood: TEMPL: TEMPL
 Verb not understood: THROW: HURL CHUCK
 Verb not understood: TIE: KNOT FASTE
-Verb not understood: UNLOC: UNLOC
+Verb not understood: TIME: TIME
+Verb not understood: TREAS: TREAS
 Verb not understood: UNTIE: FREE
+Verb not understood: VERSI: VERSI
+Verb not understood: WAIT: WAIT
 Verb not understood: WAKE: WAKE AWAKE SURPR START
+Verb not understood: WELL: WELL
 Verb not understood: WHERE: WHERE FIND SEEK SEE
 Verb not understood: WIN: WIN WINNA
 Verb not understood: YELL: YELL SCREA SHOUT
+Verb not understood: ZORK: ZORK

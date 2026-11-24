@@ -12,17 +12,6 @@ public static class Combat
         return state.Winner.Inventory.Exists(o => (o.Flags & ObjectFlags.Weapon) != 0);
     }
 
-    /// <summary>LIGHT-SOURCE: first object providing light (inventory then room).</summary>
-    public static GameObject? GetLightSource(GameState state, Room? room = null)
-    {
-        var r = room ?? state.Here;
-        foreach (var o in state.Winner.Inventory)
-            if (o.LightAmount != 0) return o;
-        foreach (var o in r.Objects)
-            if (o.LightAmount != 0) return o;
-        return null;
-    }
-
     /// <summary>ROB-ROOM: pick valuables from room with probability (thief demon). Returns list to steal.</summary>
     public static List<GameObject> RobRoom(GameState state, Room room, int probabilityPercent)
     {

@@ -264,9 +264,15 @@ internal static partial class WorldComparer
 
     // ---------------- Vocabulary ----------------
 
+    /// <summary>
+    /// Internal pseudo-verbs the game sends to action routines, never typed by a player
+    /// (dung.56: "funny verb for clock ints / killing villains / villain fight decisions"; WALK-IN for room entry).
+    /// </summary>
+    private static readonly HashSet<string> InternalVerbs = new(StringComparer.Ordinal) { "C-INT", "DEAD!", "HACK?", "WALK-IN" };
+
     private static void CompareVocabulary(OriginalDungeon original, List<string> diffs)
     {
-        foreach (var verb in original.Verbs)
+        foreach (var verb in original.Verbs.Where(v => !InternalVerbs.Contains(v.Name)))
         {
             var unknown = verb.Words.Where(w => !ParserKnows(w)).Select(Id5).Distinct(StringComparer.Ordinal).ToList();
             if (unknown.Count > 0)

@@ -48,7 +48,7 @@ public class GameTests
     {
         var logPath = GameRunner.GetLogPath("QUIT_stops_game", _logDir);
         using var runner = new GameRunner(logPath);
-        runner.Run("LOOK", "QUIT");
+        runner.Run("LOOK", "QUIT", "Y");
 
         Assert.False(runner.State.Running);
         var output = runner.GetOutput();
@@ -143,7 +143,7 @@ public class GameTests
         using var runner = new GameRunner(logPath);
         runner.Run("LOOK", "SCORE");
         var output = runner.GetOutput();
-        Assert.Contains("total possible", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("[total of", output, StringComparison.Ordinal);
         Assert.Contains("score", output, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -172,7 +172,7 @@ public class GameTests
             "WEST", "TAKE LAMP", "TURN ON LAMP", "TAKE SWORD",
             "MOVE RUG", "OPEN TRAP", "DOWN", "EAST",
             "ATTACK TROLL", "ATTACK TROLL", "ATTACK TROLL",
-            "SOUTH", "LOOK", "QUIT"
+            "SOUTH", "LOOK", "QUIT", "Y"
         );
         var output = runner.GetOutput();
         Assert.False(runner.State.Running);
@@ -254,7 +254,7 @@ public class GameTests
             "SOUTH", "EAST", "OPEN WINDOW", "ENTER",
             "WEST", "TAKE LAMP", "TURN ON LAMP",
             "MOVE RUG", "OPEN TRAP", "DOWN",
-            "LOOK", "UP", "QUIT"
+            "LOOK", "UP", "QUIT", "Y"
         );
 
         var output = runner.GetOutput();
@@ -276,7 +276,7 @@ public class GameTests
             "MOVE RUG", "OPEN TRAP", "DOWN",
             "EAST", "ATTACK TROLL", "ATTACK TROLL", "ATTACK TROLL",
             "NORTH", "EAST", "TAKE IRON BOX", "WAVE IRON BOX",
-            "WEST", "SOUTH", "UP", "QUIT"
+            "WEST", "SOUTH", "UP", "QUIT", "Y"
         );
         var output = runner.GetOutput();
         Assert.False(runner.State.Running);
@@ -296,7 +296,7 @@ public class GameTests
             "WEST", "NORTH", "NORTH", "NORTH", "NORTH",
             "WEST", "TAKE IRON BOX", "WAVE IRON BOX",
             "NW", "NORTH", "NORTH", "TAKE STICK",
-            "NORTH", "NORTH", "GIVE FOOD TO CYCLOPS", "UP", "LOOK", "QUIT"
+            "NORTH", "NORTH", "GIVE FOOD TO CYCLOPS", "UP", "LOOK", "QUIT", "Y"
         );
         var output = runner.GetOutput();
         Assert.False(runner.State.Running);
@@ -324,14 +324,14 @@ public class GameTests
             "WEST", "SOUTH", "DOWN", "SOUTH", "SOUTH", "SOUTH",
             "WEST", "WEST", "WEST", "SOUTH", "SOUTH", "EAST",
             "SOUTH", "SOUTH", "WEST", "PUT LAMP IN TROPHY CASE",
-            "SCORE", "QUIT"
+            "SCORE", "QUIT", "Y"
         );
         var output = runner.GetOutput();
         Assert.False(runner.State.Running);
         Assert.DoesNotContain("You have been killed", output);
         Assert.DoesNotContain("JIGS-UP", output);
         Assert.True(runner.State.Winner.Moves > 30);
-        Assert.Contains("350", output);
+        Assert.Contains($"[total of {runner.State.MaxScore} points]", output);
     }
 
     [Fact]
@@ -359,8 +359,8 @@ public class GameTests
         Assert.DoesNotContain("You have been killed", output);
         Assert.DoesNotContain("JIGS-UP", output);
         Assert.True(runner.State.Winner.Moves > 30);
-        Assert.Contains("Your score is", output);
-        Assert.Contains("total possible", output);
+        Assert.Contains("Your score would be", output);
+        Assert.Contains("[total of", output);
     }
 
     [Fact]
@@ -388,8 +388,8 @@ public class GameTests
         Assert.True(runner.State.Running, "Game should still be running after completion without QUIT");
         Assert.DoesNotContain("You have been killed", output);
         Assert.DoesNotContain("JIGS-UP", output);
-        Assert.Contains("Your score is", output);
-        Assert.Contains("350", output);
+        Assert.Contains("Your score would be", output);
+        Assert.Contains($"[total of {runner.State.MaxScore} points]", output);
     }
 
     [Fact]
@@ -599,9 +599,25 @@ public class GameTests
         Assert.True(runner.State.GetFlag("MAGIC-FLAG!-FLAG"));
     }
 
-    /// <summary>Place the player directly in a room (for testing areas that are far from the start).</summary>
-    private static void Teleport(GameRunner runner, string roomId) =>
-        runner.State.Winner.CurrentRoom = runner.State.World!.FindRoom(roomId)!;
+
+    [Fact]
+    public void Each_command_counts_as_one_move_including_walking()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Each_command_counts_as_one_move", _logDir));
+        runner.Run("NORTH", "EAST", "LOOK", "SOUTH");
+
+        Assert.Equal(4, runner.State.Moves);
+    }
+
+    [Fact]
+    public void Being_carried_off_by_the_bat_counts_as_one_move()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Bat_counts_one_move", _logDir));
+        runner.Teleport("SQUEE");
+        runner.Execute("WEST");
+
+        Assert.Equal(1, runner.State.Moves);
+    }
 
     [Fact]
     public void Every_exit_is_a_message_or_leads_to_an_existing_room()
@@ -643,11 +659,11 @@ public class GameTests
     public void Falls_north_leads_to_shore_and_canyon_has_no_north_exit()
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Falls_north_leads_to_shore", _logDir));
-        Teleport(runner, "FALLS");
+        runner.Teleport("FALLS");
         runner.Execute("NORTH");
         Assert.Equal("FANTE", runner.State.Here?.Id);
 
-        Teleport(runner, "CANY1");
+        runner.Teleport("CANY1");
         runner.Execute("NORTH");
         Assert.Equal("CANY1", runner.State.Here?.Id);
     }
@@ -658,7 +674,7 @@ public class GameTests
     public void Going_down_over_the_falls_is_fatal(string fromRoom)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("Going_down_over_the_falls_" + fromRoom, _logDir));
-        Teleport(runner, fromRoom);
+        runner.Teleport(fromRoom);
         runner.Execute("DOWN");
 
         Assert.Contains("gone over Aragain Falls", runner.GetOutput());
@@ -674,7 +690,7 @@ public class GameTests
     public void River_cannot_be_travelled_upstream(string room)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath("River_upstream_" + room, _logDir));
-        Teleport(runner, room);
+        runner.Teleport(room);
         runner.Execute("UP");
 
         Assert.Contains("You cannot go upstream due to strong currents.", runner.GetOutput());
@@ -693,7 +709,7 @@ public class GameTests
     public void River_launch_and_land_exits(string from, string command, string expected)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_{command}_{from}", _logDir));
-        Teleport(runner, from);
+        runner.Teleport(from);
         runner.Execute(command);
 
         Assert.Equal(expected, runner.State.Here?.Id);
@@ -707,7 +723,7 @@ public class GameTests
     public void River_blocked_exits_print_original_messages(string room, string command, string message)
     {
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_blocked_{room}_{command}", _logDir));
-        Teleport(runner, room);
+        runner.Teleport(room);
         runner.Execute(command);
 
         Assert.Contains(message, runner.GetOutput());

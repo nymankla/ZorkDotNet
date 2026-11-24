@@ -39,7 +39,7 @@ internal sealed record OriginalObject(
     public bool IsFullObject => Kind == "OBJECT";
 }
 
-/// <summary>A verb from ADD-ACTION / 1ADD-ACTION with its VSYNONYM words (Words includes Name).</summary>
+/// <summary>A verb from ADD-ACTION / 1ADD-ACTION / SADD-ACTION with its VSYNONYM words (Words includes Name).</summary>
 internal sealed record OriginalVerb(string Name, IReadOnlyList<string> Words);
 
 /// <summary>dung.56 parsed into rooms, objects, verbs and directions.</summary>
@@ -103,7 +103,7 @@ internal sealed class OriginalDungeon
             case MdlSeq { Kind: MdlSeqKind.Form, Head: "SOBJECT" or "AOBJECT" } simpleObj:
                 AddSimpleObject(simpleObj, Array.Empty<string>());
                 return;
-            case MdlSeq { Kind: MdlSeqKind.Form, Head: "ADD-ACTION" or "1ADD-ACTION" } act when act.Items.Count > 1 && act.Items[1] is MdlString verb:
+            case MdlSeq { Kind: MdlSeqKind.Form, Head: "ADD-ACTION" or "1ADD-ACTION" or "SADD-ACTION" } act when act.Items.Count > 1 && act.Items[1] is MdlString verb:
                 if (!_verbs.ContainsKey(verb.Value)) _verbs[verb.Value] = new List<string> { verb.Value };
                 return;
             case MdlSeq { Kind: MdlSeqKind.Form, Head: "VSYNONYM" } vs when vs.Items.Count > 1 && vs.Items[1] is MdlString vname:

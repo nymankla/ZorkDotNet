@@ -5,6 +5,118 @@ namespace ZorkDotNet.Game;
 /// </summary>
 public static class ObjectActions
 {
+    /// <summary>act1.38 DUMMY: replies for doing something that is already done.</summary>
+    private static readonly string[] Dummy = ["Look around.", "You think it isn't?", "I think you've already done that."];
+
+    /// <summary>
+    /// act1.38 OPEN-CLOSE: OPEN sets the flag (or a DUMMY reply if already set), CLOSE clears it (or DUMMY).
+    /// Other verbs do nothing and return false.
+    /// </summary>
+    private static bool OpenClose(GameState state, string verb, string flag, string openText, string closeText)
+    {
+        if (verb == "OPEN")
+        {
+            if (state.GetFlag(flag)) state.Output.WriteLine(Dummy[Random.Shared.Next(Dummy.Length)]);
+            else { state.Output.WriteLine(openText); state.SetFlag(flag, true); }
+            return true;
+        }
+        if (verb == "CLOSE")
+        {
+            if (state.GetFlag(flag)) { state.Output.WriteLine(closeText); state.SetFlag(flag, false); }
+            else state.Output.WriteLine(Dummy[Random.Shared.Next(Dummy.Length)]);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>act1.38 GRAT1-FUNCTION: the grating seen from the clearing.</summary>
+    public static void Grating1Function(GameState state, string verb, GameObject? _)
+    {
+        if (state.GetFlag("GRUNLOCK!-FLAG"))
+            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens.", "The grating is closed.");
+        else
+            state.Output.WriteLine("The grating is locked.");
+    }
+
+    /// <summary>act1.38 GRAT2-FUNCTION: the grating seen from below (MGRAT); working it makes GRAT1 visible above.</summary>
+    public static void Grating2Function(GameState state, string verb, GameObject? _)
+    {
+        if (state.GetFlag("GRUNLOCK!-FLAG"))
+        {
+            OpenClose(state, verb, "KEY-FLAG!-FLAG", "The grating opens to reveal trees above you.", "The grating is closed.");
+            var grat1 = state.World?.FindObject("GRAT1");
+            if (grat1 != null) grat1.Flags |= ObjectFlags.Visible;
+        }
+        else
+        {
+            state.Output.WriteLine("The grating is locked.");
+        }
+    }
+
+    /// <summary>
+    /// act1.38 UNLOCKER: only the grating from below (GRAT2) can be unlocked, and only with the skeleton keys.
+    /// A missing tool is chosen like np.93 GWIM (the single tool carried, else the single tool in the room).
+    /// </summary>
+    public static void Unlocker(GameState state, GameObject obj, GameObject? tool)
+    {
+        tool ??= FindOnlyTool(state);
+        if (tool == null)
+        {
+            state.Output.WriteLine("With what?");
+            return;
+        }
+        if (obj.Id != "GRAT2")
+        {
+            state.Output.WriteLine("It doesn't seem to work.");
+            return;
+        }
+        if (tool.Id != "KEYS")
+        {
+            state.Output.WriteLine("Can you unlock a grating with a " + tool.DescriptionShort + "?");
+            return;
+        }
+        state.SetFlag("GRUNLOCK!-FLAG", true);
+        state.Output.WriteLine("The grate is unlocked.");
+        SetGratingExitMessage(state.World?.FindRoom("MGRAT"), "The grate is closed.");
+    }
+
+    /// <summary>act1.38 LOCKER: locks the grating from below (GRAT2).</summary>
+    public static void Locker(GameState state, GameObject obj)
+    {
+        if (obj.Id != "GRAT2")
+        {
+            state.Output.WriteLine("It doesn't seem to work.");
+            return;
+        }
+        state.SetFlag("GRUNLOCK!-FLAG", false);
+        state.Output.WriteLine("The grate is locked.");
+        SetGratingExitMessage(state.Here, "The grate is locked.");
+    }
+
+    /// <summary>Change the "else" text of the room's KEY-FLAG exit (MDL PUT ... ,CXSTR).</summary>
+    private static void SetGratingExitMessage(Room? room, string message)
+    {
+        if (room == null) return;
+        foreach (var (dir, exit) in room.Exits.ToList())
+        {
+            if (exit.ConditionFlag == "KEY-FLAG!-FLAG")
+            {
+                room.Exits[dir] = new ExitTarget(exit.ConditionFlag, exit.RoomId!, message);
+                return;
+            }
+        }
+    }
+
+    /// <summary>np.93 GWIM for a tool: the only visible tool carried, else the only visible takeable tool in the room.</summary>
+    private static GameObject? FindOnlyTool(GameState state)
+    {
+        static bool IsTool(GameObject o) => o.IsVisible && (o.Flags & ObjectFlags.Tool) != 0;
+        var carried = state.Winner.Inventory.Where(IsTool).ToList();
+        if (carried.Count > 0) return carried.Count == 1 ? carried[0] : null;
+        var inRoom = state.Here.Objects.Where(o => IsTool(o) && o.CanTake).ToList();
+        return inRoom.Count == 1 ? inRoom[0] : null;
+    }
+
     public static void WindowFunction(GameState state, string verb, GameObject? _)
     {
         if (verb == "OPEN")
@@ -76,18 +188,15 @@ public static class ObjectActions
                 state.Here.Objects.Add(blamp);
             }
         }
-        else if (verb == "TURNON" || verb == "TURN ON")
+        // TURN ON / OFF: the original LANTERN only enables or disables the lamp's clock and lets LAMP-ON /
+        // LAMP-OFF do the rest. Here the lamp clock runs whenever the lamp is on (GameState.ProcessClocks).
+        else if ((verb == "TURNON" || verb == "TURN ON") && lamp != null)
         {
-            if (lamp != null)
-            {
-                lamp.LightAmount = -1;
-                state.LampTicksRemaining = 100; // LAMP-TICKS: burn timer (100 so cellar→troll→carousel path stays lit for take/wave iron box)
-                state.Output.WriteLine("The lamp is now on.");
-            }
+            Parser.LampOn(state, lamp);
         }
-        else if (verb == "TURNOFF" || verb == "TURN OFF")
+        else if ((verb == "TURNOFF" || verb == "TURN OFF") && lamp != null)
         {
-            if (lamp != null) { lamp.LightAmount = 0; state.Output.WriteLine("The lamp is now off."); }
+            Parser.LampOff(state, lamp);
         }
     }
 
@@ -103,15 +212,19 @@ public static class ObjectActions
                 return;
             }
             obj.LightAmount = 1;
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 5, _ =>
-            {
-                if (obj.LightAmount > 0)
-                {
-                    obj.LightAmount = 0;
-                    _.Output.WriteLine("The match has burned out.");
-                }
-            }));
+            state.Schedule(5, Clocks.MatchOut, obj.Id);
             state.Output.WriteLine("The match is now lit.");
+        }
+    }
+
+    /// <summary>MATCH-FUNCTION clock: a lit match burns out.</summary>
+    public static void MatchBurnout(GameState state, string? matchId)
+    {
+        var match = state.World?.FindObject(matchId ?? "MATCH");
+        if (match != null && match.LightAmount > 0)
+        {
+            match.LightAmount = 0;
+            state.Output.WriteLine("The match has burned out.");
         }
     }
 
@@ -142,37 +255,39 @@ public static class ObjectActions
             return;
         }
         obj.LightAmount = 1;
-        state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 2, _ =>
-        {
-            var fuse = _.World?.FindObject("FUSE");
-            if (fuse?.Container?.Id != "BRICK")
-            {
-                _.Output.WriteLine("The fuse has burned to the end.");
-                _.Output.WriteLine("The wire rapidly burns into nothingness.");
-                if (fuse != null) fuse.LightAmount = 0;
-                return;
-            }
-            _.Output.WriteLine("The fuse has burned to the end.");
-            var brick = _.World?.FindObject("BRICK");
-            string? brickRoomId = null;
-            if (brick != null)
-            {
-                if (brick.InRoom != null) brickRoomId = brick.InRoom.Id;
-                else if (brick.Carrier != null) brickRoomId = brick.Carrier.CurrentRoom?.Id;
-            }
-            brickRoomId ??= _.Here?.Id;
-            if (brickRoomId != null && _.Here?.Id == brickRoomId)
-            {
-                _.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
-                _.Output.WriteLine("   BOOOOOOOOOOOM      ");
-                _.Running = false;
-                return;
-            }
-            _.Output.WriteLine("There is an explosion nearby.");
-            var capturedRoom = brickRoomId;
-            _.ScheduledEvents.Add(new ScheduledEvent(_.Moves + 5, s => SafeMung(s, capturedRoom)));
-        }));
+        state.Schedule(2, Clocks.Fuse);
         state.Output.WriteLine("The fuse is lit.");
+    }
+
+    /// <summary>FUSE-FUNCTION clock: the lit fuse burns down (explodes the brick if it is in it).</summary>
+    public static void FuseBurnedDown(GameState state)
+    {
+        var fuse = state.World?.FindObject("FUSE");
+        if (fuse?.Container?.Id != "BRICK")
+        {
+            state.Output.WriteLine("The fuse has burned to the end.");
+            state.Output.WriteLine("The wire rapidly burns into nothingness.");
+            if (fuse != null) fuse.LightAmount = 0;
+            return;
+        }
+        state.Output.WriteLine("The fuse has burned to the end.");
+        var brick = state.World?.FindObject("BRICK");
+        string? brickRoomId = null;
+        if (brick != null)
+        {
+            if (brick.InRoom != null) brickRoomId = brick.InRoom.Id;
+            else if (brick.Carrier != null) brickRoomId = brick.Carrier.CurrentRoom?.Id;
+        }
+        brickRoomId ??= state.Here?.Id;
+        if (brickRoomId != null && state.Here?.Id == brickRoomId)
+        {
+            state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
+            state.Output.WriteLine("   BOOOOOOOOOOOM      ");
+            state.Running = false;
+            return;
+        }
+        state.Output.WriteLine("There is an explosion nearby.");
+        state.Schedule(5, Clocks.SafeMung, brickRoomId);
     }
 
     /// <summary>SAFE-MUNG (CEVENT): if player in munged room → death; else tell rumbling; if SAFE, schedule LEDGE-MUNG in 8; mung room.</summary>
@@ -192,7 +307,7 @@ public static class ObjectActions
         if (mungedRoomId == "SAFE")
         {
             state.SetFlag("SAFE-FLAG!-FLAG", true);
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 8, LedgeMung));
+            state.Schedule(8, Clocks.LedgeMung);
         }
         state.MungRoom(mungedRoomId, "The way is blocked by debris from an explosion.");
     }
@@ -271,7 +386,7 @@ public static class ObjectActions
             gnome.Carrier = null;
             gnome.Container = null;
             state.Here.Objects.Add(gnome);
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 5, GnomeLeave));
+            state.Schedule(5, Clocks.GnomeLeave);
         }
     }
 
@@ -301,7 +416,7 @@ public static class ObjectActions
             state.SetFlag("BUCKET-TOP!-FLAG", true);
             var twell = state.World?.FindRoom("TWELL");
             if (twell != null && bucket.InRoom != null) { bucket.InRoom.Objects.Remove(bucket); bucket.InRoom = twell; twell.Objects.Add(bucket); }
-            state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 100, BucketTick));
+            state.Schedule(100, Clocks.Bucket);
         }
     }
 
@@ -335,7 +450,7 @@ public static class ObjectActions
         state.Output.WriteLine("The " + obj.DescriptionShort + " burns inside the receptacle.");
         obj.LightAmount = 1;
         var ticks = Math.Max(1, obj.Size * 20);
-        state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + ticks, _ => Burnup(_)));
+        state.Schedule(ticks, Clocks.Burnup);
         if (!state.GetFlag("BINF!-FLAG"))
         {
             state.Output.WriteLine("The cloth bag inflates as it fills with hot air.");
@@ -405,7 +520,7 @@ public static class ObjectActions
                 cont.Contents.Add(obj);
                 state.Output.WriteLine("The bucket is now full of water.");
                 if (state.Here?.Id == "BWELL")
-                    state.ScheduledEvents.Add(new ScheduledEvent(state.Moves + 100, BucketTick));
+                    state.Schedule(100, Clocks.Bucket);
             }
             else if (cont != null && cont != bottle)
             {

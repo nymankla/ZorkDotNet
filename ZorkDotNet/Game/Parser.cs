@@ -42,6 +42,23 @@ public static class Parser
         return w.Length > 5 ? w[..5] : w;
     }
 
+    /// <summary>
+    /// One turn of rooms.99 RDCOM for a line the player typed: count the move, run the command, then the clocks
+    /// and demons. An answer to QUIT's "Do you wish to leave the game?" is read by FINISH itself, so it is
+    /// neither a move nor a turn.
+    /// </summary>
+    public static void PlayTurn(GameState state, string input)
+    {
+        if (state.AwaitingQuitConfirmation)
+        {
+            Scoring.AnswerQuit(state, input.Trim());
+            return;
+        }
+        state.Winner.Moves++;
+        Execute(state, input);
+        state.ProcessClocks();
+    }
+
     public static void Execute(GameState state, string input)
     {
         var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
@@ -255,11 +272,11 @@ public static class Parser
         // Dispatch
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
-        Dispatch(state, chosen.Action, dobj, words);
+        Dispatch(state, chosen.Action, dobj, iobj, words);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
-    private static void Dispatch(GameState state, string action, GameObject? direct, string[] words)
+    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect, string[] words)
     {
         switch (action)
         {
@@ -289,6 +306,15 @@ public static class Parser
             case "CLOSE":
                 if (direct != null) DoClose(state, direct);
                 else state.Output.WriteLine("What do you want to close?");
+                break;
+            case "UNLOCK":
+                // np.93 ORTELL wording for a missing object.
+                if (direct != null) ObjectActions.Unlocker(state, direct, indirect);
+                else state.Output.WriteLine("Unlock what?");
+                break;
+            case "LOCK":
+                if (direct != null) ObjectActions.Locker(state, direct);
+                else state.Output.WriteLine("Lock what?");
                 break;
             case "READ":
                 if (direct != null) ObjectActions.ReadObject(state, direct);
@@ -354,12 +380,14 @@ public static class Parser
                 {
                     state.LastDirectObject = turnObj;
                     if (turnObj.ObjectAction != null) turnObj.ObjectAction(state, subVerb, null);
+                    else if (subVerb == "TURNON") LampOn(state, turnObj);
+                    else if (subVerb == "TURNOFF") LampOff(state, turnObj);
                     else state.Output.WriteLine("Nothing happens.");
                 }
                 else state.Output.WriteLine("What do you want to turn?");
                 break;
-            case "QUIT": DoQuit(state); break;
-            case "SCORE": DoScore(state); break;
+            case "QUIT": Scoring.Quit(state); break;
+            case "SCORE": Scoring.PrintScore(state, ask: true); break;
             case "BRIEF": state.Winner.BriefMode = true; state.Output.WriteLine("Brief mode is now on."); break;
             case "UNBRIEF": state.Winner.BriefMode = false; state.Output.WriteLine("Brief mode is now off."); break;
             case "SUPERBRIEF": state.Winner.SuperBriefMode = true; state.Output.WriteLine("Super-brief mode is now on."); break;
@@ -547,7 +575,7 @@ public static class Parser
             if (!nextRoom.Objects.Contains(vehicle))
                 nextRoom.Objects.Add(vehicle);
         }
-        state.Winner.Moves++;
+        // No Moves++ here: the original (rooms.99 RDCOM) counts one move per command, and GOTO never adds one.
         if (!nextRoom.Seen) state.Winner.Score += nextRoom.VisitScore;
         nextRoom.Seen = true;
         nextRoom.OnEnter?.Invoke(state);
@@ -691,6 +719,46 @@ public static class Parser
         else { obj.Open = false; state.Output.WriteLine("Closed."); }
     }
 
+    /// <summary>
+    /// rooms.99 LAMP-ON: light a carried light source (OLIGHT? -1 = off, 1 = on, 0 = can't be lit). If that lights
+    /// a dark room, the room is described.
+    /// </summary>
+    internal static void LampOn(GameState state, GameObject obj)
+    {
+        if (obj.LightAmount == 0 || !state.Winner.Inventory.Contains(obj))
+        {
+            state.Output.WriteLine("You can't turn that on.");
+            return;
+        }
+        if (obj.LightAmount > 0)
+        {
+            state.Output.WriteLine("It is already on.");
+            return;
+        }
+        var wasLit = GameState.IsLit(state);
+        obj.LightAmount = 1;
+        state.Output.WriteLine("The " + obj.DescriptionShort + " is now on.");
+        if (!wasLit) DoLook(state);
+    }
+
+    /// <summary>rooms.99 LAMP-OFF: put out a carried light source.</summary>
+    internal static void LampOff(GameState state, GameObject obj)
+    {
+        if (obj.LightAmount == 0 || !state.Winner.Inventory.Contains(obj))
+        {
+            state.Output.WriteLine("You can't turn that off.");
+            return;
+        }
+        if (obj.LightAmount < 0)
+        {
+            state.Output.WriteLine("It is already off.");
+            return;
+        }
+        obj.LightAmount = -1;
+        state.Output.WriteLine("The " + obj.DescriptionShort + " is now off.");
+        if (!GameState.IsLit(state)) state.Output.WriteLine("It is now pitch black.");
+    }
+
     private static void DoInventory(GameState state)
     {
         if (state.Winner.Inventory.Count == 0)
@@ -699,19 +767,6 @@ public static class Parser
             state.Output.WriteLine("You are carrying:" + Environment.NewLine + "  " + string.Join(Environment.NewLine + "  ", state.Winner.Inventory.Select(o => o.DescriptionShort)));
     }
 
-    private const int MaxScore = 350;
-
-    private static void DoScore(GameState state)
-    {
-        state.Output.WriteLine($"Your score is {state.Winner.Score} (total possible {MaxScore}).");
-    }
-
-    private static void DoQuit(GameState state)
-    {
-        state.Output.WriteLine("Your score is " + state.Winner.Score + " (total 350).");
-        state.Output.WriteLine("Do you want to continue? ");
-        state.Running = false;
-    }
 
     private static void DoThrow(GameState state, string[] words)
     {

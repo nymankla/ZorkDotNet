@@ -19,12 +19,11 @@ Parser.Execute(state, "LOOK");
 
 while (state.Running)
 {
-    state.Output.Write("> ");
+    // FINISH reads the answer to "Do you wish to leave the game?" without the command prompt.
+    if (!state.AwaitingQuitConfirmation) state.Output.Write("> ");
     var line = Console.ReadLine();
     if (line == null) break;
     line = line.Trim();
     if (string.IsNullOrEmpty(line)) continue;
-    state.Winner.Moves++;
-    Parser.Execute(state, line);
-    state.ProcessClocks();
+    Parser.PlayTurn(state, line);
 }

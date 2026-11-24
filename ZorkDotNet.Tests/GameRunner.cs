@@ -41,14 +41,12 @@ public sealed class GameRunner : IDisposable
     }
 
     /// <summary>
-    /// Run a single command: increment moves, execute, process clocks. Logs "> command" then game output.
+    /// Run a single command exactly like the game loop (Parser.PlayTurn). Logs "> command" then game output.
     /// </summary>
     public void Execute(string command)
     {
         _tee.WriteLine("> " + command);
-        _state.Winner.Moves++;
-        Parser.Execute(_state, command);
-        _state.ProcessClocks();
+        Parser.PlayTurn(_state, command);
         _tee.Flush();
     }
 
@@ -68,6 +66,31 @@ public sealed class GameRunner : IDisposable
     /// Get all output so far as a single string.
     /// </summary>
     public string GetOutput() => _capture.ToString();
+
+    /// <summary>Output written since <paramref name="mark"/> (a previous <c>GetOutput().Length</c>).</summary>
+    public string GetOutputSince(int mark) => _capture.ToString()[mark..];
+
+    /// <summary>Put the player directly in a room (for testing areas far from the start). Costs no move.</summary>
+    public void Teleport(string roomId)
+    {
+        var room = _state.World!.FindRoom(roomId) ?? throw new ArgumentException("No such room: " + roomId, nameof(roomId));
+        _state.Winner.CurrentRoom = room;
+        room.Seen = true;
+    }
+
+    /// <summary>Move an object from wherever it is into the player's inventory.</summary>
+    public GameObject Give(string objectId)
+    {
+        var obj = _state.World!.FindObject(objectId) ?? throw new ArgumentException("No such object: " + objectId, nameof(objectId));
+        obj.InRoom?.Objects.Remove(obj);
+        obj.Container?.Contents.Remove(obj);
+        obj.Carrier?.Inventory.Remove(obj);
+        obj.InRoom = null;
+        obj.Container = null;
+        obj.Carrier = _state.Winner;
+        _state.Winner.Inventory.Add(obj);
+        return obj;
+    }
 
     public void Dispose()
     {
