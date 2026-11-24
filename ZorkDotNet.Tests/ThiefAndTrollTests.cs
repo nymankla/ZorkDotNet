@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -21,8 +22,8 @@ public class ThiefAndTrollTests
         var runner = new GameRunner();
         runner.Give("LAMP").LightAmount = 1;
         runner.Teleport(roomId);
-        runner.State.ThiefActive = true;
-        runner.State.ThiefRoom = roomId;
+        runner.State.Robber.Active = true;
+        runner.State.Robber.Room = roomId;
         runner.State.Random = new FixedRandom(random);
         return runner;
     }
@@ -33,7 +34,7 @@ public class ThiefAndTrollTests
         using var runner = WithThief("MAZE5", 0); // PROB 30 succeeds
 
         Assert.Contains("Someone carrying a large bag is casually leaning against one of the walls here.", Do(runner, "LOOK"));
-        Assert.Equal("MAZE5", runner.State.World!.FindObject("THIEF")!.InRoom?.Id);
+        Assert.Equal("MAZE5", runner.State.World.FindObject("THIEF")!.InRoom?.Id);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class ThiefAndTrollTests
 
         Assert.Contains("he quietly abstracted all valuables from the room and from your possession", Do(runner, "LOOK"));
         Assert.DoesNotContain(pearl, runner.State.Winner.Inventory);
-        Assert.Contains("PEARL", runner.State.ThiefBag);
+        Assert.Contains("PEARL", runner.State.Robber.Bag);
     }
 
     [Fact]
@@ -59,20 +60,20 @@ public class ThiefAndTrollTests
     public void Treasures_in_his_bag_end_up_in_his_hideaway()
     {
         using var runner = WithThief("MAZE5", 99);
-        runner.State.ThiefRoom = "TREAS";
-        runner.State.ThiefBag.Add("PEARL");
+        runner.State.Robber.Room = "TREAS";
+        runner.State.Robber.Bag.Add("PEARL");
 
         Do(runner, "LOOK");
 
-        Assert.Equal("TREAS", runner.State.World!.FindObject("PEARL")!.InRoom?.Id);
-        Assert.Empty(runner.State.ThiefBag);
+        Assert.Equal("TREAS", runner.State.World.FindObject("PEARL")!.InRoom?.Id);
+        Assert.Empty(runner.State.Robber.Bag);
     }
 
     [Fact]
     public void The_thief_defends_his_hideaway_and_guards_the_chalice_until_he_dies()
     {
         using var runner = WithThief("CYCLO", 0);
-        runner.State.ThiefRoom = "MAZE1";
+        runner.State.Robber.Room = "MAZE1";
         runner.State.SetFlag("CYCLOPS-FLAG!-FLAG", true);
         runner.Give("SWORD");
 
@@ -81,9 +82,9 @@ public class ThiefAndTrollTests
         Assert.Contains("Realizing just in time that you'd be stabbed in the back", Do(runner, "TAKE CHALICE"));
 
         var fight = "";
-        for (var i = 0; i < 3 && runner.State.ThiefActive; i++) fight += Do(runner, "ATTACK THIEF WITH SWORD");
+        for (var i = 0; i < 3 && runner.State.Robber.Active; i++) fight += Do(runner, "ATTACK THIEF WITH SWORD");
         Assert.Contains("The thief is killed by the force of your attack.", fight);
-        Assert.False(runner.State.ThiefActive);
+        Assert.False(runner.State.Robber.Active);
         Assert.Contains("Taken.", Do(runner, "TAKE CHALICE"));
     }
 
@@ -92,26 +93,54 @@ public class ThiefAndTrollTests
     {
         using var runner = WithThief("MAZE5", 0);
         Do(runner, "LOOK"); // he appears
-        runner.State.ThiefActive = false;
+        runner.State.Robber.Active = false;
         runner.Give("SWORD");
 
         Assert.Contains("The thief places the sword in his bag and thanks you politely.", Do(runner, "GIVE SWORD TO THIEF"));
-        Assert.Contains("SWORD", runner.State.ThiefBag);
+        Assert.Contains("SWORD", runner.State.Robber.Bag);
         Assert.Contains("Once you got him, what would you do with him?", Do(runner, "TAKE THIEF"));
+    }
+
+    [Fact]
+    public void Swinging_a_weapon_at_a_villain_attacks_him_with_it()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Give("SWORD");
+        runner.Teleport("MTROL");
+
+        Do(runner, "SWING SWORD AT TROLL");
+
+        Assert.True(runner.State.World.FindObject("TROLL")!.Fighting);
+        Assert.Same(runner.State.World.FindObject("SWORD"), runner.State.LastIndirectObject);
+    }
+
+    [Fact]
+    public void Attacking_with_the_rusty_knife_turns_it_on_you()
+    {
+        using var runner = new GameRunner();
+        runner.Give("LAMP").LightAmount = 1;
+        runner.Give("RKNIF");
+        runner.Teleport("MTROL");
+
+        Assert.Contains("The knife seems to sing as it savagely slits your throat.", Do(runner, "ATTACK TROLL WITH RUSTY KNIFE"));
     }
 
     [Fact]
     public void Wounds_heal_one_at_a_time_with_the_cure_clock()
     {
         using var runner = new GameRunner();
-        runner.State.Winner.Strength = 40;
+        runner.State.Winner.Strength = 40; // wounded three times, which sets the clock
+        runner.State.Schedule(GameState.CureInterval, Clocks.Cure);
 
-        for (var i = 0; i < 30; i++) runner.Execute("WAIT");
-        var once = runner.State.Winner.Strength;
-        for (var i = 0; i < 300; i++) runner.Execute("WAIT");
+        for (var i = 0; i < 29; i++) runner.Execute("LOOK");
+        Assert.Equal(40, runner.State.Winner.Strength);
+        runner.Execute("LOOK");
+        Assert.Equal(60, runner.State.Winner.Strength);
+        for (var i = 0; i < 60; i++) runner.Execute("LOOK");
 
-        Assert.InRange(once, 60, 80); // one or two wounds, depending on where the 30-move cycle falls
-        Assert.Equal(100, runner.State.Winner.Strength); // never above full strength
+        Assert.Equal(100, runner.State.Winner.Strength);
+        Assert.Null(runner.State.FindClock(Clocks.Cure)); // whole again: the clock stops
     }
 
     [Fact]
@@ -127,7 +156,7 @@ public class ThiefAndTrollTests
         Assert.Contains("The troll, who is not overly proud, graciously accepts the gift", eaten);
         Assert.Contains("and not having the most discriminating tastes, gleefully eats it.", eaten);
         Assert.Contains("and being for the moment sated, throws it back.", Do(runner, "THROW KNIFE AT TROLL"));
-        Assert.True(runner.State.World!.FindObject("TROLL")!.Fighting);
+        Assert.True(runner.State.World.FindObject("TROLL")!.Fighting);
         Assert.Contains("The troll spits in your face, saying \"Better luck next time.\"", Do(runner, "TAKE TROLL"));
     }
 }

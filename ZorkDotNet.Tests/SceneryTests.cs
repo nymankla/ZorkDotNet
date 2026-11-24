@@ -21,6 +21,7 @@ public class SceneryTests
     public void The_front_door_never_opens(string command, string expected)
     {
         using var runner = new GameRunner();
+        runner.Give("TORCH");
 
         Assert.Contains(expected, Do(runner, command));
     }
@@ -69,7 +70,7 @@ public class SceneryTests
     public void The_rainbow_is_seen_from_both_ends()
     {
         using var runner = new GameRunner();
-        var rainbow = runner.State.World!.FindObject("RAINB")!;
+        var rainbow = runner.State.World.FindObject("RAINB")!;
 
         Assert.Contains(rainbow, runner.State.World.FindRoom("FALLS")!.Objects);
         Assert.Contains(rainbow, runner.State.World.FindRoom("POG")!.Objects);

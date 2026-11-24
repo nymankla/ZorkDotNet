@@ -9,7 +9,7 @@ public static class Combat
     /// <summary>ARMED?: true if player has a weapon in inventory.</summary>
     public static bool Armed(GameState state)
     {
-        return state.Winner.Inventory.Exists(o => (o.Flags & ObjectFlags.Weapon) != 0);
+        return state.Winner.Inventory.Any(o => (o.Flags & ObjectFlags.Weapon) != 0);
     }
 
     /// <summary>act1.38 INFESTED?: a villain is in this room.</summary>
@@ -22,7 +22,6 @@ public static class Combat
     public static int SwordGlow(GameState state, Room here)
     {
         if (Infested(here)) return 2;
-        if (state.World == null) return 0;
         foreach (var target in here.Exits.Values)
         {
             var adj = target.RoomId != null ? state.World.FindRoom(target.RoomId) : null;
@@ -34,8 +33,7 @@ public static class Combat
     /// <summary>SWORD-DEMON: when player has sword, update glow from INFESTED? and print message.</summary>
     public static void SwordDemon(GameState state)
     {
-        if (state.World == null) return;
-        var sword = state.World.FindObject("SWORD");
+        var sword = state.World.FindObject(Obj.Sword);
         if (sword == null || !state.Winner.Inventory.Contains(sword)) return;
         var here = state.Here;
         var ng = SwordGlow(state, here);
@@ -58,7 +56,6 @@ public static class Combat
     /// </summary>
     public static void FightDemon(GameState state)
     {
-        if (state.World == null) return;
         foreach (var villain in state.Here.Objects.Where(o => o.IsVillain && o.Fighting).ToList())
         {
             if (!state.VillainStrength.ContainsKey(villain.Id)) continue;
@@ -68,6 +65,7 @@ public static class Combat
                 continue;
             }
             state.Winner.Strength = Math.Max(0, state.Winner.Strength - GameState.WoundStrength);
+            if (state.FindClock(Clocks.Cure) == null) state.Schedule(GameState.CureInterval, Clocks.Cure);
             if (state.Random.Next(100) < 30) state.Winner.Staggered = true;
             state.Output.WriteLine(state.Winner.Staggered
                 ? "The " + villain.DescriptionShort + "'s blow staggers you."
@@ -97,8 +95,8 @@ public static class Combat
         if (!villain.Fighting)
         {
             villain.Flags |= ObjectFlags.Fighting;
-            state.VillainStrength[villain.Id] = villain.Id == "THIEF" ? ThiefStrength : TrollStrength;
-            state.Output.WriteLine(villain.Id == "TROLL"
+            state.VillainStrength[villain.Id] = villain.Id == Obj.Thief ? ThiefStrength : TrollStrength;
+            state.Output.WriteLine(villain.Id == Obj.Troll
                 ? "The troll blocks your blow with his axe, and you are thrown back."
                 : "The " + villain.DescriptionShort + " parries your blow.");
             return;
@@ -112,10 +110,9 @@ public static class Combat
         }
         state.VillainStrength.Remove(villain.Id);
         villain.Flags &= ~ObjectFlags.Fighting;
-        state.Here.Objects.Remove(villain);
-        villain.InRoom = null;
+        villain.MoveTo(null);
         state.Output.WriteLine("The " + villain.DescriptionShort + " is killed by the force of your attack.  The body has vanished.");
-        if (villain.Id == "TROLL") state.SetFlag("TROLL-FLAG!-FLAG", true); // TROLL with DEAD!
-        else if (villain.Id == "THIEF") Thief.Died(state); // ROBBER-FUNCTION with DEAD!
+        if (villain.Id == Obj.Troll) state.SetFlag(Flag.Troll, true); // TROLL with DEAD!
+        else if (villain.Id == Obj.Thief) Thief.Died(state); // ROBBER-FUNCTION with DEAD!
     }
 }

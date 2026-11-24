@@ -238,7 +238,7 @@ public class GameTests
         );
         var output = runner.GetOutput();
         Assert.Contains("Done.", output);
-        var tcase = runner.State.World?.FindObject("TCASE");
+        var tcase = runner.State.World.FindObject("TCASE");
         Assert.NotNull(tcase);
         Assert.Contains(tcase!.Contents, o => o.Id == "PAPER");
     }
@@ -611,7 +611,7 @@ public class GameTests
     public void Every_exit_is_a_message_or_leads_to_an_existing_room()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         var broken = world.Rooms
             .SelectMany(r => r.Exits.Select(e => (Room: r.Id, Dir: e.Key, Exit: e.Value)))
             .Where(x => !x.Exit.IsBlocked && world.FindRoom(x.Exit.RoomId ?? "") == null)
@@ -716,9 +716,8 @@ public class GameTests
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_{command}_{from}", _logDir));
         runner.Teleport(from);
         // The river needs the magic boat (rooms.99 GOTO); sit in it, wherever it is.
-        var boat = runner.State.World!.FindObject("RBOAT")!;
-        runner.State.Here.Objects.Add(boat);
-        boat.InRoom = runner.State.Here;
+        var boat = runner.State.World.FindObject("RBOAT")!;
+        boat.MoveTo(runner.State.Here);
         runner.State.Winner.Vehicle = boat;
         runner.Execute(command);
 

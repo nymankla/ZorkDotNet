@@ -11,14 +11,6 @@ public static class Parser
         ["U"] = "UP", ["D"] = "DOWN", ["IN"] = "ENTER", ["OUT"] = "EXIT", ["LEAVE"] = "EXIT"
     };
 
-    /// <summary>PREPVEC synonym: WITH, USING, THROU (dung.56 SYNONYM "WITH" "USING" "THROU").</summary>
-    private static bool IsPrepWith(string normWord) =>
-        normWord == "WITH" || normWord == "USING" || normWord == "THROU";
-
-    /// <summary>PREPVEC synonym: IN, INSID, INTO (dung.56 SYNONYM "IN" "INSID" "INTO").</summary>
-    private static bool IsPrepIn(string normWord) =>
-        normWord == "IN" || normWord == "INSID" || normWord == "INTO";
-
     /// <summary>GWIM-style: ask "Which X?" and list options when multiple match.</summary>
     private static void WriteWhichPrompt(GameState state, string ambiguousWord)
     {
@@ -47,6 +39,16 @@ public static class Parser
     /// and demons. An answer to QUIT's "Do you wish to leave the game?" is read by FINISH itself, so it is
     /// neither a move nor a turn.
     /// </summary>
+    /// <summary>
+    /// rooms.99 START: "Welcome to Dungeon." and the version line (SAVE-IT passes it in), then the room you start in.
+    /// </summary>
+    public static void Start(GameState state)
+    {
+        state.Output.WriteLine("Welcome to Dungeon.");
+        state.Output.WriteLine(Verbs.VersionText());
+        Execute(state, "LOOK");
+    }
+
     public static void PlayTurn(GameState state, string input)
     {
         if (state.AwaitingQuitConfirmation)
@@ -114,7 +116,7 @@ public static class Parser
         if (input.TrimStart().StartsWith("ECHO", StringComparison.OrdinalIgnoreCase))
         {
             state.Output.WriteLine("The acoustics of the room change subtly.");
-            state.SetFlag("ECHO-FLAG!-FLAG", true);
+            state.SetFlag(Flag.Echo, true);
             state.EchoListening = false;
             RoomActions.EchoRestore(state);
         }
@@ -152,7 +154,7 @@ public static class Parser
                 state.PendingAmbiguousWord = null;
                 var orphanSpec = VerbTable.GetByActionName(verb);
                 if (orphanSpec != null)
-                    SynMatch(state, orphanSpec, obj, null, null, words);
+                    SynMatch(state, orphanSpec, obj, null, null);
                 else
                     DispatchOrphanVerb(state, verb, obj);
                 return;
@@ -205,7 +207,7 @@ public static class Parser
         }
 
         // SYN-MATCH: find syntax, optionally GWIM, then dispatch
-        SynMatch(state, spec, o1, prep2, o2, words, prep1);
+        SynMatch(state, spec, o1, prep2, o2, prep1);
     }
 
     /// <summary>SPARSE: parse words after verb into direct object and optional (prep, indirect object).</summary>
@@ -265,9 +267,8 @@ public static class Parser
     }
 
     /// <summary>SYN-MATCH: try syntaxes, GWIM if missing object, then dispatch (np.93).</summary>
-    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string[] words, string? prep1 = null)
+    private static void SynMatch(GameState state, VerbSpec spec, GameObject? o1, string? prep2, GameObject? o2, string? prep1 = null)
     {
-        state.LastVerb = spec.ActionName;
         Syntax? driver = null;
         Syntax? match = null;
         foreach (var syn in spec.Syntaxes)
@@ -290,17 +291,18 @@ public static class Parser
         if (chosen.Action != "TAKE" && chosen.Syn1.WantsRoom && dobj != null && dobj.InRoom != null && dobj.CanTake && !chosen.Syn1.NoTake)
             DoTake(state, dobj);
         // Dispatch
+        state.LastVerb = chosen.Action;
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
-        Dispatch(state, chosen.Action, dobj, iobj, words);
+        Dispatch(state, chosen.Action, dobj, iobj);
         // rooms.99 RDCOM: after the verb, the room's own action gets its turn (the dam's buttons, digging on the beach).
         // After LOOK, ROOM-INFO has swapped the verb for the innocuous FOO, so the description isn't repeated.
         if (state.Running && !state.AwaitingPatchAnswer)
-            state.Here.RoomAction?.Invoke(state, chosen.Action == "LOOK" ? "FOO" : chosen.Action);
+            state.Here.RoomAction?.Invoke(state, state.LastVerb == "LOOK" ? "FOO" : state.LastVerb!);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
-    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect, string[] words)
+    private static void Dispatch(GameState state, string action, GameObject? direct, GameObject? indirect)
     {
         switch (action)
         {
@@ -310,22 +312,13 @@ public static class Parser
                 break;
             case "TAKE":
                 if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
-                if (direct?.Id is "EVERY" or "VALUA") { DoLots(state, "TAKE", direct, null, words); break; }
-                if (direct != null)
-                {
-                    // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
-                    if (direct.ObjectAction != null && !direct.Flags.HasFlag(ObjectFlags.Take))
-                    {
-                        direct.ObjectAction(state, "TAKE", null);
-                        return;
-                    }
-                    DoTake(state, direct);
-                }
+                if (direct?.Id is Obj.Every or Obj.Valua) { DoLots(state, "TAKE", direct, null); break; }
+                if (direct != null) DoTake(state, direct);
                 else state.Output.WriteLine("What do you want to take?");
                 break;
             case "DROP":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "DROP", direct, null, words);
-                else if (direct != null) DoDrop(state, direct);
+                if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "DROP", direct, null);
+                else if (direct != null) Dropper(state, "DROP", direct, indirect);
                 else state.Output.WriteLine("What do you want to drop?");
                 break;
             case "INVENTORY": DoInventory(state); break;
@@ -358,12 +351,15 @@ public static class Parser
                 if (direct != null) ObjectActions.DrinkObject(state, direct);
                 else state.Output.WriteLine("What do you want to drink?");
                 break;
-            case "THROW": DoThrow(state, words); break;
+            case "THROW":
+                if (direct != null) Dropper(state, "THROW", direct, indirect);
+                else state.Output.WriteLine("What do you want to throw?");
+                break;
             case "WAVE":
                 if (direct != null) DoWave(state, direct);
                 else state.Output.WriteLine("What do you want to wave?");
                 break;
-            case "ATTACK": DoAttack(state, words); break;
+            case "ATTACK": DoAttack(state, direct, indirect); break;
             case "MOVE":
                 if (direct != null) DoMove(state, direct);
                 else state.Output.WriteLine("What do you want to move?");
@@ -373,55 +369,67 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to lift?");
                 break;
             case "PUT":
-                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "PUT", direct, indirect, words);
-                else DoPut(state, words);
+                if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "PUT", direct, indirect);
+                else DoPut(state, direct, indirect);
                 break;
-            case "GIVE": DoGive(state, words); break;
-            case "RAISE":
-                if (direct == null || !ObjectActions.Try(state, direct, "RAISE", null))
-                    state.Output.WriteLine("You can't raise that.");
-                break;
-            case "LOWER":
-                if (direct == null || !ObjectActions.Try(state, direct, "LOWER", null))
-                    state.Output.WriteLine("You can't lower that.");
+            case "GIVE":
+                // dung.56 GIVE obj TO victim is DROPPER; a missing victim is GWIM'd.
+                if (direct == null) { state.Output.WriteLine("What do you want to give?"); break; }
+                indirect ??= Gwim(state, ObjectFlags.Victim, noTake: true);
+                if (indirect == null) state.Output.WriteLine("To what?");
+                else Dropper(state, "GIVE", direct, indirect);
                 break;
             case "BURN":
-                if (direct != null) DoBurn(state, direct);
+                if (direct != null) DoBurn(state, direct, indirect);
                 else state.Output.WriteLine("What do you want to burn?");
                 break;
-            case "FILL": DoFill(state, words); break;
-            case "TIE": DoTie(state, words); break;
+            case "FILL": DoFill(state, direct); break;
+            case "TIE": DoTie(state, direct, indirect); break;
             case "UNTIE":
-                if (direct == null || !ObjectActions.Try(state, direct, "UNTIE", null))
-                    state.Output.WriteLine("What do you want to untie?");
+                // act1.38 UNTIE
+                if (direct == null) state.Output.WriteLine("What do you want to untie?");
+                else if (ObjectActions.ObjectAction(state, "UNTIE", direct, indirect)) { }
+                else if ((direct.Flags & ObjectFlags.Tie) != 0) state.Output.WriteLine("I don't think so.");
+                else state.Output.WriteLine("This cannot be tied, so it cannot be untied!");
                 break;
             case "BREAK":
-                if (direct == null || !ObjectActions.Try(state, direct, "MUNG", null))
-                    state.Output.WriteLine("What do you want to break?");
-                break;
+                // dung.56 makes BREAK a synonym of POKE (act1.38 MUNGER).
+                goto case "POKE";
             case "POUR":
-                if (direct == null || !ObjectActions.Try(state, direct, "POUR", null))
-                    state.Output.WriteLine("What do you want to pour?");
+                if (direct != null) Dropper(state, "POUR", direct, indirect);
+                else state.Output.WriteLine("What do you want to pour?");
                 break;
             case "TURN":
             case "TURNON":
             case "TURNOFF":
+                // rooms.99 LAMP-ON: LIGHT something burnable WITH something is BURN.
+                if (action == "TURNON" && direct != null && indirect != null && (direct.Flags & ObjectFlags.Burnable) != 0)
+                {
+                    state.LastVerb = "BURN"; // <PUT .PRSVEC 1 ,BURN!-WORDS>: the room's action sees BURN
+                    DoBurn(state, direct, indirect);
+                    break;
+                }
                 if (direct == null)
                 {
                     state.Output.WriteLine(action == "TURN" ? "What do you want to turn?" : "What do you want to turn " + (action == "TURNON" ? "on" : "off") + "?");
                     break;
                 }
-                if (action == "TURN" && (direct.Flags & ObjectFlags.Turnable) != 0)
+                if (action == "TURN")
                 {
-                    // dung.56 TURN obj WITH tool: GWIM picks the one tool you carry.
+                    // act1.38 TURNER (TURN obj WITH tool; GWIM picks the one tool you carry).
+                    if ((direct.Flags & ObjectFlags.Turnable) == 0) { state.Output.WriteLine("You can't turn that!"); break; }
                     indirect ??= ObjectActions.FindOnlyTool(state);
                     if (indirect == null) { state.Output.WriteLine("With what?"); break; }
                     state.LastIndirectObject = indirect;
+                    if ((indirect.Flags & ObjectFlags.Tool) == 0)
+                        state.Output.WriteLine("You certainly can't turn it with a " + indirect.DescriptionShort + ".");
+                    else if (!ObjectActions.ObjectAction(state, action, direct, indirect))
+                        state.Output.WriteLine("Nothing happens.");
+                    break;
                 }
-                if (ObjectActions.Try(state, direct, action, indirect)) break;
+                if (ObjectActions.ObjectAction(state, action, direct, indirect)) break;
                 if (action == "TURNON") LampOn(state, direct);
-                else if (action == "TURNOFF") LampOff(state, direct);
-                else state.Output.WriteLine("Nothing happens.");
+                else LampOff(state, direct);
                 break;
             case "QUIT": Scoring.Quit(state); break;
             case "SCORE": Scoring.PrintScore(state, ask: true); break;
@@ -459,21 +467,19 @@ public static class Parser
             case "WALK": state.Output.WriteLine("Go where?"); break;
             case "STRIKE":
                 // dung.56 STRIKE: a villain is attacked, anything else is lit.
-                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect, words);
+                Dispatch(state, direct?.IsVillain == true ? "ATTACK" : "TURNON", direct, indirect);
                 break;
             case "POKE":
                 // act1.38 MUNGER: a villain with a weapon is attacked; the rest is Verbs' MUNG.
                 if (direct?.IsVillain == true && indirect != null && (indirect.Flags & ObjectFlags.Weapon) != 0)
-                    Dispatch(state, "ATTACK", direct, indirect, words);
+                    Dispatch(state, "ATTACK", direct, indirect);
                 else
                     Verbs.Run(state, "MUNG", direct, indirect);
                 break;
             case "SWING":
                 // act1.38 SWINGER: SWING weapon AT villain is ATTACK villain WITH weapon.
                 if (indirect == null) { state.Output.WriteLine("Swing at what?"); break; }
-                state.LastDirectObject = indirect;
-                state.LastIndirectObject = direct;
-                Dispatch(state, "ATTACK", indirect, direct, words);
+                Dispatch(state, "ATTACK", indirect, direct);
                 break;
             default:
                 if (!Verbs.Run(state, action, direct, indirect)) state.Output.WriteLine("I don't know how to do that.");
@@ -494,7 +500,7 @@ public static class Parser
         switch (verb)
         {
             case "TAKE": DoTake(state, obj); break;
-            case "DROP": DoDrop(state, obj); break;
+            case "DROP": Dropper(state, "DROP", obj, null); break;
             case "OPEN": DoOpen(state, obj); break;
             case "CLOSE": DoClose(state, obj); break;
             default: state.Output.WriteLine("I don't know how to do that."); break;
@@ -513,56 +519,20 @@ public static class Parser
     {
         ambiguousWord = null;
         state.PendingAmbiguousCandidates = null;
-        if (state.World == null) return null;
         var lit = GameState.IsLit(state);
         var adjectives = new List<string>();
         for (var i = startIndex; i < words.Length; i++)
         {
             var w = NormWord(words[i]);
             if (string.IsNullOrEmpty(w)) continue;
-            // Trap door in LROOM: OPEN TRAP / OPEN DOOR finds it even in dark (so player can open after moving rug)
-            if (state.Here?.Id == "LROOM" && (w == "TRAP" || w == "DOOR"))
-            {
-                var door = state.World?.FindObject("DOOR");
-                if (door != null && door.InRoom == state.Here)
-                {
-                    state.PendingAmbiguousCandidates = null;
-                    return door;
-                }
-            }
-            // Rug in LROOM: MOVE RUG must find it so RUG-MOVED gets set (check word first so we only run when resolving RUG)
-            if ((w == "RUG" || w == "CARPE") && state.Here?.Id == "LROOM")
-            {
-                var rug = state.Here.Objects.FirstOrDefault(o => o.Id == "RUG") ?? state.World?.FindObject("RUG");
-                if (rug != null)
-                {
-                    state.PendingAmbiguousCandidates = null;
-                    return rug;
-                }
-            }
             var inInv = WithVisibleContents(state.Winner.Inventory).Where(o => MatchObject(o, w)).ToList();
             IEnumerable<GameObject> inRoomList = Array.Empty<GameObject>();
             if (lit && state.Here != null)
             {
-                var roomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
-                // Trap door in living room: matchable for OPEN once rug is moved
-                if (state.Here.Id == "LROOM" && state.GetFlag("RUG-MOVED!-FLAG"))
-                {
-                    var door = state.World?.FindObject("DOOR");
-                    if (door != null && door.InRoom == state.Here && !roomList.Contains(door))
-                        roomList.Add(door);
-                }
-                // Rug in LROOM: ensure MOVE RUG finds it when lit (belt-and-braces)
-                if (state.Here.Id == "LROOM")
-                {
-                    var rug = state.World?.FindObject("RUG");
-                    if (rug != null && rug.InRoom == state.Here && !roomList.Contains(rug))
-                        roomList.Add(rug);
-                }
-                inRoomList = roomList;
+                inRoomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
             }
             // MDL ADD-STAR objects are within reach everywhere, light or dark.
-            inRoomList = inRoomList.Concat(state.World!.Objects.Where(o => o.IsGlobal));
+            inRoomList = inRoomList.Concat(state.World.Objects.Where(o => o.IsGlobal));
             var inRoom = inRoomList.Where(o => MatchObject(o, w)).ToList();
             var all = inInv.Concat(inRoom).Distinct().ToList();
             // An adjective (MDL OADJS) narrows the noun that follows it: "PUSH YELLOW BUTTON".
@@ -616,10 +586,10 @@ public static class Parser
     {
         var vehicle = state.Winner.Vehicle;
         // The vehicle's ORAND: the boat goes on water (RWATERBIT), the balloon in the air (RAIRBIT).
-        var boat = vehicle?.Id == "RBOAT";
-        var balloon = vehicle?.Id == "BALLO";
+        var boat = vehicle?.Id == Obj.Rboat;
+        var balloon = vehicle?.Id == Obj.Ballo;
         static bool Land(Room r) => !r.IsWater && !r.IsAir;
-        var bucket = vehicle?.Id == "BUCKE"; // RBUCKBIT: up and down the well only
+        var bucket = vehicle?.Id == Obj.Bucke; // RBUCKBIT: up and down the well only
         var fits = to.IsWater ? boat : !to.IsAir || balloon;
         if (!fits || (Land(from) && Land(to) && (boat || balloon || (bucket && !to.IsBucket))))
         {
@@ -633,7 +603,7 @@ public static class Parser
     {
         var r = state.Here;
         if (Balloon.ReadIn(state, "WALK", null, null, direction)) return;
-        if (r.Id == "MAGNE" && Robot.MagnetWalk(state, direction)) return;
+        if (r.OnWalk?.Invoke(state, direction) == true) return;
         // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
         // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
         if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
@@ -644,7 +614,7 @@ public static class Parser
                 return;
             }
             var open = !dark.IsBlocked && dark.RoomId != null && (!dark.IsConditional || state.GetFlag(dark.ConditionFlag!));
-            var lit = open ? state.World?.FindRoom(dark.RoomId!) : null;
+            var lit = open ? state.World.FindRoom(dark.RoomId!) : null;
             if (lit != null && GameState.IsLit(state, lit))
                 MoveToRoom(state, lit);
             else
@@ -665,9 +635,9 @@ public static class Parser
         }
         if (target.IsConditional && target.ConditionFlag != null)
         {
-            if (state.World != null && state.World.TryGetBeforeExitAction(r.Id, direction, out var beforeAction) && beforeAction != null)
+            if (state.World.TryGetBeforeExitAction(r.Id, direction, out var beforeAction) && beforeAction != null)
                 beforeAction(state);
-            if (state.World != null && state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null
+            if (state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null
                 && exitAction(state, direction))
                 return;
             if (!state.GetFlag(target.ConditionFlag))
@@ -677,7 +647,7 @@ public static class Parser
                 return;
             }
         }
-        var nextRoom = state.World!.FindRoom(target.RoomId!);
+        var nextRoom = state.World.FindRoom(target.RoomId!);
         if (nextRoom == null) { state.Output.WriteLine(NoWay); return; }
         if (!CanGo(state, r, nextRoom)) return;
         if (nextRoom.Munged)
@@ -705,19 +675,8 @@ public static class Parser
     /// <summary>Move player to a room (score, seen, onEnter, look). Used by TryGo and exit actions (e.g. CAROUSEL-OUT).</summary>
     public static void MoveToRoom(GameState state, Room nextRoom)
     {
-        var vehicle = state.Winner.Vehicle;
-        if (vehicle != null && vehicle.InRoom != null)
-        {
-            vehicle.InRoom.Objects.Remove(vehicle);
-            vehicle.InRoom = null;
-        }
+        state.Winner.Vehicle?.MoveTo(nextRoom);
         state.Winner.CurrentRoom = nextRoom;
-        if (vehicle != null)
-        {
-            vehicle.InRoom = nextRoom;
-            if (!nextRoom.Objects.Contains(vehicle))
-                nextRoom.Objects.Add(vehicle);
-        }
         // No Moves++ here: the original (rooms.99 RDCOM) counts one move per command, and GOTO never adds one.
         if (!nextRoom.Seen) state.Winner.Score += nextRoom.VisitScore;
         var wasSeen = nextRoom.Seen;
@@ -780,7 +739,7 @@ public static class Parser
     private static void PrintContents(GameState state, GameObject container, string indent, bool showCase)
     {
         if (container.Contents.Count == 0) return;
-        if (container.Id == "TCASE")
+        if (container.Id == Obj.Tcase)
         {
             if (!showCase) return;
             state.Output.WriteLine("Your collection of treasures consists of:");
@@ -796,7 +755,7 @@ public static class Parser
     }
 
     /// <summary>rooms.99 PRINT-CONTENTS: "a leaflet", "a bag, and a bottle", "a, b, and c".</summary>
-    private static string ListContents(List<GameObject> objects)
+    private static string ListContents(IReadOnlyList<GameObject> objects)
     {
         var sb = new System.Text.StringBuilder();
         for (var i = 0; i < objects.Count; i++)
@@ -844,47 +803,78 @@ public static class Parser
         }
     }
 
+    // act1.38 YUKS: TAKE of something that can't be taken and has nothing to say about it.
+    private static readonly string[] Yuks = ["Nice try.", "You can't be serious.", "Chomp, Chomp.", "Not a prayer.", "I don't think so."];
+
+    /// <summary>
+    /// rooms.99 TAKE. The object's own action is asked first (APPLY-OBJECT) and it is taken only if the action lets
+    /// it be; it goes to the head of your possessions. Returns false when TAKE failed.
+    /// </summary>
     private static bool DoTake(GameState state, GameObject obj, bool tell = true)
     {
-        if (obj == state.Winner.Vehicle)
+        if ((obj.Flags & ObjectFlags.NoCheck) != 0) return ObjectActions.ObjectAction(state, "TAKE", obj, null);
+        var container = obj.Container;
+        var getter = false;
+        if (container != null)
         {
-            state.Output.WriteLine("You're already in the " + obj.DescriptionShort + ".");
+            if (!container.IsVisible || !container.IsOpenOrTransparent) { state.Output.WriteLine("I can't see one here."); return false; }
+            if (!container.Open) { state.Output.WriteLine("I can't reach that."); return false; }
+            getter = true;
+        }
+        if (obj == state.Winner.Vehicle) { state.Output.WriteLine("You are in it, loser!"); return false; }
+        if (!obj.CanTake)
+        {
+            if (!ObjectActions.Try(state, obj, "TAKE", null)) state.Output.WriteLine(Yuks[state.Random.Next(Yuks.Length)]);
             return false;
         }
-        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have that."); return false; }
-        if (!obj.CanTake) { state.Output.WriteLine("You can't take that."); return false; }
-        if (obj.Container != null && !obj.Container.Open && !obj.Container.IsTransparent)
-        { state.Output.WriteLine("You can't reach that."); return false; }
-        if (obj.InRoom != null)
+        if (getter || state.Here.Objects.Contains(obj))
         {
-            if (state.Winner.CarryingSize + obj.Size > Adventurer.MaxLoad)
-            { state.Output.WriteLine("You're carrying too much."); return false; }
-            obj.InRoom.Objects.Remove(obj);
+            var fromCarried = getter && container!.Holder == state.Winner;
+            if (!fromCarried && GameObject.Weight(state.Winner.Inventory) + GameObject.Weight(obj.Contents) + obj.Size > Adventurer.MaxLoad)
+            {
+                state.Output.WriteLine("Your load is too heavy.  You will have to leave something behind.");
+                return false;
+            }
+            if (ObjectActions.Try(state, obj, "TAKE", null)) return true;
+            obj.MoveTo(state.Winner, first: true);
+            // OTOUCH? is set on every take; SCORE-OBJ scores the find only the first time.
+            if (!obj.Touched) state.Winner.Score += obj.FindScore;
+            obj.Touched = true;
+            if (tell) state.Output.WriteLine("Taken.");
+            return true;
         }
-        else if (obj.Container != null)
-            obj.Container.Contents.Remove(obj);
-        obj.InRoom = null;
-        obj.Container = null;
-        obj.Carrier = state.Winner;
-        state.Winner.Inventory.Add(obj);
-        // TAKE calls the object's action (rooms.99 APPLY-OBJECT): the candles start their clock, the rusty knife
-        // makes the sword pulse.
-        if (obj.Id is "CANDL" or "RKNIF") obj.ObjectAction?.Invoke(state, "TAKE", null);
-        // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
-        if (!obj.Touched) state.Winner.Score += obj.FindScore;
-        obj.Touched = true;
-        if (tell) state.Output.WriteLine("Taken.");
-        return true;
+        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have it."); return false; }
+        state.Output.WriteLine("I can't see one here.");
+        return false;
     }
 
-    private static void DoDrop(GameState state, GameObject obj)
+    /// <summary>
+    /// rooms.99 DROPPER, for DROP, THROW, GIVE and POUR: what you carry (or hold in an open container) lands in the
+    /// room, or in the vehicle you're in; then OBJECT-ACTION (the target first: the troll catches it, the glacier
+    /// melts), and "Dropped." or "Thrown." if nothing answered. DROP or POUR into something is PUT.
+    /// </summary>
+    private static void Dropper(GameState state, string verb, GameObject obj, GameObject? indirect)
     {
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.InRoom = state.Here;
-        state.Here.Objects.Add(obj);
-        state.Output.WriteLine("Dropped.");
+        if (verb is "DROP" or "POUR" && indirect != null) { DoPut(state, obj, indirect); return; }
+        bool Held(GameObject o) => o.Carrier == state.Winner || o.Container?.Carrier == state.Winner;
+        if (indirect != null && !Held(obj)) (obj, indirect) = (indirect, obj);
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = indirect;
+        if ((obj.Flags & ObjectFlags.NoCheck) != 0) { ObjectActions.ObjectAction(state, verb, obj, indirect); return; }
+        var getter = false;
+        if (obj.Container is { } container && container.Carrier == state.Winner)
+        {
+            if (container.Open) getter = true;
+            else if (container.IsTransparent) { state.Output.WriteLine("I can't reach that."); return; }
+            else state.Output.WriteLine("I can't see that here.");
+        }
+        if (!getter && obj.Carrier != state.Winner) { state.Output.WriteLine("You are not carrying that."); return; }
+        // (In a vehicle DROPPER calls PUTTER to put it there; the port just puts it there.)
+        if (state.Winner.Vehicle is { } vehicle) obj.MoveTo(vehicle);
+        else obj.MoveTo(state.Here);
+        if (ObjectActions.ObjectAction(state, verb, obj, indirect)) return;
+        if (verb == "DROP") state.Output.WriteLine("Dropped.");
+        else if (verb == "THROW") state.Output.WriteLine("Thrown.");
     }
 
     /// <summary>OPEN: try ObjectAction first (e.g. window, trap door) so objects with custom open behavior work even if not Container/Door.</summary>
@@ -981,37 +971,6 @@ public static class Parser
     }
 
 
-    private static void DoThrow(GameState state, string[] words)
-    {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
-        if (obj == null) { state.Output.WriteLine("What do you want to throw?"); return; }
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        var atStart = 2;
-        if (words.Length > 3 && (NormWord(words[2]) == "AT" || string.Equals(words[2], "at", StringComparison.OrdinalIgnoreCase))) atStart = 3;
-        var atObj = state.LastIndirectObject ?? (words.Length >= atStart + 1 ? ResolveObject(state, words, atStart, out _) : null);
-        state.LastDirectObject = obj;
-        state.LastIndirectObject = atObj;
-        if (state.Here.Id == "ICY" && atObj?.Id == "ICE" && obj.Id == "TORCH" && obj.LightAmount > 0)
-        {
-            state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
-            state.Winner.Inventory.Remove(obj);
-            var ice = state.World!.FindObject("ICE");
-            if (ice != null) { state.Here.Objects.Remove(ice); }
-            var strea = state.World.FindRoom("STREA");
-            if (strea != null) { obj.InRoom = strea; obj.Carrier = null; strea.Objects.Add(obj); obj.LightAmount = 0; obj.Flags &= ~ObjectFlags.OnFire; obj.DescriptionShort = "burned out ivory torch"; obj.DescriptionHere = "There is a burned out ivory torch here."; }
-            state.SetFlag("GLACIER-FLAG!-FLAG", true);
-            return;
-        }
-        if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
-        // OBJECT-ACTION asks the target too (the troll catches it, the thief bags it).
-        if (atObj != null && ObjectActions.Try(state, atObj, "THROW", obj)) return;
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.InRoom = state.Here;
-        state.Here.Objects.Add(obj);
-        state.Output.WriteLine("The " + obj.DescriptionShort + " lands on the ground.");
-    }
-
     private static void DoWave(GameState state, GameObject obj)
     {
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
@@ -1019,21 +978,19 @@ public static class Parser
         state.Output.WriteLine("Nothing happens.");
     }
 
-    private static void DoAttack(GameState state, string[] words)
+    private static void DoAttack(GameState state, GameObject? obj, GameObject? withObj)
     {
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = withObj;
         // OBJECT-ACTION asks the weapon too: the rusty knife turns on its owner.
-        if (state.LastIndirectObject?.Id == "RKNIF") { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
+        if (withObj?.Id == Obj.Rknif) { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
         if (obj == null) { state.Output.WriteLine("What do you want to attack?"); return; }
-        var withStart = 2;
-        if (words.Length > 3 && IsPrepWith(NormWord(words[2]))) withStart = 3;
-        var withObj = state.LastIndirectObject ?? (words.Length >= withStart + 1 ? ResolveObject(state, words, withStart, out _) : state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0));
-        if (obj.Id is "TROLL" or "THIEF" && obj.InRoom == state.Here)
+        withObj ??= state.Winner.Inventory.FirstOrDefault(o => (o.Flags & ObjectFlags.Weapon) != 0);
+        if (obj.Id is Obj.Troll or Obj.Thief && obj.InRoom == state.Here)
         {
             Combat.Attack(state, obj, withObj);
             return;
         }
-        state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "ATTACK", withObj)) return;
         state.Output.WriteLine("Violence isn't the answer to this one.");
     }
@@ -1042,14 +999,6 @@ public static class Parser
     {
         state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "MOVE", null)) return;
-        if (state.Here.Id == "CLEAR" && obj.Id == "LEAVE" && state.Here.RVars == 0)
-        {
-            state.Output.WriteLine("A grating appears on the ground.");
-            state.Here.RVars = 1;
-            var grat = state.World?.FindObject("GRAT1");
-            if (grat != null) grat.Flags |= ObjectFlags.Visible;
-            return;
-        }
         state.Output.WriteLine("You can't move that.");
     }
 
@@ -1064,9 +1013,9 @@ public static class Parser
     /// rooms.99 EVERYTHING / VALUABLES and FROB-LOTS: TAKE, DROP or PUT each object in turn ("lamp:" and then what
     /// happened), stopping if one of them moves you.
     /// </summary>
-    private static void DoLots(GameState state, string action, GameObject which, GameObject? into, string[] words)
+    private static void DoLots(GameState state, string action, GameObject which, GameObject? into)
     {
-        var valuablesOnly = which.Id == "VALUA";
+        var valuablesOnly = which.Id == Obj.Valua;
         bool Counts(GameObject o) => !valuablesOnly || o.TrophyScore != 0;
         bool InRoom(GameObject o) => o.IsVisible && !o.IsActor && !o.IsGlobal && (o.Flags & ObjectFlags.NoDescribe) == 0 && Counts(o);
         List<GameObject> lots = action switch
@@ -1088,26 +1037,18 @@ public static class Parser
             state.LastIndirectObject = into;
             switch (action)
             {
-                case "TAKE":
-                    if (!o.CanTake) { if (!ObjectActions.Try(state, o, "TAKE", null)) state.Output.WriteLine("You can't take that."); }
-                    else DoTake(state, o);
-                    break;
-                case "DROP": DoDrop(state, o); break;
-                default: DoPut(state, words); break;
+                case "TAKE": DoTake(state, o); break;
+                case "DROP": Dropper(state, "DROP", o, null); break;
+                default: DoPut(state, o, into); break;
             }
             if (state.Here != here) break;
         }
     }
 
     /// <summary>rooms.99 PUTTER: PUT obj IN container (anything open, or a container or vehicle).</summary>
-    private static void DoPut(GameState state, string[] words)
+    private static void DoPut(GameState state, GameObject? obj, GameObject? cont)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to put?"); return; }
-        var inIdx = Array.FindIndex(words, i => IsPrepIn(NormWord(i)));
-        var cont = state.LastIndirectObject;
-        if (cont == null && inIdx >= 0 && inIdx + 1 < words.Length)
-            cont = ResolveObject(state, words, inIdx + 1, out _);
         if (cont == null) { state.Output.WriteLine("What do you want to put that in?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = cont;
@@ -1116,90 +1057,111 @@ public static class Parser
         if (!cont.Open && !cont.IsContainer && (cont.Flags & ObjectFlags.Vehicle) == 0) { state.Output.WriteLine("I can't do that."); return; }
         if (!cont.Open) { state.Output.WriteLine("I can't reach inside."); return; }
         if (cont == obj) { state.Output.WriteLine("How can you do that?"); return; }
-        if (cont.Contents.Sum(o => o.Size) + obj.Size > cont.Capacity) { state.Output.WriteLine("It won't fit."); return; }
+        if (GameObject.Weight(cont.Contents) + obj.Size > cont.Capacity) { state.Output.WriteLine("It won't fit."); return; }
         if (obj.Carrier != state.Winner)
         {
             // PUTTER takes it first, without saying so.
             if (!DoTake(state, obj, tell: false)) return;
         }
-        if (ObjectActions.Try(state, obj, "PUT", cont)) return;
-        if (ObjectActions.Try(state, cont, "PUT", obj)) return;
-        state.Winner.Inventory.Remove(obj);
-        obj.Carrier = null;
-        obj.Container = cont;
-        cont.Contents.Add(obj);
-        if (cont.Id == "TCASE" && obj.TrophyScore > 0)
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = cont;
+        if (ObjectActions.ObjectAction(state, "PUT", obj, cont)) return;
+        obj.MoveTo(cont, first: true);
+        if (cont.Id == Obj.Tcase && obj.TrophyScore > 0)
             state.Winner.Score += obj.TrophyScore;
         state.Output.WriteLine("Done.");
     }
 
-    private static void DoGive(GameState state, string[] words)
+    /// <summary>
+    /// act1.38 BURNER: BURN obj WITH something aflame (FLAMING?: FLAMEBIT and lit). The objects' actions come first,
+    /// then the balloon's receptacle; anything burnable burns, and kills you if you're holding it.
+    /// </summary>
+    private static void DoBurn(GameState state, GameObject obj, GameObject? flame)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
-        if (obj == null) { state.Output.WriteLine("What do you want to give?"); return; }
-        // Held, or inside something held (the water in the bottle), as the AOBJS search finds it.
-        var holder = obj;
-        while (holder.Carrier == null && holder.Container != null) holder = holder.Container;
-        if (holder.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
-        var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
-        if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
+        flame ??= Gwim(state, ObjectFlags.OnFire, noTake: false);
+        if (flame == null) { state.Output.WriteLine("With what?"); return; } // np.93 ORTELL
         state.LastDirectObject = obj;
-        state.LastIndirectObject = toObj;
-        if (!ObjectActions.Try(state, toObj, "GIVE", obj))
-            state.Output.WriteLine("The " + toObj.DescriptionShort + " doesn't want that.");
-    }
-
-    private static void DoBurn(GameState state, GameObject obj)
-    {
-        if (state.Here.Id == "CLEAR" && obj.Id == "LEAVE" && state.Here.RVars == 0)
+        state.LastIndirectObject = flame;
+        if ((flame.Flags & ObjectFlags.OnFire) == 0 || flame.LightAmount != 1)
         {
-            state.Output.WriteLine("A grating appears on the ground.");
-            state.Here.RVars = 1;
-            var grat = state.World?.FindObject("GRAT1");
-            if (grat != null) grat.Flags |= ObjectFlags.Visible;
+            state.Output.WriteLine("With a " + flame.DescriptionShort + "??!?");
             return;
         }
-        if (obj.Container?.Id == "RECEP")
+        if (ObjectActions.ObjectAction(state, "BURN", obj, flame)) return;
+        if (state.Winner.Vehicle?.Id == Obj.Ballo && obj.Container?.Id == Obj.Recep)
         {
-            Balloon.Burn(state, obj);
+            Balloon.Burn(state, obj); // act2.27 BALLOON, for BURN
             return;
         }
-        state.LastDirectObject = obj;
-        if (ObjectActions.Try(state, obj, "BURN", null)) return;
-        state.Output.WriteLine("You can't burn that.");
+        if ((obj.Flags & ObjectFlags.Burnable) == 0)
+            state.Output.WriteLine("I don't think you can burn a " + obj.DescriptionShort + ".");
+        else if (obj.Carrier == state.Winner)
+        {
+            state.Output.WriteLine("The " + obj.DescriptionShort + " catches fire.");
+            state.JigsUp("Unfortunately, you were holding it at the time.");
+        }
+        else if (Hackable(state, obj))
+        {
+            state.Output.WriteLine("The " + obj.DescriptionShort + " catches fire and is consumed.");
+            obj.MoveTo(null);
+        }
+        else
+            state.Output.WriteLine("You don't have that.");
     }
 
-    private static void DoFill(GameState state, string[] words)
+    /// <summary>act1.38 HACKABLE?: on the floor here, or in the vehicle you're in.</summary>
+    private static bool Hackable(GameState state, GameObject obj) =>
+        state.Winner.Vehicle is { } vehicle ? obj.Container == vehicle : obj.InRoom == state.Here;
+
+    /// <summary>
+    /// np.93 GWIM for a missing object: the one visible object with <paramref name="bit"/> you carry, or else the one
+    /// here (which you pick up first, unless <paramref name="noTake"/>). Two candidates, or none, find nothing.
+    /// </summary>
+    private static GameObject? Gwim(GameState state, ObjectFlags bit, bool noTake)
     {
-        var obj = ResolveObject(state, words, 1, out _);
+        var carried = Fwim(state.Winner.Inventory, bit, noTake);
+        var here = GameState.IsLit(state) ? Fwim(state.Here.Objects, bit, noTake) : [];
+        if (here.Count == 0) return carried.Count == 1 ? carried[0] : null;
+        if (here.Count > 1 || carried.Count > 0) return null;
+        return noTake || DoTake(state, here[0], tell: false) ? here[0] : null;
+    }
+
+    /// <summary>np.93 FWIM: visible objects with the bit (takeable ones unless no-take), and those in open containers.</summary>
+    private static List<GameObject> Fwim(IEnumerable<GameObject> objects, ObjectFlags bit, bool noTake)
+    {
+        var found = new List<GameObject>();
+        foreach (var o in objects)
+        {
+            if (o.IsVisible && (noTake || o.CanTake) && (o.Flags & bit) != 0) found.Add(o);
+            if (o.IsVisible && o.Open)
+                found.AddRange(o.Contents.Where(c => c.IsVisible && (c.Flags & bit) != 0));
+        }
+        return found;
+    }
+
+    private static void DoFill(GameState state, GameObject? obj)
+    {
         if (obj == null) { state.Output.WriteLine("What do you want to fill?"); return; }
         var fillableRooms = new[] { "RESES", "STREA" };
         if (!fillableRooms.Contains(state.Here.Id)) { state.Output.WriteLine("I can't find any water here."); return; }
-        var bottle = state.World?.FindObject("BOTTL");
+        var bottle = state.World.FindObject(Obj.Bottl);
         if (obj != bottle) { state.Output.WriteLine("You can only fill the bottle with water."); return; }
         if (bottle == null || !state.Winner.Inventory.Contains(bottle)) { state.Output.WriteLine("You're not carrying the bottle."); return; }
         if (!bottle.Open) { state.Output.WriteLine("The bottle is closed."); return; }
         if (bottle.Contents.Count > 0) { state.Output.WriteLine("The bottle is already full."); return; }
-        var water = state.World?.FindObject("WATER");
+        var water = state.World.FindObject(Obj.Water);
         if (water == null) { state.Output.WriteLine("I can't find any water here."); return; }
-        if (water.Container != null) water.Container.Contents.Remove(water);
-        if (water.InRoom != null) { water.InRoom.Objects.Remove(water); water.InRoom = null; }
-        water.Carrier = null;
-        water.Container = bottle;
-        bottle.Contents.Add(water);
+        water.MoveTo(bottle);
         state.Output.WriteLine("The bottle is now full of water.");
     }
 
-    private static void DoTie(GameState state, string[] words)
+    /// <summary>act1.38 TIE: only something that can be tied (TIEBIT), and then only where an action allows it.</summary>
+    private static void DoTie(GameState state, GameObject? obj, GameObject? toObj)
     {
-        var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to tie?"); return; }
-        var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
-        var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
-        if (!ObjectActions.Try(state, obj, "TIE", toObj))
-            state.Output.WriteLine("You can't tie that.");
+        if ((obj.Flags & ObjectFlags.Tie) == 0) state.Output.WriteLine("How can you tie that to anything.");
+        else if (!ObjectActions.ObjectAction(state, "TIE", obj, toObj)) state.Output.WriteLine("You can't tie it to that.");
     }
 }

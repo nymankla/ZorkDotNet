@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -30,7 +31,7 @@ public class TempleTests
         using var runner = WithLight("TEMP2");
 
         Assert.Contains("On the two ends of the altar are burning candles.", Do(runner, "LOOK"));
-        Assert.True(runner.State.World!.FindObject("CANDL")!.LightAmount > 0);
+        Assert.True(runner.State.World.FindObject("CANDL")!.LightAmount > 0);
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class TempleTests
         var output = "";
         for (var i = 0; i < 50; i++) output += Do(runner, "LOOK");
         Assert.Contains("The candles grow shorter.", output);
-        Assert.Equal(19, runner.State.CandleTicks); // 50 counted down (the TAKE turn included), then 20, one gone
+        Assert.Equal(19, runner.State.FindClock(Clocks.Candles)!.Ticks); // 50 counted down (the TAKE turn included), then 20, one gone
     }
 
     [Fact]
@@ -152,6 +153,7 @@ public class TempleTests
     {
         using var runner = new GameRunner();
         runner.Give("BOOK");
+        runner.Give("TORCH");
 
         Assert.Contains("A booming voice says 'Wrong, cretin!'", Do(runner, "BURN BOOK"));
         Assert.True(runner.State.AwaitingPatchAnswer);
@@ -161,6 +163,7 @@ public class TempleTests
     public void The_bodies_in_the_land_of_the_dead()
     {
         using var runner = WithLight("LLD2");
+        runner.Give("TORCH");
 
         Assert.Contains("A force keeps you from taking the bodies.", Do(runner, "TAKE BODIES"));
         Assert.Contains("places your head on a pole", Do(runner, "BURN BODIES"));
@@ -177,7 +180,7 @@ public class TempleTests
 
         Assert.Contains("Therefore, they took steps to prevent this.", Do(runner, "TAKE HEADS"));
         Assert.True(runner.State.AwaitingPatchAnswer);
-        var lcase = runner.State.World!.FindObject("LCASE")!;
+        var lcase = runner.State.World.FindObject("LCASE")!;
         Assert.Equal("LROOM", lcase.InRoom?.Id);
         Assert.Contains(pearl, lcase.Contents);
     }

@@ -43,7 +43,7 @@ public class GratingTests
         Assert.Equal("MGRAT", runner.State.Here.Id);
 
         Assert.Contains("The grating opens to reveal trees above you.", Do(runner, "OPEN GRATING"));
-        Assert.True(runner.State.World!.FindObject("GRAT1")!.IsVisible);
+        Assert.True(runner.State.World.FindObject("GRAT1")!.IsVisible);
         runner.Execute("UP");
         Assert.Equal("CLEAR", runner.State.Here.Id);
     }
@@ -127,5 +127,41 @@ public class GratingTests
         using var runner = new GameRunner();
 
         Assert.Contains(reply, Do(runner, command));
+    }
+
+    [Theory]
+    [InlineData("MOVE LEAVES", "Done.")]
+    [InlineData("TAKE LEAVES", "Taken.")]
+    [InlineData("BURN LEAVES", "The leaves burn and the neighbors start to complain.")]
+    public void Disturbing_the_leaves_reveals_the_grating(string command, string reply)
+    {
+        // act1.38 CLEARING: after TAKE, MOVE or BURN on the leaves, the grating appears (once).
+        using var runner = new GameRunner();
+        runner.Give("TORCH"); // the flame for BURN
+        runner.Teleport("CLEAR");
+        var grating = runner.State.World.FindObject("GRAT1")!;
+        Assert.False(grating.IsVisible);
+
+        var output = Do(runner, command);
+
+        Assert.Contains(reply, output);
+        Assert.Contains("A grating appears on the ground.", output);
+        Assert.True(grating.IsVisible);
+        Assert.Contains("There is a grating securely fastened into the ground.", Do(runner, "LOOK"));
+        Assert.DoesNotContain("A grating appears", Do(runner, "DROP LEAVES"));
+    }
+
+    [Fact]
+    public void Lighting_the_leaves_with_the_torch_burns_them()
+    {
+        // rooms.99 LAMP-ON: LIGHT something burnable WITH something is BURN.
+        using var runner = new GameRunner();
+        runner.Give("TORCH");
+        runner.Teleport("CLEAR");
+
+        var output = Do(runner, "LIGHT LEAVES WITH TORCH");
+
+        Assert.Contains("The leaves burn and the neighbors start to complain.", output);
+        Assert.Contains("A grating appears on the ground.", output);
     }
 }

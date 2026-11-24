@@ -14,11 +14,30 @@ public class Room
     public bool HasLight { get; set; }
     /// <summary>Direction -> (target room id or blocked message).</summary>
     public Dictionary<string, ExitTarget> Exits { get; } = new();
-    public List<GameObject> Objects { get; } = new();
+    /// <summary>The objects here (MDL ROBJS). Changed only by <see cref="GameObject.MoveTo"/> and <see cref="AddScenery"/>.</summary>
+    public IReadOnlyList<GameObject> Objects => Items;
+    internal List<GameObject> Items { get; } = new();
+
+    /// <summary>
+    /// Lists a fixed object that belongs to another room here too, as dung.56 does for scenery shared by several rooms
+    /// (the rainbow, the stairs). Its <see cref="GameObject.Location"/> stays its first room.
+    /// </summary>
+    internal void AddScenery(GameObject o)
+    {
+        if (!Items.Contains(o)) Items.Add(o);
+    }
+
+    /// <summary>Forgets scenery listed here (before a restore puts everything back).</summary>
+    internal void ClearScenery() => Items.RemoveAll(o => o.InRoom != this);
     /// <summary>Optional room-action (e.g. EAST-HOUSE, KITCHEN).</summary>
     public Action<GameState, string>? RoomAction { get; set; }
     /// <summary>Optional action when player enters room (e.g. BOOM, BATS, CELLAR door).</summary>
     public Action<GameState>? OnEnter { get; set; }
+    /// <summary>
+    /// The room action's WALK branch (MDL: the room's action is asked before the move, as MAGNET-ROOM is): given the
+    /// direction, returns true when it has dealt with the move.
+    /// </summary>
+    public Func<GameState, string, bool>? OnWalk { get; set; }
     public int VisitScore { get; set; }
     /// <summary>Room-specific var (e.g. CLEAR RVARS for grating revealed).</summary>
     public int RVars { get; set; }

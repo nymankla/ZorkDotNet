@@ -1,7 +1,7 @@
 namespace ZorkDotNet.Game;
 
 /// <summary>
-/// Named clock events (MDL CEVENTs, dung.56). A <see cref="ScheduledEvent"/> stores one of these names instead
+/// Named clock events (MDL CEVENTs, dung.56). A <see cref="ClockEvent"/> stores one of these names instead
 /// of a delegate, so pending events survive SAVE/RESTORE. Add a constant and a case in <see cref="Run"/> for
 /// each new clock.
 /// </summary>
@@ -40,15 +40,25 @@ public static class Clocks
     /// <summary>MAINT-ROOM (MNTIN): every move, the water in the maintenance room rises.</summary>
     public const string MaintRoom = "MAINT-ROOM";
 
+    /// <summary>LANTERN (LNTIN): the lamp's next LIGHT-INT step. Set at 350 and disabled; TURN ON enables it.</summary>
+    public const string Lantern = "LANTERN";
+
+    /// <summary>CANDLES (CNDIN): the candles' next LIGHT-INT step. Set at 50 when the candles are first used.</summary>
+    public const string Candles = "CANDLES";
+
+    /// <summary>CURE-CLOCK (CURIN): a wound heals (the port's own, see <see cref="GameState.CureClock"/>).</summary>
+    public const string Cure = "CURE-CLOCK";
+
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
         MatchOut, Fuse, SafeMung, LedgeMung, Volgnome, GnomeLeave, Bucket, Burnup, MaintRoom, Balloon, Sphere,
+        Lantern, Candles, Cure,
     };
 
     /// <summary>True if <paramref name="name"/> is a clock event this port knows (used to validate save files).</summary>
     public static bool IsKnown(string name) => Known.Contains(name);
 
-    public static void Run(GameState state, ScheduledEvent e)
+    public static void Run(GameState state, ClockEvent e)
     {
         switch (e.Name)
         {
@@ -63,6 +73,9 @@ public static class Clocks
             case Balloon: Game.Balloon.Tick(state); break;
             case Sphere: Robot.SphereClock(state); break;
             case MaintRoom: RoomActions.MaintRoomRising(state); break;
+            case Lantern: state.LampLightInt(); break;
+            case Candles: state.CandleLightInt(); break;
+            case Cure: GameState.CureClock(state); break;
             default: throw new InvalidOperationException("Unknown clock event: " + e.Name);
         }
     }

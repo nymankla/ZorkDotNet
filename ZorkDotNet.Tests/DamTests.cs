@@ -90,7 +90,7 @@ public class DamTests
 
         Assert.Contains("The sluice gates close and water starts to collect behind the dam.", Do(runner, "TURN BOLT WITH WRENCH"));
         Assert.False(runner.State.GetFlag("LOW-TIDE!-FLAG"));
-        Assert.False(runner.State.World!.FindObject("TRUNK")!.IsVisible);
+        Assert.False(runner.State.World.FindObject("TRUNK")!.IsVisible);
     }
 
     [Fact]

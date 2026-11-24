@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -260,11 +261,12 @@ public class VocabularyTests
     public void Wait_lets_the_clock_run_three_more_moves()
     {
         using var runner = new GameRunner();
-        runner.Give("LAMP").LightAmount = 1;
-        var before = runner.State.LampTicks;
+        runner.Give("LAMP");
+        runner.Execute("TURN ON LAMP");
+        var before = runner.State.FindClock(Clocks.Lantern)!.Ticks;
 
         Assert.Contains("Time passes...", Do(runner, "WAIT"));
-        Assert.Equal(before - 4, runner.State.LampTicks); // three for WAIT, one for the turn itself
+        Assert.Equal(before - 4, runner.State.FindClock(Clocks.Lantern)!.Ticks); // three for WAIT, one for the turn itself
     }
 
     [Fact]

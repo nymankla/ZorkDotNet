@@ -17,7 +17,7 @@ public class ScoringTests
     public void Max_score_is_room_and_object_values_plus_the_light_shaft()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         var expected = world.Rooms.Sum(r => r.VisitScore) + world.Objects.Sum(o => o.FindScore + o.TrophyScore) + 10;
 
         Assert.Equal(expected, runner.State.MaxScore);

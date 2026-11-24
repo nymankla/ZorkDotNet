@@ -26,13 +26,13 @@ public static class Death
         if (message != null) state.Output.WriteLine(message);
         state.Winner.Score -= 10;
         state.Winner.Vehicle = null;
-        if (state.Deaths >= 2)
+        if (state.Progress.Deaths >= 2)
         {
             state.Output.WriteLine("You clearly are a suicidal maniac.  We don't allow psychotics in the cave, since they may harm other adventurers.  Your remains will installed in the Land of the Living Dead, where your fellow adventurers may gloat over them.");
             Scoring.Finish(state);
             return;
         }
-        state.Deaths++;
+        state.Progress.Deaths++;
         state.Output.WriteLine("Do you want me to try to patch you?");
         state.AwaitingPatchAnswer = true;
     }
@@ -58,52 +58,39 @@ public static class Death
 
     private static void Resurrect(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         var inventory = state.Winner.Inventory;
 
         // The lamp comes back to you wherever it was, at the head of your possessions.
-        var lamp = world.FindObject("LAMP");
+        var lamp = world.FindObject(Obj.Lamp);
         if (lamp != null)
         {
-            if (lamp.InRoom != null || lamp.Container != null)
-            {
-                lamp.InRoom?.Objects.Remove(lamp);
-                lamp.Container?.Contents.Remove(lamp);
-                lamp.InRoom = null;
-                lamp.Container = null;
-                lamp.Carrier = state.Winner;
-                inventory.Insert(0, lamp);
-            }
-            else if (inventory.Remove(lamp))
-                inventory.Insert(0, lamp);
+            if (lamp.InRoom != null || lamp.Container != null || lamp.Carrier == state.Winner)
+                lamp.MoveTo(state.Winner, first: true);
         }
 
-        var door = world.FindObject("DOOR");
+        var door = world.FindObject(Obj.Door);
         if (door != null) door.Touched = false;
-        var forest = world.FindRoom("FORE1");
+        var forest = world.FindRoom(RoomId.Fore1);
         if (forest != null) state.Winner.CurrentRoom = forest; // GOTO: no description
-        state.SetFlag("EGYPT-FLAG!-FLAG", true);
+        state.SetFlag(Flag.Egypt, true);
 
         // defs.63 ROB-ADV: treasures (OTVAL > 0, not sacred) are taken out first.
         var valuables = inventory.Where(o => o.TrophyScore > 0 && (o.Flags & ObjectFlags.Sacred) == 0).ToList();
-        foreach (var v in valuables) inventory.Remove(v);
         // The rest go to RANDOM-LIST, one per room, in order.
-        var rest = inventory.ToList();
+        var rest = inventory.Except(valuables).ToList();
         var placed = Math.Min(rest.Count, RandomList.Length);
         for (var i = 0; i < placed; i++) Drop(state, rest[i], RandomList[i]);
         // Treasures, then whatever didn't fit, go to the rooms at the head of ROOMS.
         var leftovers = valuables.Concat(rest.Skip(placed)).ToList();
         for (var i = 0; i < leftovers.Count && i < RoomsHead.Length; i++) Drop(state, leftovers[i], RoomsHead[i]);
-        inventory.Clear();
+        foreach (var lost in inventory.ToList()) lost.MoveTo(null);
     }
 
     private static void Drop(GameState state, GameObject obj, string roomId)
     {
-        var room = state.World!.FindRoom(roomId);
+        var room = state.World.FindRoom(roomId);
         if (room == null) return;
-        obj.Carrier = null;
-        obj.Container = null;
-        obj.InRoom = room;
-        room.Objects.Add(obj);
+        obj.MoveTo(room);
     }
 }

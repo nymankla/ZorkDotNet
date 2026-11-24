@@ -33,14 +33,14 @@ public class DeathTests
         Assert.EndsWith("Do you want me to try to patch you?", output.TrimEnd());
         Assert.True(runner.State.AwaitingPatchAnswer);
         Assert.Equal(15, runner.State.Winner.Score);
-        Assert.Equal(1, runner.State.Deaths);
+        Assert.Equal(1, runner.State.Progress.Deaths);
     }
 
     [Fact]
     public void Being_patched_up_puts_you_in_the_forest_and_scatters_your_things()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         runner.Give("SWORD");
         runner.Give("ROPE");
         runner.Give("PEARL"); // a treasure

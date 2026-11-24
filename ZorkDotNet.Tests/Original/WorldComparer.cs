@@ -45,7 +45,7 @@ internal static partial class WorldComparer
     public static List<string> Compare(OriginalDungeon original)
     {
         var state = new GameState { Output = TextWriter.Null };
-        var world = new World(state);
+        var world = state.World;
         var diffs = new List<string>();
         CompareRooms(original, world, diffs);
         CompareObjects(original, world, diffs);
@@ -297,7 +297,6 @@ internal static partial class WorldComparer
     {
         var output = new StringWriter();
         var state = new GameState { Output = output };
-        _ = new World(state);
         Parser.Execute(state, word);
         return !output.ToString().Contains("I don't know the word", StringComparison.Ordinal);
     }

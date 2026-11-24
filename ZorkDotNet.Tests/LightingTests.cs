@@ -59,7 +59,7 @@ public class LightingTests
 
         Assert.Contains("The lamp is now off.", output);
         Assert.Contains("It is now pitch black.", output);
-        Assert.Equal(-1, runner.State.World!.FindObject("LAMP")!.LightAmount);
+        Assert.Equal(-1, runner.State.World.FindObject("LAMP")!.LightAmount);
         Assert.Contains("It is already off.", Do(runner, "TURN OFF LAMP"));
     }
 
@@ -74,7 +74,7 @@ public class LightingTests
 
         Assert.Contains("Taken.", output);
         Assert.Contains("The lamp is now on.", output);
-        Assert.Contains(runner.State.World!.FindObject("LAMP")!, runner.State.Winner.Inventory);
+        Assert.Contains(runner.State.World.FindObject("LAMP")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -92,15 +92,10 @@ public class LightingTests
     {
         using var runner = new GameRunner();
         runner.Teleport("CELLA");
-        var bottle = runner.State.World!.FindObject("BOTTL")!;
+        var bottle = runner.State.World.FindObject("BOTTL")!;
         var lamp = runner.State.World.FindObject("LAMP")!;
-        bottle.InRoom!.Objects.Remove(bottle);
-        bottle.InRoom = runner.State.Here;
-        runner.State.Here.Objects.Add(bottle);
-        lamp.InRoom!.Objects.Remove(lamp);
-        lamp.InRoom = null;
-        lamp.Container = bottle;
-        bottle.Contents.Add(lamp);
+        bottle.MoveTo(runner.State.Here);
+        lamp.MoveTo(bottle);
 
         Assert.False(GameState.IsLit(runner.State));
         lamp.LightAmount = 1;
@@ -137,7 +132,7 @@ public class LightingTests
         Assert.DoesNotContain(Dimmer, runner.GetOutput());
 
         Assert.Contains(Dimmer, Do(runner, "LOOK"));
-        Assert.Equal(50, runner.State.LampTicks);
+        Assert.Equal(50, runner.State.FindClock(Clocks.Lantern)!.Ticks);
     }
 
     [Fact]
@@ -146,11 +141,11 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "LOOK", "TURN OFF LAMP");
-        var ticks = runner.State.LampTicks;
+        var ticks = runner.State.FindClock(Clocks.Lantern)!.Ticks;
 
         runner.Run("LOOK", "LOOK", "LOOK");
 
-        Assert.Equal(ticks, runner.State.LampTicks);
+        Assert.Equal(ticks, runner.State.FindClock(Clocks.Lantern)!.Ticks);
     }
 
     [Fact]
@@ -159,10 +154,46 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "DROP LAMP");
-        var ticks = runner.State.LampTicks;
+        var ticks = runner.State.FindClock(Clocks.Lantern)!.Ticks;
 
         runner.Run("LOOK", "LOOK");
 
-        Assert.Equal(ticks - 2, runner.State.LampTicks);
+        Assert.Equal(ticks - 2, runner.State.FindClock(Clocks.Lantern)!.Ticks);
+    }
+
+    [Fact]
+    public void Putting_the_candles_out_stops_their_clock_until_they_are_lit_again()
+    {
+        // act1.38 CANDLES: TURN-OFF does CLOCK-DISABLE, LIGHT with a burning match CLOCK-ENABLE.
+        using var runner = new GameRunner();
+        runner.Teleport("TEMP2");
+        runner.Execute("TAKE CANDLES");
+        var clock = runner.State.FindClock(Clocks.Candles)!;
+        Assert.True(clock.Enabled);
+
+        Assert.Contains("The flame is extinguished.", Do(runner, "EXTINGUISH CANDLES"));
+        var ticks = clock.Ticks;
+        runner.Run("LOOK", "LOOK");
+        Assert.Equal(ticks, clock.Ticks);
+
+        runner.Give("MATCH");
+        runner.Execute("LIGHT MATCH");
+        Assert.Contains("The candles are lighted.", Do(runner, "LIGHT CANDLES WITH MATCH"));
+        Assert.True(clock.Enabled);
+    }
+
+    [Fact]
+    public void A_robot_carrying_a_lit_lamp_lights_the_room()
+    {
+        // rooms.99 LFCN counts what an actor here carries.
+        using var runner = new GameRunner();
+        runner.Teleport("MAGNE");
+        Assert.False(GameState.IsLit(runner.State));
+        var lamp = runner.State.World.FindObject("LAMP")!;
+        lamp.MoveTo(runner.State.Robot);
+        lamp.LightAmount = 1;
+        runner.State.World.FindObject("ROBOT")!.MoveTo(runner.State.Here);
+
+        Assert.True(GameState.IsLit(runner.State));
     }
 }

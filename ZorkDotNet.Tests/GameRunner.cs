@@ -22,11 +22,10 @@ public sealed class GameRunner : IDisposable
     public GameRunner(string? logPath = null)
     {
         _state = new GameState();
-        _ = new World(_state);
         // Chance events (the grue's PROB 75) never happen unless a test asks for them with its own FixedRandom.
         _state.Random = new FixedRandom(99);
         // The thief's demon roams and robs; tests that want him switch him back on.
-        _state.ThiefActive = false;
+        _state.Robber.Active = false;
         _capture = new StringWriter(new StringBuilder());
         if (!string.IsNullOrEmpty(logPath))
         {
@@ -77,7 +76,7 @@ public sealed class GameRunner : IDisposable
     /// <summary>Put the player directly in a room (for testing areas far from the start). Costs no move.</summary>
     public void Teleport(string roomId)
     {
-        var room = _state.World!.FindRoom(roomId) ?? throw new ArgumentException("No such room: " + roomId, nameof(roomId));
+        var room = _state.World.FindRoom(roomId) ?? throw new ArgumentException("No such room: " + roomId, nameof(roomId));
         _state.Winner.CurrentRoom = room;
         room.Seen = true;
     }
@@ -85,14 +84,8 @@ public sealed class GameRunner : IDisposable
     /// <summary>Move an object from wherever it is into the player's inventory.</summary>
     public GameObject Give(string objectId)
     {
-        var obj = _state.World!.FindObject(objectId) ?? throw new ArgumentException("No such object: " + objectId, nameof(objectId));
-        obj.InRoom?.Objects.Remove(obj);
-        obj.Container?.Contents.Remove(obj);
-        obj.Carrier?.Inventory.Remove(obj);
-        obj.InRoom = null;
-        obj.Container = null;
-        obj.Carrier = _state.Winner;
-        _state.Winner.Inventory.Add(obj);
+        var obj = _state.World.FindObject(objectId) ?? throw new ArgumentException("No such object: " + objectId, nameof(objectId));
+        obj.MoveTo(_state.Winner);
         return obj;
     }
 

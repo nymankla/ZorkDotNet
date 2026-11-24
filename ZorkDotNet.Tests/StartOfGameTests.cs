@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -19,6 +20,16 @@ public class StartOfGameTests
     private static readonly string[] ToLivingRoom = ["NORTH", "EAST", "OPEN WINDOW", "WEST", "WEST"];
 
     [Fact]
+    public void A_new_game_comes_with_its_world()
+    {
+        var state = new ZorkDotNet.Game.GameState { Output = TextWriter.Null };
+
+        Assert.NotNull(state.World.FindRoom("WHOUS"));
+        Assert.Equal("WHOUS", state.Here.Id);
+        Assert.Contains(state.World.FindObject("MAILB")!, state.Here.Objects);
+    }
+
+    [Fact]
     public void The_mailbox_holds_the_leaflet_and_stays_where_it_is()
     {
         using var runner = new GameRunner();
@@ -32,7 +43,7 @@ public class StartOfGameTests
         Assert.Contains("Tim Anderson, Marc Blank,", leaflet);
 
         Do(runner, "TAKE MAILBOX");
-        Assert.DoesNotContain(runner.State.World!.FindObject("MAILB")!, runner.State.Winner.Inventory);
+        Assert.DoesNotContain(runner.State.World.FindObject("MAILB")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -168,7 +179,7 @@ public class StartOfGameTests
         var output = Do(runner, "LOOK");
         Assert.DoesNotContain("swoops down", output); // only WALK-IN, not LOOK, sends the bat
 
-        var room = runner.State.World!.FindRoom("BATS")!;
+        var room = runner.State.World.FindRoom("BATS")!;
         runner.Teleport(room.Exits["EAST"].RoomId!);
         output = Do(runner, "WEST");
 
@@ -176,5 +187,21 @@ public class StartOfGameTests
         Assert.True(flown >= 0, output);
         Assert.NotEqual(bats, runner.State.Here);
         Assert.False(string.IsNullOrWhiteSpace(output[(flown + "lifts you away....".Length)..]), output);
+    }
+
+    [Fact]
+    public void The_game_starts_as_the_original_does()
+    {
+        // rooms.99 START: "Welcome to Dungeon.", the version line, then the room.
+        var output = new StringWriter();
+        var state = new GameState { Output = output };
+
+        Parser.Start(state);
+
+        var lines = output.ToString().Split(Environment.NewLine);
+        Assert.Equal("Welcome to Dungeon.", lines[0]);
+        Assert.StartsWith("This version created ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("You are in an open field west of a big white house", lines[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("Infocom", output.ToString(), StringComparison.Ordinal);
     }
 }

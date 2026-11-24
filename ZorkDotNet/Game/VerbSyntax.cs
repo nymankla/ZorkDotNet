@@ -226,8 +226,9 @@ public static class VerbTable
             new Syntax(ArgRoom, VArg.Empty, "LOWER", isDriver: true)));
 
         // BURN
+        // dung.56: BURN (,BURNBIT AOBJS ROBJS NO-TAKE) "WITH" (,FLAMEBIT AOBJS ROBJS); a missing flame is GWIM'd.
         AddWords(new[] { "BURN", "INCIN", "IGNIT" }, V("BURN", "burn",
-            new Syntax(ArgRoom, VArg.Empty, "BURN", isDriver: true)));
+            new Syntax(ArgRoomNoTake, A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.With), "BURN", isDriver: true)));
 
         // FILL / TIE / UNTIE / BREAK / POUR
         AddWords(new[] { "FILL" }, V("FILL", "fill",

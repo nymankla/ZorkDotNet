@@ -63,41 +63,44 @@ public class World
     private void BuildWorld()
     {
         // ---- Vocabulary / globals (from dung.56) ----
-        _state.SetFlag("KITCHEN-WINDOW!-FLAG", false);
-        _state.SetFlag("TRAP-DOOR!-FLAG", false);
-        _state.SetFlag("MAGIC-FLAG!-FLAG", false);
-        _state.SetFlag("TROLL-FLAG!-FLAG", false);
-        _state.SetFlag("KEY-FLAG!-FLAG", false); // grating open
-        _state.SetFlag("GRUNLOCK!-FLAG", false); // grating unlocked
-        _state.SetFlag("BRIEF!-FLAG", false);
-        _state.SetFlag("SUPER-BRIEF!-FLAG", false);
-        _state.SetFlag("GLACIER-FLAG!-FLAG", false);
-        _state.SetFlag("CAGE-TOP!-FLAG", true); // basket at top of shaft
-        _state.SetFlag("RUG-MOVED!-FLAG", false);
-        _state.SetFlag("DOME-FLAG!-FLAG", false);
-        _state.SetFlag("LLD-FLAG!-FLAG", false);
-        _state.SetFlag("LOW-TIDE!-FLAG", false);
-        _state.SetFlag("GATE-FLAG!-FLAG", false);
-        _state.SetFlag("ON-POLE!-FLAG", false);
-        _state.SetFlag("CAROUSEL-FLIP!-FLAG", false);
-        _state.SetFlag("EGYPT-FLAG!-FLAG", true);
-        _state.SetFlag("MIRROR-MUNG!-FLAG", false);
-        _state.SetFlag("CYCLOPS-FLAG!-FLAG", false);
-        _state.SetFlag("RAINBOW!-FLAG", false);
-        _state.SetFlag("BINF!-FLAG", false);
-        _state.SetFlag("BTIE!-FLAG", false);
-        _state.SetFlag("BLAB!-FLAG", false);
-        _state.SetFlag("RIDDLE-FLAG!-FLAG", false);
-        _state.SetFlag("LIGHT-LOAD!-FLAG", false);
-        _state.SetFlag("BUOY-FLAG!-FLAG", true);
-        _state.SetFlag("DEFLATE!-FLAG", true);
-        _state.SetFlag("EMPTY-HANDED!-FLAG", false);
-        _state.SetFlag("ECHO-FLAG!-FLAG", false);
-        _state.SetFlag("SAFE-FLAG!-FLAG", false);
-        _state.SetFlag("CAGE-SOLVE!-FLAG", false);
-        _state.SetFlag("CAROUSEL-ZOOM!-FLAG", false);
-        _state.SetFlag("FROBOZZ!-FLAG", false);
-        _state.SetFlag("BUCKET-TOP!-FLAG", false);
+        _state.SetFlag(Flag.KitchenWindow, false);
+        _state.SetFlag(Flag.TrapDoor, false);
+        _state.SetFlag(Flag.Magic, false);
+        _state.SetFlag(Flag.Troll, false);
+        _state.SetFlag(Flag.Key, false); // grating open
+        _state.SetFlag(Flag.Grunlock, false); // grating unlocked
+        _state.SetFlag(Flag.Brief, false);
+        _state.SetFlag(Flag.SuperBrief, false);
+        _state.SetFlag(Flag.Glacier, false);
+        _state.SetFlag(Flag.CageTop, true); // basket at top of shaft
+        _state.SetFlag(Flag.RugMoved, false);
+        _state.SetFlag(Flag.Dome, false);
+        _state.SetFlag(Flag.Lld, false);
+        _state.SetFlag(Flag.LowTide, false);
+        _state.SetFlag(Flag.Gate, false);
+        _state.SetFlag(Flag.OnPole, false);
+        _state.SetFlag(Flag.CarouselFlip, false);
+        _state.SetFlag(Flag.Egypt, true);
+        _state.SetFlag(Flag.MirrorMung, false);
+        _state.SetFlag(Flag.Cyclops, false);
+        _state.SetFlag(Flag.Rainbow, false);
+        _state.SetFlag(Flag.Binf, false);
+        _state.SetFlag(Flag.Btie, false);
+        _state.SetFlag(Flag.Blab, false);
+        _state.SetFlag(Flag.Riddle, false);
+        _state.SetFlag(Flag.LightLoad, false);
+        _state.SetFlag(Flag.Buoy, true);
+        // dung.56: <PUT <FIND-OBJ "LAMP"> ,ORAND [0 <CLOCK-DISABLE <CLOCK-INT ,LNTIN 350>>]>
+        _state.Schedule(GameState.LampFirstInterval, Clocks.Lantern);
+        _state.EnableClock(Clocks.Lantern, false);
+        _state.SetFlag(Flag.Deflate, true);
+        _state.SetFlag(Flag.EmptyHanded, false);
+        _state.SetFlag(Flag.Echo, false);
+        _state.SetFlag(Flag.Safe, false);
+        _state.SetFlag(Flag.CageSolve, false);
+        _state.SetFlag(Flag.CarouselZoom, false);
+        _state.SetFlag(Flag.Frobozz, false);
+        _state.SetFlag(Flag.BucketTop, false);
 
         // ---- Rooms (from dung.56 #ROOM) ----
         AddRoom("WHOUS",
@@ -146,8 +149,8 @@ public class World
                 ["NORTH"] = new("NHOUS"),
                 ["SOUTH"] = new("SHOUS"),
                 ["EAST"] = new("CLEAR"),
-                ["WEST"] = new ExitTarget("KITCHEN-WINDOW!-FLAG", "KITCH", "The kitchen window is closed."),
-                ["ENTER"] = new ExitTarget("KITCHEN-WINDOW!-FLAG", "KITCH", "The kitchen window is closed.")
+                ["WEST"] = new ExitTarget(Flag.KitchenWindow, "KITCH", "The kitchen window is closed."),
+                ["ENTER"] = new ExitTarget(Flag.KitchenWindow, "KITCH", "The kitchen window is closed.")
             },
             objectIds: new[] { "WIND1" },
             roomAction: RoomActions.EastHouse);
@@ -158,8 +161,8 @@ public class World
             true,
             new Dictionary<string, ExitTarget>
             {
-                ["EAST"] = new ExitTarget("KITCHEN-WINDOW!-FLAG", "EHOUS", null),
-                ["EXIT"] = new ExitTarget("KITCHEN-WINDOW!-FLAG", "EHOUS", null),
+                ["EAST"] = new ExitTarget(Flag.KitchenWindow, "EHOUS", null),
+                ["EXIT"] = new ExitTarget(Flag.KitchenWindow, "EHOUS", null),
                 ["WEST"] = new("LROOM"),
                 ["UP"] = new("ATTIC"),
                 ["DOWN"] = ExitTarget.Blocked("Only Santa Claus climbs down chimneys.")
@@ -182,8 +185,8 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["EAST"] = new("KITCH"),
-                ["WEST"] = new ExitTarget("MAGIC-FLAG!-FLAG", "BLROO", "The door is nailed shut."),
-                ["DOWN"] = new ExitTarget("TRAP-DOOR!-FLAG", "CELLA", "The trap door is closed.")
+                ["WEST"] = new ExitTarget(Flag.Magic, "BLROO", "The door is nailed shut."),
+                ["DOWN"] = new ExitTarget(Flag.TrapDoor, "CELLA", "The trap door is closed.")
             },
             objectIds: new[] { "WDOOR", "DOOR", "TCASE", "LAMP", "RUG", "PAPER", "SWORD" },
             roomAction: RoomActions.LivingRoom);
@@ -196,7 +199,7 @@ public class World
             {
                 ["EAST"] = new("MTROL"),
                 ["SOUTH"] = new("CHAS2"),
-                ["UP"] = new ExitTarget("TRAP-DOOR!-FLAG", "LROOM", "The trap door has been barred from the other side."),
+                ["UP"] = new ExitTarget(Flag.TrapDoor, "LROOM", "The trap door has been barred from the other side."),
                 ["WEST"] = ExitTarget.Blocked("You try to ascend the ramp, but it is impossible, and you slide back down.")
             },
             objectIds: new[] { "TDOOR" },
@@ -213,9 +216,9 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["WEST"] = new("CELLA"),
-                ["EAST"] = new ExitTarget("TROLL-FLAG!-FLAG", "CRAW4", "The troll fends you off with a menacing gesture."),
-                ["NORTH"] = new ExitTarget("TROLL-FLAG!-FLAG", "PASS1", "The troll fends you off with a menacing gesture."),
-                ["SOUTH"] = new ExitTarget("TROLL-FLAG!-FLAG", "MAZE1", "The troll fends you off with a menacing gesture.")
+                ["EAST"] = new ExitTarget(Flag.Troll, "CRAW4", "The troll fends you off with a menacing gesture."),
+                ["NORTH"] = new ExitTarget(Flag.Troll, "PASS1", "The troll fends you off with a menacing gesture."),
+                ["SOUTH"] = new ExitTarget(Flag.Troll, "MAZE1", "The troll fends you off with a menacing gesture.")
             },
             objectIds: new[] { "TROLL" });
 
@@ -268,7 +271,7 @@ public class World
                 ["EAST"] = new("CLEAR"),
                 ["WEST"] = new("FORE3"),
                 ["SOUTH"] = new("FORE2"),
-                ["DOWN"] = new ExitTarget("KEY-FLAG!-FLAG", "MGRAT", "The grating is locked")
+                ["DOWN"] = new ExitTarget(Flag.Key, "MGRAT", "The grating is locked")
             },
             objectIds: new[] { "GRAT1", "LEAVE" },
             roomAction: RoomActions.Clearing);
@@ -306,16 +309,16 @@ public class World
         AddRoom("CAROU", "", "Round room", false,
             new Dictionary<string, ExitTarget>
             {
-                ["NORTH"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "CAVE4", null),
-                ["SOUTH"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "CAVE4", null),
-                ["EAST"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MGRAI", null),
-                ["WEST"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS1", null),
-                ["NW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "CANY1", null),
-                ["NE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS5", null),
-                ["SE"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS4", null),
-                ["SW"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "MAZE1", null),
+                ["NORTH"] = new ExitTarget(Flag.CarouselFlip, "CAVE4", null),
+                ["SOUTH"] = new ExitTarget(Flag.CarouselFlip, "CAVE4", null),
+                ["EAST"] = new ExitTarget(Flag.CarouselFlip, "MGRAI", null),
+                ["WEST"] = new ExitTarget(Flag.CarouselFlip, "PASS1", null),
+                ["NW"] = new ExitTarget(Flag.CarouselFlip, "CANY1", null),
+                ["NE"] = new ExitTarget(Flag.CarouselFlip, "PASS5", null),
+                ["SE"] = new ExitTarget(Flag.CarouselFlip, "PASS4", null),
+                ["SW"] = new ExitTarget(Flag.CarouselFlip, "MAZE1", null),
                 // Its CAROUSEL-OUT action always picks a random exit first, so PASS3 is never actually reached.
-                ["EXIT"] = new ExitTarget("CAROUSEL-FLIP!-FLAG", "PASS3", "")
+                ["EXIT"] = new ExitTarget(Flag.CarouselFlip, "PASS3", "")
             },
             objectIds: new[] { "IRBOX" },
             roomAction: RoomActions.CarouselRoom, onEnter: RoomActions.CarouselEnter);
@@ -337,11 +340,11 @@ public class World
         AddRoom("FALLS", "", "Aragain Falls", false,
             new Dictionary<string, ExitTarget>
             {
-                ["EAST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on."),
+                ["EAST"] = new ExitTarget(Flag.Rainbow, "RAINB", "The rainbow is too insubstantial to walk on."),
                 ["DOWN"] = new("FCHMP"),
                 ["NORTH"] = new("FANTE"),
                 ["ENTER"] = new("BARRE"),
-                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", "The rainbow is too insubstantial to walk on.")
+                ["UP"] = new ExitTarget(Flag.Rainbow, "RAINB", "The rainbow is too insubstantial to walk on.")
             },
             roomAction: RoomActions.FallsRoom);
         AddRoom("RAINB",
@@ -354,7 +357,7 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["SW"] = new("MAZ11"),
-                ["UP"] = new ExitTarget("KEY-FLAG!-FLAG", "CLEAR", "The grating is locked")
+                ["UP"] = new ExitTarget(Flag.Key, "CLEAR", "The grating is locked")
             },
             objectIds: new[] { "GRAT2" },
             roomAction: RoomActions.Maze11);
@@ -388,10 +391,10 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["WEST"] = new("STREA"),
-                ["SOUTH"] = new ExitTarget("EGYPT-FLAG!-FLAG", "RAVI1", "The coffin will not fit through this passage."),
-                ["UP"] = new ExitTarget("EGYPT-FLAG!-FLAG", "CANY1", "The stairs are too steep for carrying the coffin."),
-                ["NORTH"] = new ExitTarget("LOW-TIDE!-FLAG", "RESEN", "You are not equipped for swimming."),
-                ["CROSS"] = new ExitTarget("LOW-TIDE!-FLAG", "RESEN", "You are not equipped for swimming.")
+                ["SOUTH"] = new ExitTarget(Flag.Egypt, "RAVI1", "The coffin will not fit through this passage."),
+                ["UP"] = new ExitTarget(Flag.Egypt, "CANY1", "The stairs are too steep for carrying the coffin."),
+                ["NORTH"] = new ExitTarget(Flag.LowTide, "RESEN", "You are not equipped for swimming."),
+                ["CROSS"] = new ExitTarget(Flag.LowTide, "RESEN", "You are not equipped for swimming.")
             },
             objectIds: new[] { "TRUNK" },
             roomAction: RoomActions.ReservoirSouth);
@@ -409,11 +412,11 @@ public class World
             {
                 ["UP"] = new("ICY"),
                 ["SOUTH"] = new("LEDG3"),
-                ["EAST"] = new ExitTarget("EGYPT-FLAG!-FLAG", "CRAW1", "The passage is too narrow to accomodate coffins.")
+                ["EAST"] = new ExitTarget(Flag.Egypt, "CRAW1", "The passage is too narrow to accomodate coffins.")
             },
             objectIds: new[] { "COFFI" });
         AddRoom("ICY", "", "Glacier Room", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("STREA"), ["EAST"] = new("EGYPT"), ["WEST"] = new ExitTarget("GLACIER-FLAG!-FLAG", "RUBYR", "The glacier blocks your way.") },
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("STREA"), ["EAST"] = new("EGYPT"), ["WEST"] = new ExitTarget(Flag.Glacier, "RUBYR", "The glacier blocks your way.") },
             objectIds: new[] { "ICE" },
             roomAction: RoomActions.GlacierRoom);
         AddRoom("RUBYR",
@@ -433,8 +436,8 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["EAST"] = new("CRAW1"),
-                ["DOWN"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones."),
-                ["CLIMB"] = new ExitTarget("DOME-FLAG!-FLAG", "MTORC", "You cannot go down without fracturing many bones.")
+                ["DOWN"] = new ExitTarget(Flag.Dome, "MTORC", "You cannot go down without fracturing many bones."),
+                ["CLIMB"] = new ExitTarget(Flag.Dome, "MTORC", "You cannot go down without fracturing many bones.")
             },
             objectIds: new[] { "RAILI" },
             roomAction: RoomActions.DomeRoom);
@@ -596,7 +599,7 @@ public class World
             {
                 ["DOWN"] = ExitTarget.Blocked("It's a long way down."),
                 ["LAUNC"] = new("VAIR4"),
-                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", null),
+                ["WEST"] = new ExitTarget(Flag.GnomeDoor, "VLBOT", null),
                 ["SOUTH"] = new("SAFE")
             },
             roomAction: Balloon.LedgeFunction, onEnter: Balloon.LedgeEnter);
@@ -608,14 +611,14 @@ public class World
         AddRoom("SAFE", "", "Dusty Room", true,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("LEDG4") },
             roomAction: RoomActions.SafeRoom);
-        AddRoom("STUDI", "You are in what appears to have been an artist's studio.  The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here.  At the north and northwest of the room are open doors (also covered with paint).  An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4"), ["NW"] = new("GALLE"), ["UP"] = new ExitTarget("LIGHT-LOAD!-FLAG", "KITCH", "The chimney is too narrow for you and all of your baggage.") });
+        AddRoom("STUDI", "You are in what appears to have been an artist's studio.  The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here.  At the north and northwest of the room are open doors (also covered with paint).  An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", "Studio", false, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CRAW4"), ["NW"] = new("GALLE"), ["UP"] = new ExitTarget(Flag.LightLoad, "KITCH", "The chimney is too narrow for you and all of your baggage.") });
         AddRoom("GALLE", "You are in an art gallery.  Most of the paintings which were here have been stolen by vandals with exceptional taste.  The vandals left through either the north or south exits.", "Gallery", true, new Dictionary<string, ExitTarget> { ["NORTH"] = new("CHAS2"), ["SOUTH"] = new("STUDI") });
         AddRoom("CYCLO", "", "Cyclops Room", false,
             new Dictionary<string, ExitTarget>
             {
                 ["WEST"] = new("MAZ15"),
-                ["NORTH"] = new ExitTarget("MAGIC-FLAG!-FLAG", "BLROO", "The north wall is solid rock."),
-                ["UP"] = new ExitTarget("CYCLOPS-FLAG!-FLAG", "TREAS", "The cyclops doesn't look like he'll let you past.")
+                ["NORTH"] = new ExitTarget(Flag.Magic, "BLROO", "The north wall is solid rock."),
+                ["UP"] = new ExitTarget(Flag.Cyclops, "TREAS", "The cyclops doesn't look like he'll let you past.")
             },
             objectIds: new[] { "CYCLO" },
             roomAction: RoomActions.CyclopsRoom);
@@ -643,9 +646,9 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["SE"] = new("CLBOT"),
-                ["WEST"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
-                ["NW"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null),
-                ["UP"] = new ExitTarget("RAINBOW!-FLAG", "RAINB", null)
+                ["WEST"] = new ExitTarget(Flag.Rainbow, "RAINB", null),
+                ["NW"] = new ExitTarget(Flag.Rainbow, "RAINB", null),
+                ["UP"] = new ExitTarget(Flag.Rainbow, "RAINB", null)
             });
         AddRoom("FANTE",
             "You are on the shore of the River.  The river here seems somewhat treacherous.  A path travels from north to south here, the south end quickly turning around a sharp corner.",
@@ -672,7 +675,7 @@ public class World
             {
                 ["DOWN"] = ExitTarget.Blocked("I wouldn't jump from here."),
                 ["LAUNC"] = new("VAIR2"),
-                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", null),
+                ["WEST"] = new ExitTarget(Flag.GnomeDoor, "VLBOT", null),
                 ["SOUTH"] = new("LIBRA")
             });
         AddRoom("LIBRA",
@@ -684,15 +687,16 @@ public class World
             "",
             "Low Room",
             false,
-            // dung.56 MAGCMACH / MAGALICE: FROBOZZ exits, which never open; MAGNET-ROOM moves you (Robot.MagnetWalk).
+            // dung.56 MAGCMACH / MAGALICE: FROBOZZ exits, which never open; MAGNET-ROOM moves you (Room.OnWalk).
             new Dictionary<string, ExitTarget>
             {
-                ["NORTH"] = new("FROBOZZ!-FLAG", "CMACH", ""), ["SOUTH"] = new("FROBOZZ!-FLAG", "CMACH", ""),
-                ["WEST"] = new("FROBOZZ!-FLAG", "CMACH", ""), ["NE"] = new("FROBOZZ!-FLAG", "CMACH", ""),
-                ["NW"] = new("FROBOZZ!-FLAG", "ALICE", ""), ["SW"] = new("FROBOZZ!-FLAG", "ALICE", ""),
-                ["SE"] = new("FROBOZZ!-FLAG", "ALICE", ""), ["EAST"] = new("FROBOZZ!-FLAG", "CMACH", "")
+                ["NORTH"] = new(Flag.Frobozz, "CMACH", ""), ["SOUTH"] = new(Flag.Frobozz, "CMACH", ""),
+                ["WEST"] = new(Flag.Frobozz, "CMACH", ""), ["NE"] = new(Flag.Frobozz, "CMACH", ""),
+                ["NW"] = new(Flag.Frobozz, "ALICE", ""), ["SW"] = new(Flag.Frobozz, "ALICE", ""),
+                ["SE"] = new(Flag.Frobozz, "ALICE", ""), ["EAST"] = new(Flag.Frobozz, "CMACH", "")
             },
             roomAction: Robot.MagnetRoom, onEnter: Robot.MagnetEnter);
+        FindRoom(RoomId.Magne)!.OnWalk = Robot.MagnetWalk;
         AddRoom("CAGED", "You are trapped inside an iron cage.", "Cage", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
             roomAction: Robot.CagedRoom);
@@ -723,9 +727,9 @@ public class World
         AddRoom("RIVR5", "The sound of rushing water is nearly unbearable here.  On the west shore is a large landing area.", "Frigid River", false,
             new Dictionary<string, ExitTarget> { ["UP"] = ExitTarget.Blocked(Current), ["DOWN"] = new("FCHMP"), ["LAND"] = new("FANTE") });
         AddRoom("WCLF1", "You are on a narrow strip of beach which runs along the base of the White Cliffs.  The only path here is a narrow one, heading south along the Cliffs.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new ExitTarget("DEFLATE!-FLAG", "WCLF2", "The path is too narrow."), ["LAUNC"] = new("RIVR3") }, roomAction: RoomActions.CliffFunction);
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new ExitTarget(Flag.Deflate, "WCLF2", "The path is too narrow."), ["LAUNC"] = new("RIVR3") }, roomAction: RoomActions.CliffFunction);
         AddRoom("WCLF2", "You are on a rocky, narrow strip of beach beside the Cliffs.  A narrow path leads north along the shore.", "White Cliffs Beach", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new ExitTarget("DEFLATE!-FLAG", "WCLF1", "The path is too narrow."), ["LAUNC"] = new("RIVR4") }, roomAction: RoomActions.CliffFunction);
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new ExitTarget(Flag.Deflate, "WCLF1", "The path is too narrow."), ["LAUNC"] = new("RIVR4") }, roomAction: RoomActions.CliffFunction);
         AddRoom("FCHMP", "", "Moby lossage", false,
             new Dictionary<string, ExitTarget> { ["NORTH"] = ExitTarget.Blocked("") },
             roomAction: RoomActions.OverFallsLook,
@@ -741,8 +745,8 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["NORTH"] = new("ATLAN"),
-                ["CROSS"] = new ExitTarget("LOW-TIDE!-FLAG", "RESES", "You are not equipped for swimming."),
-                ["SOUTH"] = new ExitTarget("LOW-TIDE!-FLAG", "RESES", "You are not equipped for swimming.")
+                ["CROSS"] = new ExitTarget(Flag.LowTide, "RESES", "You are not equipped for swimming."),
+                ["SOUTH"] = new ExitTarget(Flag.LowTide, "RESES", "You are not equipped for swimming.")
             },
             objectIds: new[] { "PUMP" },
             roomAction: RoomActions.ReservoirNorth);
@@ -750,8 +754,8 @@ public class World
             new Dictionary<string, ExitTarget>
             {
                 ["UP"] = new("CAVE2"),
-                ["EAST"] = new ExitTarget("LLD-FLAG!-FLAG", "LLD2", "Some invisible force prevents you from passing through the gate."),
-                ["ENTER"] = new ExitTarget("LLD-FLAG!-FLAG", "LLD2", "Some invisible force prevents you from passing through the gate.")
+                ["EAST"] = new ExitTarget(Flag.Lld, "LLD2", "Some invisible force prevents you from passing through the gate."),
+                ["ENTER"] = new ExitTarget(Flag.Lld, "LLD2", "Some invisible force prevents you from passing through the gate.")
             },
             roomAction: RoomActions.LldRoom);
         AddRoom("LLD2", "", "Land of the Living Dead", true,
@@ -773,7 +777,7 @@ public class World
             "This is a room which is bare on all sides.  There is an exit down.  To the east is a great door made of stone.  Above the stone, the following words are written: 'No man shall enter this room without solving this riddle: What is tall as a house, round as a cup, and all the king's horses can't draw it up?'",
             "Riddle Room",
             false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("CAVE4"), ["EAST"] = new ExitTarget("RIDDLE-FLAG!-FLAG", "MPEAR", "Your way is blocked by an invisible force.") });
+            new Dictionary<string, ExitTarget> { ["DOWN"] = new("CAVE4"), ["EAST"] = new ExitTarget(Flag.Riddle, "MPEAR", "Your way is blocked by an invisible force.") });
         AddRoom("TWELL",
             "You are at the top of the well.  Well done.  There are etchings on the side of the well. There is a small crack across the floor at the entrance to a room on the east, but it can be crossed easily.",
             "Top of Well",
@@ -805,9 +809,9 @@ public class World
             new Dictionary<string, ExitTarget> { ["SOUTH"] = new("BLADD") },
             objectIds: new[] { "COAL" });
         AddRoom("TIMBE", "You are in a long and narrow passage, which is cluttered with broken timbers.  A wide passage comes from the north and turns at the southwest corner of the room into a very narrow passageway.", "Timber Room", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("BLADD"), ["SW"] = new ExitTarget("EMPTY-HANDED!-FLAG", "BSHAF", NoFit) }, roomAction: RoomActions.NoObjs, onEnter: RoomActions.NoObjsEnter);
+            new Dictionary<string, ExitTarget> { ["NORTH"] = new("BLADD"), ["SW"] = new ExitTarget(Flag.EmptyHanded, "BSHAF", NoFit) }, roomAction: RoomActions.NoObjs, onEnter: RoomActions.NoObjsEnter);
         AddRoom("BSHAF", "You are in a small square room which is at the bottom of a long shaft. To the east is a passageway and to the northeast a very narrow passage. In the shaft can be seen a heavy iron chain.", "Lower Shaft", false,
-            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new ExitTarget("EMPTY-HANDED!-FLAG", "TIMBE", NoFit), ["NE"] = new ExitTarget("EMPTY-HANDED!-FLAG", "TIMBE", NoFit), ["UP"] = ExitTarget.Blocked("Not a chance."), ["CLIMB"] = ExitTarget.Blocked("The chain is not climbable.") },
+            new Dictionary<string, ExitTarget> { ["EAST"] = new("MACHI"), ["OUT"] = new ExitTarget(Flag.EmptyHanded, "TIMBE", NoFit), ["NE"] = new ExitTarget(Flag.EmptyHanded, "TIMBE", NoFit), ["UP"] = ExitTarget.Blocked("Not a chance."), ["CLIMB"] = ExitTarget.Blocked("The chain is not climbable.") },
             objectIds: new[] { "FBASK" }, roomAction: RoomActions.NoObjs, onEnter: RoomActions.NoObjsEnter);
         AddRoom("MACHI", "", "Machine Room", false,
             new Dictionary<string, ExitTarget> { ["NW"] = new("BSHAF") },
@@ -1044,15 +1048,15 @@ public class World
         PlaceInRoom("TREAS", "CHALI");
         PlaceInRoom("SAFE", "SSLOT", "SAFE");
         PutInContainer("SAFE", "CROWN", "CARD");
-        FindObject("SSLOT")!.Open = true; // dung.56: <PUT <FIND-OBJ "SSLOT"> ,OOPEN? T>
-        FindObject("BRICK")!.Open = true; // dung.56: <PUT <FIND-OBJ "BRICK"> ,OOPEN? T>
+        FindObject(Obj.Sslot)!.Open = true; // dung.56: <PUT <FIND-OBJ "SSLOT"> ,OOPEN? T>
+        FindObject(Obj.Brick)!.Open = true; // dung.56: <PUT <FIND-OBJ "BRICK"> ,OOPEN? T>
         PlaceInRoom("ALICE", "ATABL", "ECAKE", "ORICE", "RDICE", "BLICE");
         PlaceInRoom("ALITR", "FLASK", "SAFFR");
         PlaceInRoom("GALLE", "PAINT");
         PlaceInRoom("LLD2", "BODIE");
         PlaceInRoom("TOMB", "TOMB", "HEADS", "COKES", "LISTS");
         PlaceInRoom("FALLS", "RAINB", "BARRE");
-        FindRoom("POG")!.Objects.Add(FindObject("RAINB")!); // scenery in two rooms, as in dung.56
+        FindRoom(RoomId.Pog)!.AddScenery(FindObject(Obj.Rainb)!); // scenery in two rooms, as in dung.56
         PlaceInRoom("CAVE4", "ENGRA");
         PlaceInRoom("TEMP1", "PRAYE");
         PlaceInRoom("BWELL", "ETCH1");
@@ -1074,9 +1078,9 @@ public class World
         PlaceInRoom("MTROL", "TROLL");
         PutInContainer("TROLL", "AXE");
         PutInContainer("BALLO", "CBAG", "BROPE", "RECEP");
-        FindObject("BALLO")!.Open = true; // dung.56: <PUT <FIND-OBJ "BALLO"> ,OOPEN? T>
+        FindObject(Obj.Ballo)!.Open = true; // dung.56: <PUT <FIND-OBJ "BALLO"> ,OOPEN? T>
         PlaceInRoom("VLBOT", "BALLO");
-        FindObject("BLABE")!.Container = FindObject("BALLO"); // dung.56 gives the label OCAN BALLO, but it shows only once inflated
+        FindObject(Obj.Blabe)!.SetUnlistedContainer(FindObject(Obj.Ballo)!); // dung.56 gives the label OCAN BALLO, but it shows only once inflated
         PlaceInRoom("LEDG4", "HOOK2");
         PlaceInRoom("LIBRA", "BLBK", "GRBK", "PUBK", "WHBK");
         PutInContainer("PUBK", "STAMP");
@@ -1089,7 +1093,7 @@ public class World
         PlaceInRoom("CAGER", "SPHER");
         PlaceInRoom("CAGED", "CAGE");
         PlaceInRoom("MAGNE", "RBTLB", "ROBOT");
-        _state.Robot.CurrentRoom = FindRoom("MAGNE")!;
+        _state.Robot.CurrentRoom = FindRoom(RoomId.Magne)!;
         PlaceInRoom("CMACH", "SQBUT", "RNBUT", "TRBUT");
         PlaceInRoom("CAROU", "IRBOX");
         PutInContainer("IRBOX", "STRAD");
@@ -1115,15 +1119,15 @@ public class World
         PlaceInRoom("ECHO", "BAR");
         PlaceInRoom("DOME", "RAILI");
         PlaceInRoom("BWELL", "BUCKE");
-        FindObject("BUCKE")!.Open = true; // dung.56: <PUT <FIND-OBJ "BUCKE"> ,OOPEN? T>
-        FindRoom("TWELL")!.IsBucket = true;
-        FindRoom("BWELL")!.IsBucket = true;
+        FindObject(Obj.Bucke)!.Open = true; // dung.56: <PUT <FIND-OBJ "BUCKE"> ,OOPEN? T>
+        FindRoom(RoomId.Twell)!.IsBucket = true;
+        FindRoom(RoomId.Bwell)!.IsBucket = true;
         PlaceInRoom("LLD1", "GHOST", "CORPS");
         PlaceInRoom("TEMP1", "BELL");
         PlaceInRoom("TEMP2", "BOOK", "CANDL");
         PlaceInRoom("DOCK", "IBOAT", "STICK");
         PutInContainer("RBOAT", "LABEL");
-        var rboat = FindObject("RBOAT");
+        var rboat = FindObject(Obj.Rboat);
         if (rboat != null) rboat.Open = true; // dung.56: <PUT <FIND-OBJ "RBOAT"> ,OOPEN? T>
         PlaceInRoom("RIVR4", "BUOY");
         PutInContainer("BUOY", "EMERA");
@@ -1140,12 +1144,9 @@ public class World
         }
 
         // Starting location (BLOC = WHOUS in original)
-        var start = FindRoom("WHOUS")!;
+        var start = FindRoom(RoomId.Whous)!;
         _state.Winner.CurrentRoom = start;
-        _state.Rooms.AddRange(_rooms.Values);
-        _state.AllObjects.AddRange(_objects.Values);
         _state.MaxScore = Scoring.ComputeMaxScore(_rooms.Values, _objects.Values);
-        _state.World = this;
     }
 
     // dung.56 NOFIT
@@ -1164,7 +1165,7 @@ public class World
         // act1.38 CAROUSEL-EXIT: while the carousel spins, every direction is random.
         bool CarouselExit(GameState state, string _)
         {
-            if (state.GetFlag("CAROUSEL-FLIP!-FLAG")) return false;
+            if (state.GetFlag(Flag.CarouselFlip)) return false;
             state.Output.WriteLine("Unfortunately, it is impossible to tell directions in here.");
             CarouselOut(state);
             return true;
@@ -1185,11 +1186,11 @@ public class World
     private void ChimneyFunction(GameState state)
     {
         var inventory = state.Winner.Inventory;
-        var light = inventory.Count <= 2 && inventory.Exists(o => o.Id == "LAMP");
-        state.SetFlag("LIGHT-LOAD!-FLAG", light);
-        if (light && !state.GetFlag("TRAP-DOOR!-FLAG"))
+        var light = inventory.Count <= 2 && inventory.Any(o => o.Id == Obj.Lamp);
+        state.SetFlag(Flag.LightLoad, light);
+        if (light && !state.GetFlag(Flag.TrapDoor))
         {
-            var door = FindObject("DOOR");
+            var door = FindObject(Obj.Door);
             if (door != null) door.Touched = false;
         }
     }
@@ -1198,8 +1199,8 @@ public class World
     {
         void CoffinCure(GameState state)
         {
-            var coffin = FindObject("COFFI");
-            state.SetFlag("EGYPT-FLAG!-FLAG", coffin == null || !state.Winner.Inventory.Contains(coffin));
+            var coffin = FindObject(Obj.Coffi);
+            state.SetFlag(Flag.Egypt, coffin == null || !state.Winner.Inventory.Contains(coffin));
         }
         _beforeExitActions[(NormId("EGYPT"), "EAST")] = CoffinCure;
         _beforeExitActions[(NormId("RESES"), "SOUTH")] = CoffinCure;
@@ -1230,12 +1231,7 @@ public class World
         {
             foreach (var oid in objectIds)
             {
-                var o = FindObject(oid);
-                if (o != null)
-                {
-                    o.InRoom = r;
-                    r.Objects.Add(o);
-                }
+                FindObject(oid)?.PlaceAlsoIn(r);
             }
         }
     }
@@ -1273,14 +1269,7 @@ public class World
         if (r == null) return;
         foreach (var oid in objectIds)
         {
-            var o = FindObject(oid);
-            if (o != null)
-            {
-                o.InRoom = r;
-                o.Carrier = null;
-                if (!r.Objects.Contains(o))
-                    r.Objects.Add(o);
-            }
+            FindObject(oid)?.PlaceAlsoIn(r);
         }
     }
 
@@ -1290,14 +1279,7 @@ public class World
         if (c == null) return;
         foreach (var oid in objectIds)
         {
-            var o = FindObject(oid);
-            if (o != null)
-            {
-                o.Container = c;
-                o.InRoom = null;
-                o.Carrier = null;
-                c.Contents.Add(o);
-            }
+            FindObject(oid)?.MoveTo(c);
         }
     }
 }

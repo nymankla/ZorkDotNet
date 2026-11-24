@@ -19,8 +19,13 @@ public class GameObject
     /// <summary>MDL OREAD: the text READ prints (from <see cref="ReadTexts"/>).</summary>
     public string? ReadText { get; set; }
     public Action<GameState, string, GameObject?>? ObjectAction { get; set; }
-    public List<GameObject> Contents { get; } = new();
-    public GameObject? Container { get; set; }
+    /// <summary>What is inside this object (MDL OCONTENTS). Changed only by <see cref="MoveTo"/>.</summary>
+    public IReadOnlyList<GameObject> Contents => Items;
+    internal List<GameObject> Items { get; } = new();
+    /// <summary>Where this object is (MDL OROOM / OCAN / an adventurer's AOBJS); null when it is nowhere.</summary>
+    public Place? Location { get; private set; }
+    /// <summary>The object this is inside (MDL OCAN), or null.</summary>
+    public GameObject? Container => Location is GameObject c ? c : null;
     public ObjectFlags Flags { get; set; }
     public bool Touched { get; set; }
     public int LightAmount { get; set; }
@@ -29,9 +34,77 @@ public class GameObject
     public bool Open { get; set; }
     public int Size { get; set; } = 5;
     public int Capacity { get; set; }
-    public Room? InRoom { get; set; }
-    /// <summary>Adventurer carrying this (null if in room or in container).</summary>
-    public Adventurer? Carrier { get; set; }
+    /// <summary>The room whose floor this is on (MDL OROOM), or null.</summary>
+    public Room? InRoom => Location is Room r ? r : null;
+    /// <summary>Adventurer carrying this directly (null if in a room or a container).</summary>
+    public Adventurer? Carrier => Location is Adventurer a ? a : null;
+
+    /// <summary>
+    /// The only way an object changes place: it leaves its old place's list and joins the new one (at the front when
+    /// <paramref name="first"/>, as MDL's PUT-ing at the head of a list). Null removes it from the game.
+    /// </summary>
+    public void MoveTo(Place? to, bool first = false)
+    {
+        if (Location is { } from) ListOf(from).Remove(this);
+        Location = to;
+        if (to is not { } place) return;
+        var list = ListOf(place);
+        if (first) list.Insert(0, this);
+        else list.Add(this);
+    }
+
+    /// <summary>
+    /// dung.56 quirk: the balloon label's OCAN is the balloon, but it is not in the balloon's OCONTENTS until the
+    /// balloon is first inflated (then <see cref="MoveTo"/> adds it). Used only for that.
+    /// </summary>
+    internal void SetUnlistedContainer(GameObject container) => Location = container;
+
+    /// <summary>
+    /// Puts this on the floor of <paramref name="room"/>, as a ROBJS listing does when the world is built or a game
+    /// restored. An object already in a room stays there and is listed in this room too (dung.56 scenery shared by
+    /// several rooms).
+    /// </summary>
+    internal void PlaceAlsoIn(Room room)
+    {
+        if (InRoom is { } home && home != room) room.AddScenery(this);
+        else if (InRoom != room) MoveTo(room);
+    }
+
+    /// <summary>The adventurer carrying this, directly or inside something they carry (MDL AOBJS reach).</summary>
+    public Adventurer? Holder
+    {
+        get
+        {
+            for (var o = this; o != null; o = o.Container)
+                if (o.Carrier is { } a) return a;
+            return null;
+        }
+    }
+
+    /// <summary>The room this is in, directly or inside something on the floor; null if carried or nowhere.</summary>
+    public Room? OutermostRoom
+    {
+        get
+        {
+            for (var o = this; o != null; o = o.Container)
+                if (o.InRoom is { } r) return r;
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// rooms.99 WEIGHT: the sizes of the objects and of everything inside them. A BIGFIX size counts nothing (the port
+    /// stores BIGFIX as <see cref="Adventurer.MaxLoad"/>).
+    /// </summary>
+    public static int Weight(IEnumerable<GameObject> objects) =>
+        objects.Sum(o => (o.Size >= Adventurer.MaxLoad ? 0 : o.Size) + Weight(o.Contents));
+
+    private static List<GameObject> ListOf(Place place) => place switch
+    {
+        Room r => r.Items,
+        Adventurer a => a.Items,
+        GameObject c => c.Items,
+    };
 
     public bool CanTake => (Flags & ObjectFlags.Take) != 0;
     public bool IsVisible => (Flags & ObjectFlags.Visible) != 0;

@@ -31,7 +31,7 @@ public class AliceTests
 
         Assert.Contains("Suddenly, the room appears to have become very large.", Do(runner, "EAT EATME CAKE"));
         Assert.Equal("ALISM", runner.State.Here.Id);
-        var table = runner.State.World!.FindObject("ATABL")!;
+        var table = runner.State.World.FindObject("ATABL")!;
         Assert.Equal("ALISM", table.InRoom?.Id); // the room's things come along, 64 times larger
 
         Do(runner, "EAST");
@@ -62,7 +62,7 @@ public class AliceTests
         using var runner = InTeaRoom();
 
         Assert.Contains("You have been blasted to smithereens", Do(runner, "EAT ORANGE CAKE"));
-        Assert.True(runner.State.World!.FindRoom("ALICE")!.Munged);
+        Assert.True(runner.State.World.FindRoom("ALICE")!.Munged);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class AliceTests
 
         Assert.Contains("on the far wall is a work of unparalleled beauty", Do(runner, "LOOK"));
         Assert.Contains("you have destroyed one", Do(runner, "BREAK PAINTING"));
-        var art = runner.State.World!.FindObject("PAINT")!;
+        var art = runner.State.World.FindObject("PAINT")!;
         Assert.Equal(0, art.TrophyScore);
         Assert.Equal("worthless piece of canvas", art.DescriptionShort);
     }
