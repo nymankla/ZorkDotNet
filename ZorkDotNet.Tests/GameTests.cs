@@ -570,19 +570,21 @@ public class GameTests
     }
 
     [Fact]
-    public void Walkthrough_say_sinbad_cyclops_flees()
+    public void Walkthrough_say_odysseus_cyclops_flees()
     {
-        using var runner = new GameRunner(GameRunner.GetLogPath("Walkthrough_sinbad", _logDir));
+        using var runner = new GameRunner(GameRunner.GetLogPath("Walkthrough_odysseus", _logDir));
         runner.Run(
             "SOUTH", "EAST", "OPEN WINDOW", "ENTER", "WEST", "TAKE LAMP", "TURN ON LAMP", "TAKE SWORD",
             "MOVE RUG", "OPEN TRAP", "DOWN", "EAST", "ATTACK TROLL", "ATTACK TROLL", "ATTACK TROLL",
             "SOUTH", "EAST", "WEST", "UP", "SW", "EAST", "SOUTH", "NE"
         );
         Assert.True(runner.State.Here?.Id == "CYCLO", "Should be in Cyclops room. Actual: " + runner.State.Here?.Id);
-        runner.Execute("SINBAD");
+        // act1.38 SINBAD: in the 1977 original the words are ODYSSEUS and ULYSSES.
+        runner.Execute("ODYSSEUS");
         var output = runner.GetOutput();
-        Assert.Contains("runs from the room", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("The cyclops, hearing the name of his deadly nemesis, flees the room by knocking down the wall on the north of the room.", output);
         Assert.True(runner.State.GetFlag("MAGIC-FLAG!-FLAG"));
+        Assert.True(runner.State.GetFlag("CYCLOPS-FLAG!-FLAG"));
     }
 
 

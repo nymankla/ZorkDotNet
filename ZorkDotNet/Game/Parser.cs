@@ -97,30 +97,11 @@ public static class Parser
             state.PendingAmbiguousWord = null;
         }
 
-        // Cyclops: saying "SINBAD" or "SAY SINBAD" in CYCLO makes cyclops flee and opens north exit
-        if (state.Here?.Id == "CYCLO" && !state.GetFlag("MAGIC-FLAG!-FLAG") && state.World != null)
-        {
-            var w0 = words.Length > 0 ? NormWord(words[0]) : "";
-            var w1 = words.Length > 1 ? NormWord(words[1]) : "";
-            if (w0 == "SINBA" || (w0 == "SAY" && w1 == "SINBA")) // SINBAD normalized to 5 chars
-            {
-                state.SetFlag("MAGIC-FLAG!-FLAG", true);
-                var cyclops = state.World.FindObject("CYCLO");
-                if (cyclops?.InRoom != null)
-                {
-                    cyclops.InRoom.Objects.Remove(cyclops);
-                    cyclops.InRoom = null;
-                }
-                state.Output.WriteLine("The cyclops, hearing you say the magic word, runs from the room in terror.");
-                return;
-            }
-        }
-
         // LLD1 exorcism: EXORCISE with bell + book + lit candle removes ghost and sets LLD-FLAG
         if (state.Here?.Id == "LLD1" && state.World != null && words.Length >= 1)
         {
             var w0 = NormWord(words[0]);
-            if (w0 == "EXORC" || w0 == "EXORCI")
+            if (w0 == "EXORC" || w0 == "EXORCI" || w0 == "XORCI")
             {
                 var ghost = state.World.FindObject("GHOST");
                 var ghostInRoom = ghost != null && ghost.InRoom == state.Here;
@@ -419,7 +400,9 @@ public static class Parser
                 break;
             case "DISEMBARK": DoDisembark(state); break;
             case "WALK": state.Output.WriteLine("Go where?"); break;
-            default: state.Output.WriteLine("I don't know how to do that."); break;
+            default:
+                if (!Verbs.Run(state, action, direct)) state.Output.WriteLine("I don't know how to do that.");
+                break;
         }
     }
 

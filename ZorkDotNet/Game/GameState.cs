@@ -18,6 +18,22 @@ public class GameState
     public List<Room> Rooms { get; } = new();
     public List<GameObject> AllObjects { get; } = new();
     public bool Running { get; set; } = true;
+    /// <summary>MDL HS: how many times the player has said HELLO (act1.38 HELLO).</summary>
+    public int HelloCount { get; set; }
+    /// <summary>Real-time clock for TIME (rooms.99 PLAY-TIME); tests can replace it.</summary>
+    public TimeProvider Clock { get; set; } = TimeProvider.System;
+    /// <summary>When this game started, for TIME.</summary>
+    public DateTimeOffset StartedAt { get; set; } = TimeProvider.System.GetUtcNow();
+
+    /// <summary>
+    /// MDL JIGS-UP: the player dies. The original then offers to patch you up; the port doesn't have that yet, so
+    /// the game ends here, as for every other death.
+    /// </summary>
+    public void JigsUp(string message)
+    {
+        Output.WriteLine(message);
+        Running = false;
+    }
     public string? LastVerb { get; set; }
     public GameObject? LastDirectObject { get; set; }
     public GameObject? LastIndirectObject { get; set; }

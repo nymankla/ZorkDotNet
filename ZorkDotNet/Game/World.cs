@@ -904,6 +904,7 @@ public class World
         PlaceInRoom("EHOUS", "WIND1");
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
         PlaceInRoom("LOBBY", "MATCH");
+        PlaceInRoom("CYCLO", "CYCLO");
         PutInContainer("MAILB", "ADVER");
         PutInContainer("SBAG", "GARLI", "FOOD");
         PutInContainer("BOTTL", "WATER");

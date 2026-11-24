@@ -136,11 +136,15 @@ public static class VerbTable
         }
 
         // LOOK: no obj (driver)
-        AddWords(new[] { "LOOK", "L", "EXAMI" }, V("LOOK", "look",
-            new Syntax(VArg.Empty, VArg.Empty, "LOOK", isDriver: true)));
+        // dung.56 LOOK: LOOK, and LOOK AT obj (ROOM-INFO for the object, like EXAMINE)
+        AddWords(new[] { "LOOK", "L", "STARE", "GAZE" }, V("LOOK", "look",
+            new Syntax(VArg.Empty, VArg.Empty, "LOOK", isDriver: true),
+            new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT | VArgFlags.VTBIT, Preposition.At), VArg.Empty, "EXAMINE")));
+        AddWords(new[] { "EXAMI", "DESCR", "WHAT", "WHATS", "WHAT'" }, V("EXAMINE", "examine",
+            new Syntax(ArgRoomNoTake, VArg.Empty, "EXAMINE", isDriver: true)));
 
         // TAKE: ROBJS (prefer take from room)
-        AddWords(new[] { "TAKE", "GET", "PICK", "CARRY" }, V("TAKE", "take",
+        AddWords(new[] { "TAKE", "GET", "PICK", "CARRY", "HOLD" }, V("TAKE", "take",
             new Syntax(ArgRoom, VArg.Empty, "TAKE", isDriver: true)));
 
         // DROP: AOBJS
@@ -148,7 +152,7 @@ public static class VerbTable
             new Syntax(ArgInv, VArg.Empty, "DROP", isDriver: true)));
 
         // INVENTORY
-        AddWords(new[] { "INVEN", "I" }, V("INVENTORY", "inventory",
+        AddWords(new[] { "INVEN", "I", "LIST" }, V("INVENTORY", "inventory",
             new Syntax(VArg.Empty, VArg.Empty, "INVENTORY", isDriver: true)));
 
         // OPEN / CLOSE (NO-TAKE: use in place, don't take first)
@@ -165,18 +169,18 @@ public static class VerbTable
             new Syntax(ArgRoomNoTake, VArg.Empty, "LOCK", isDriver: true)));
 
         // READ (verb that takes object)
-        AddWords(new[] { "READ" }, V("READ", "read",
+        AddWords(new[] { "READ", "SKIM", "SCAN" }, V("READ", "read",
             new Syntax(ArgRoom, VArg.Empty, "READ", isDriver: true)));
         // Note: LOOK words also have READ; LOOK takes precedence in current code. We register READ separately for "read X".
 
         // EAT / DRINK
-        AddWords(new[] { "EAT", "DEVOU" }, V("EAT", "eat",
+        AddWords(new[] { "EAT", "DEVOU", "CONSU", "GOBBL", "MUNCH", "TASTE" }, V("EAT", "eat",
             new Syntax(ArgRoom, VArg.Empty, "EAT", isDriver: true)));
-        AddWords(new[] { "DRINK", "SWALL" }, V("DRINK", "drink",
+        AddWords(new[] { "DRINK", "SWALL", "IMBIB" }, V("DRINK", "drink",
             new Syntax(ArgRoom, VArg.Empty, "DRINK", isDriver: true)));
 
         // THROW: AOBJS [AT ROBJS]
-        AddWords(new[] { "THROW", "TOSS" }, V("THROW", "throw",
+        AddWords(new[] { "THROW", "TOSS", "HURL", "CHUCK" }, V("THROW", "throw",
             new Syntax(ArgInv, VArg.Empty, "THROW", isDriver: true),
             new Syntax(ArgInv, ArgRoomAt, "THROW")));
 
@@ -185,27 +189,27 @@ public static class VerbTable
             new Syntax(ArgRoom, VArg.Empty, "WAVE", isDriver: true)));
 
         // RUB (mirror puzzle)
-        AddWords(new[] { "RUB", "RUBB" }, V("RUB", "rub",
+        AddWords(new[] { "RUB", "RUBB", "CARES", "TOUCH", "FONDL" }, V("RUB", "rub",
             new Syntax(ArgRoom, VArg.Empty, "RUB", isDriver: true)));
 
         // ATTACK: ROBJS [WITH AOBJS]
-        AddWords(new[] { "ATTAC", "KILL", "FIGHT", "HIT" }, V("ATTACK", "attack",
+        AddWords(new[] { "ATTAC", "KILL", "FIGHT", "HIT", "HACK", "FROB", "HURT", "INJUR", "DAMAG", "MURDE", "SLAY", "DISPA" }, V("ATTACK", "attack",
             new Syntax(ArgRoom, VArg.Empty, "ATTACK", isDriver: true),
             new Syntax(ArgRoom, ArgInvWith, "ATTACK")));
 
         // MOVE / LIFT
-        AddWords(new[] { "MOVE", "PUSH", "SLIDE" }, V("MOVE", "move",
+        AddWords(new[] { "MOVE", "PUSH", "SLIDE", "PULL", "TUG", "PRESS" }, V("MOVE", "move",
             new Syntax(ArgRoom, VArg.Empty, "MOVE", isDriver: true)));
         AddWords(new[] { "LIFT", "RAISE" }, V("LIFT", "lift",
             new Syntax(ArgRoom, VArg.Empty, "LIFT", isDriver: true)));
 
         // PUT: AOBJS IN ROBJS
-        AddWords(new[] { "PUT" }, V("PUT", "put",
+        AddWords(new[] { "PUT", "STUFF", "PLACE", "INSER" }, V("PUT", "put",
             new Syntax(ArgInv, ArgRoomIn, "PUT"),
             new Syntax(ArgInv, VArg.Empty, "PUT", isDriver: true)));
 
         // GIVE: AOBJS TO ROBJS
-        AddWords(new[] { "GIVE", "FEED" }, V("GIVE", "give",
+        AddWords(new[] { "GIVE", "FEED", "HAND", "DONAT" }, V("GIVE", "give",
             new Syntax(ArgInv, VArg.Empty, "GIVE", isDriver: true),
             new Syntax(ArgInv, ArgRoomTo, "GIVE")));
 
@@ -216,20 +220,20 @@ public static class VerbTable
             new Syntax(ArgRoom, VArg.Empty, "LOWER", isDriver: true)));
 
         // BURN
-        AddWords(new[] { "BURN", "LIGHT" }, V("BURN", "burn",
+        AddWords(new[] { "BURN", "LIGHT", "INCIN", "IGNIT" }, V("BURN", "burn",
             new Syntax(ArgRoom, VArg.Empty, "BURN", isDriver: true)));
 
         // FILL / TIE / UNTIE / BREAK / POUR
         AddWords(new[] { "FILL" }, V("FILL", "fill",
             new Syntax(ArgRoom, VArg.Empty, "FILL", isDriver: true)));
-        AddWords(new[] { "TIE", "TIED" }, V("TIE", "tie",
+        AddWords(new[] { "TIE", "TIED", "KNOT", "FASTE" }, V("TIE", "tie",
             new Syntax(ArgRoom, VArg.Empty, "TIE", isDriver: true),
             new Syntax(ArgRoom, ArgRoomTo, "TIE")));
-        AddWords(new[] { "UNTIE" }, V("UNTIE", "untie",
+        AddWords(new[] { "UNTIE", "FREE" }, V("UNTIE", "untie",
             new Syntax(ArgRoom, VArg.Empty, "UNTIE", isDriver: true)));
         AddWords(new[] { "BREAK", "SMASH", "MUNG" }, V("BREAK", "break",
             new Syntax(ArgRoom, VArg.Empty, "BREAK", isDriver: true)));
-        AddWords(new[] { "POUR" }, V("POUR", "pour",
+        AddWords(new[] { "POUR", "SPILL" }, V("POUR", "pour",
             new Syntax(ArgRoom, VArg.Empty, "POUR", isDriver: true)));
 
         // dung.56 TURN: TURN obj [WITH tool] (driver), TURN ON light, TURN OFF light. The light slots are AOBJS ROBJS
@@ -252,9 +256,37 @@ public static class VerbTable
         AddWords(new[] { "SCRIP" }, V("SCRIPT", "script", new Syntax(VArg.Empty, VArg.Empty, "SCRIPT", isDriver: true)));
         AddWords(new[] { "UNSCR" }, V("UNSCRIPT", "unscript", new Syntax(VArg.Empty, VArg.Empty, "UNSCRIPT", isDriver: true)));
         AddWords(new[] { "DIAGN" }, V("DIAGNOSE", "diagnose", new Syntax(VArg.Empty, VArg.Empty, "DIAGNOSE", isDriver: true)));
-        AddWords(new[] { "EXORC", "EXORCI" }, V("EXORCISE", "exorcise", new Syntax(VArg.Empty, VArg.Empty, "EXORCISE", isDriver: true)));
+        AddWords(new[] { "EXORC", "EXORCI", "XORCI" }, V("EXORCISE", "exorcise", new Syntax(VArg.Empty, VArg.Empty, "EXORCISE", isDriver: true)));
         AddWords(new[] { "BOARD" }, V("BOARD", "board", new Syntax(ArgRoom, VArg.Empty, "BOARD", isDriver: true)));
         AddWords(new[] { "DISEM", "GETOU" }, V("DISEMBARK", "disembark", new Syntax(VArg.Empty, VArg.Empty, "DISEMBARK", isDriver: true)));
+
+        // Short verbs of the Verbs class (dung.56 SADD-ACTION and friends)
+        void Simple(string action, params string[] words) =>
+            AddWords(words, V(action, action.ToLowerInvariant(), new Syntax(VArg.Empty, VArg.Empty, action, isDriver: true)));
+        Simple("BACK", "BACK");
+        Simple("REPENT", "REPEN");
+        Simple("CURSE", "CURSE", "SHIT", "FUCK", "DAMN");
+        Simple("JARGON", "JARGO", "FOO", "BLETC");
+        Simple("CHOMP", "CHOMP", "LOSE", "BARF");
+        Simple("YELL", "YELL", "SCREA", "SHOUT");
+        Simple("WIN", "WIN", "WINNA");
+        Simple("FROBOZZ", "FROBO");
+        Simple("TREASURE", "TREAS");
+        Simple("TEMPLE", "TEMPL");
+        Simple("PRAY", "PRAY");
+        Simple("JUMP", "JUMP", "LEAP", "VAULT");
+        Simple("SKIP", "SKIP", "HOP");
+        Simple("MUMBLE", "MUMBL", "SIGH");
+        Simple("ZORK", "ZORK");
+        Simple("DUNGEON", "DUNGE");
+        Simple("GRANITE", "GRANI");
+        Simple("GERONIMO", "GERON");
+        Simple("BLAST", "BLAST");
+        Simple("ODYSSEUS", "ODYSS", "ULYSS");
+        Simple("TIME", "TIME");
+        AddWords(new[] { "HELLO", "HI" }, V("HELLO", "hello",
+            new Syntax(VArg.Empty, VArg.Empty, "HELLO", isDriver: true),
+            new Syntax(ArgRoomNoTake, VArg.Empty, "HELLO")));
 
         // dung.56 SADD-ACTION "WELL": the answer to the riddle
         AddWords(new[] { "WELL" }, V("WELL", "well", new Syntax(VArg.Empty, VArg.Empty, "WELL", isDriver: true)));
