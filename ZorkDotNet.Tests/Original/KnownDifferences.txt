@@ -99,27 +99,7 @@ Object bit not modelled: RUG: TRYTAKEBIT
 Object bit not modelled: SPHER: TRYTAKEBIT
 Object bit not modelled: THIEF: VICBIT
 Object bit not modelled: TROLL: VICBIT
-Object capacity: BRICK: original 2, port 0
-Object capacity: CYCLO: original 10000, port 0
-Object capacity: GRAIL: original 5, port 0
-Object capacity: RECEP: original 6, port 0
-Object capacity: THIEF: original 4, port 0
-Object capacity: TRUNK: original 0, port 30
-Object description: BALLO: original "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind. Attached to the basket on the outside is a piece of wire.", port "A cloth balloon is here."
-Object description: BRICK: original "There is a square brick here which feels like clay.", port "A pile of bricks is here."
-Object description: BUCKE: original "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", port "A bucket is here."
 Object description: CANDL: original "There are two candles here.", port "Some candles are here."
-Object description: FUSE: original "There is a coil of thin shiny wire here.", port "A fuse is here."
-Object description: GNOME: original "There is a nervous Volcano Gnome here.", port ""
-Object description: GRAIL: original "There is an extremely valuable (perhaps original) grail here.", port "The Holy Grail is here."
-Object description: PEARL: original "There is a pearl necklace here with hundreds of large pearls.", port "A large, glowing pearl is here."
-Object description: PUMP: original "There is a small pump here.", port "A pump is here."
-Object description: SCREW: original "There is a screwdriver here.", port "A tiny screw is here."
-Object description: STICK: original "There is a broken sharp stick here.", port "There is a small wooden stick here."
-Object description: THIEF: original "There is a suspicious-looking individual, holding a bag, leaning against one wall. He is armed with a vicious-looking stilletto.", port "A seedy-looking individual with a large bag is here."
-Object description: TRUNK: original "There is an old trunk here, bulging with assorted jewels.", port "A trunk is here."
-Object find score: GRAIL: original 2, port 15
-Object find score: TRUNK: original 15, port 0
 Object flags: BALLO: extra Take Container
 Object flags: BAT: missing NoDescribe
 Object flags: BOOK: missing Burnable
@@ -223,41 +203,7 @@ Object missing: WALL (wall)
 Object missing: WHBK (white book)
 Object missing: WRENC (wrench)
 Object missing: YBUTT (button)
-Object name: BALLO: original "basket", port "cloth balloon"
-Object name: BAT: original "bat", port "vampire bat"
-Object name: BELL: original "bell", port "small brass bell"
-Object name: BOOK: original "book", port "large black book"
-Object name: BRICK: original "brick", port "pile of bricks"
-Object name: BUCKE: original "wooden bucket", port "bucket"
-Object name: CANDL: original "pair of candles", port "candles"
-Object name: CORPS: original "corpses", port "pile of corpses"
-Object name: DOOR: original "door", port "trap door"
-Object name: FUSE: original "wire coil", port "fuse"
-Object name: GHOST: original "", port "evil spirits"
-Object name: GNOME: original "Volcano Gnome", port "volcano gnome"
-Object name: GRAIL: original "grail", port "Holy Grail"
-Object name: MSWIT: original "switch", port "screw"
-Object name: PEARL: original "pearl necklace", port "large pearl"
-Object name: PUMP: original "hand-held air pump", port "pump"
-Object name: SCREW: original "screwdriver", port "screw"
-Object name: STICK: original "broken sharp stick", port "small wooden stick"
-Object name: TDOOR: original "door", port "trap door"
-Object name: TRUNK: original "trunk with jewels", port "trunk"
-Object name: WDOOR: original "door", port "wooden door"
 Object not in original: GATES (gate)
-Object size: BALLO: original 70, port 100
-Object size: BLAMP: original 0, port 15
-Object size: BRICK: original 9, port 20
-Object size: CANDL: original 10, port 5
-Object size: FUSE: original 1, port 5
-Object size: GRAIL: original 10, port 5
-Object size: PEARL: original 10, port 5
-Object size: PUMP: original 5, port 100
-Object size: RCAGE: original 0, port 100
-Object size: RECEP: original BIGFIX, port 6
-Object size: SCREW: original 5, port 1
-Object size: STICK: original 3, port 5
-Object size: TRUNK: original 35, port 30
 Object start location: BALLO: original room VLBOT, port room LEDG4
 Object start location: BAR: original room ECHO, port nowhere
 Object start location: CAGE: original room CAGED, port nowhere
@@ -271,35 +217,7 @@ Object start location: RCAGE: original nowhere, port room CAGED
 Object start location: SCREW: original room MAINT, port nowhere
 Object start location: STICK: original room DOCK, port room CANY1
 Object start location: THIEF: original nowhere, port room TREAS
-Object synonyms missing: BALLO: BASKE
-Object synonyms missing: BAT: VAMPI
-Object synonyms missing: BOOK: PRAYE GOODB
-Object synonyms missing: BRICK: BRICK
-Object synonyms missing: DOOR: TRAPD TRAP-
-Object synonyms missing: FDOOR: DOOR
-Object synonyms missing: FUSE: COIL WIRE
-Object synonyms missing: GNOME: TROLL
-Object synonyms missing: GRAT1: GRATI GRATE
-Object synonyms missing: GRAT2: GRATI GRATE
-Object synonyms missing: MSWIT: SWITC
-Object synonyms missing: PEARL: NECKL
-Object synonyms missing: PUMP: AIR-P AIRPU
-Object synonyms missing: RAILI: RAIL
-Object synonyms missing: TDOOR: TRAPD TRAP-
-Object synonyms missing: THIEF: CROOK CRIME CRIMI BANDI GENT GENTL MAN SHADY THUG BAGMA MAFIA
-Object synonyms missing: TRUNK: CHEST
-Object synonyms missing: WDOOR: DOOR
-Object synonyms missing: WIND1: WINDO
-Object synonyms missing: WIND2: WINDO
-Object trophy score: GRAIL: original 5, port 15
-Object trophy score: PEARL: original 5, port 9
-Object trophy score: TRUNK: original 8, port 0
-Object untouched description: BELL: original "Lying in a corner of the room is a small brass bell.", port ""
-Object untouched description: BOOK: original "On the altar is a large black book, open to page 569.", port ""
 Object untouched description: CANDL: original "On the two ends of the altar are burning candles.", port ""
-Object untouched description: GRAIL: original "", port "The Holy Grail is on the pedestal."
-Object untouched description: STICK: original "A sharp stick, which appears to have been broken at one end, is here.", port ""
-Object untouched description: TRUNK: original "Lying half buried in the mud is an old trunk, bulging with jewels.", port ""
 Room action missing: BEACH: BEACH-ROOM
 Room action missing: BLROO: TIME
 Room action missing: BSHAF: NO-OBJS
@@ -321,48 +239,6 @@ Room action missing: TIMBE: NO-OBJS
 Room action missing: TREAS: TREASURE-ROOM
 Room action missing: WCLF1: CLIFF-FUNCTION
 Room action missing: WCLF2: CLIFF-FUNCTION
-Room light: CLBOT: original lit, port dark
-Room light: CLMID: original lit, port dark
-Room light: CLTOP: original lit, port dark
-Room light: DAM: original lit, port dark
-Room light: DOCK: original lit, port dark
-Room light: GALLE: original lit, port dark
-Room light: LLD1: original lit, port dark
-Room light: LLD2: original lit, port dark
-Room light: POG: original lit, port dark
-Room light: RAINB: original lit, port dark
-Room light: TEMP1: original lit, port dark
-Room light: TEMP2: original lit, port dark
-Room long description: ALICE: original "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea. It is clear from the objects on the table that the users were indeed mad. In the eastern corner of the room is a small hole (no more that four inches high). There are passageways leading away to the west and the northwest.", port "You are in a small square room, in the center of which is a large oblong table, no doubt set for afternoon tea. It is clear from the objects on the table that the users were indeed mad. In the eastern corner of the room is a small hole (no more than four inches high). There are passageways leading away to the west and the northwest."
-Room long description: ALISM: original "You are in an enormous room, in the center of which are four wooden posts delineating a rectanular area, above which is what appears to be a wooden roof. In fact, all objects in this room appear to be abnormally large. To the east is a passageway. There is a large chasm on the west and the northwest.", port "You are in an enormous room, in the center of which are four wooden posts delineating a rectangular area, above which is what appears to be a wooden roof. In fact, all objects in this room appear to be abnormally large. To the east is a passageway. There is a large chasm on the west and the northwest."
-Room long description: BARRE: original "You are in a barrel. Congratulations. Etched into the side of the barrel is the word 'Geronimo!'.", port "You are in a barrel. Congratulations. Etched into the side of the barrel is the word 'Geronimo!'"
-Room long description: CAGER: original "You are in a dingy closet adjacent to the machine room. On one wall is a small sticker which says Protected by FROBOZZ Magic Alarm Company (Hello, footpad!)", port "You are in a dingy closet adjacent to the machine room. On one wall is a small sticker which says: Protected by FROBOZZ Magic Alarm Company (Hello, footpad!)"
-Room long description: CAVE4: original "You have entered a cave with passages leading north and southeast.", port ""
-Room long description: CHAS1: original "A chasm runs southwest to northeast. You are on the south edge; the path exits to the south and to the east.", port ""
-Room long description: ECHO: original "You are in a large room with a ceiling which cannot be detected from the ground. There is a narrow passage from east to west and a stone stairway leading upward. The room is extremely noisy. In fact, it is difficult to hear yourself think.", port "You are in a large room with a ceiling which cannot be detected from the ground. There is a narrow passage from east to west and a stone stairway leading upward. The room is extremely noisy."
-Room long description: GALLE: original "You are in an art gallery. Most of the paintings which were here have been stolen by vandals with exceptional taste. The vandals left through either the north or south exits.", port ""
-Room long description: PASS5: original "You are in a high north-south passage, which forks to the northeast.", port "You are in a cold and damp corridor where a long east-west passageway intersects with a northward path."
-Room long description: RAINB: original "You are on top of a rainbow (I bet you never thought you would walk on a rainbow), with a magnificent view of the Falls. The rainbow travels east-west here. There is an NBC Commissary here.", port "You are on top of a rainbow (I bet you never thought you would walk on a rainbow), with a magnificent view of the Falls. The rainbow travels east-west here."
-Room long description: STUDI: original "You are in what appears to have been an artist's studio. The walls and floors are splattered with paints of 69 different colors. Strangely enough, nothing of value is hanging here. At the north and northwest of the room are open doors (also covered with paint). An extremely dark and narrow chimney leads up from a fireplace; although you might be able to get up it, it seems unlikely you could get back down.", port ""
-Room long description: TREAS: original "This is a large room, whose north wall is solid granite. A number of discarded bags, which crumble at your touch, are scattered about on the floor.", port ""
-Room long description: VAIR1: original "You are about one hundred feet above the bottom of the volcano. The top of the volcano is clearly visible here.", port "You are in the basket of a hot-air balloon. The balloon is in the air above the ledge."
-Room long description: VAIR2: original "You are about two hundred feet above the volcano floor. Looming above is the rim of the volcano. There is a small ledge on the west side.", port "You are in the basket of a hot-air balloon. The balloon is in the air."
-Room long description: VAIR3: original "You are high above the floor of the volcano. From here the rim of the volcano looks very narrow and you are very near it. To the east is what appears to be a viewing ledge, too thin to land on.", port "You are in the basket of a hot-air balloon. The balloon is in the air."
-Room long description: VAIR4: original "You are near the rim of the volcano which is only about 15 feet across. To the west, there is a place to land on a wide ledge.", port "You are in the basket of a hot-air balloon. The balloon is in the air near the rim of the volcano."
-Room short description: CAVE4: original "Engravings Cave", port "Cave"
-Room short description: CHAS1: original "Chasm", port "East of Chasm"
-Room short description: CMACH: original "Machine Room", port "Control Machine"
-Room short description: CYCLO: original "Cyclops Room", port "Cyclops"
-Room short description: PASS5: original "North-South Passage", port "Cold Passage"
-Room short description: TREAS: original "Treasure Room", port "Treasury"
-Room short description: VAIR1: original "Volcano Core", port "Balloon (in air)"
-Room short description: VAIR2: original "Volcano Core", port "Balloon (in air)"
-Room short description: VAIR3: original "Volcano Core", port "Balloon (in air)"
-Room short description: VAIR4: original "Volcano Core", port "Balloon (in air)"
-Room visit score: BLROO: original 10, port 0
-Room visit score: LLD2: original 30, port 0
-Room visit score: TREAS: original 25, port 0
-Room visit score: TWELL: original 10, port 0
 Verb not understood: ATTAC: HACK FROB HURT INJUR DAMAG
 Verb not understood: BACK: BACK
 Verb not understood: BLAST: BLAST
