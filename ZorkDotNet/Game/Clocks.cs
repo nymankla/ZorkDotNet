@@ -31,12 +31,15 @@ public static class Clocks
     /// <summary>BURNUP (BRNIN): what burns in the balloon's receptacle burns out.</summary>
     public const string Burnup = "BURNUP";
 
+    /// <summary>BALLOON (BINT): every three moves the balloon rises or sinks.</summary>
+    public const string Balloon = "BALLOON";
+
     /// <summary>MAINT-ROOM (MNTIN): every move, the water in the maintenance room rises.</summary>
     public const string MaintRoom = "MAINT-ROOM";
 
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
-        MatchOut, Fuse, SafeMung, LedgeMung, Volgnome, GnomeLeave, Bucket, Burnup, MaintRoom,
+        MatchOut, Fuse, SafeMung, LedgeMung, Volgnome, GnomeLeave, Bucket, Burnup, MaintRoom, Balloon,
     };
 
     /// <summary>True if <paramref name="name"/> is a clock event this port knows (used to validate save files).</summary>
@@ -50,10 +53,11 @@ public static class Clocks
             case Fuse: ObjectActions.FuseBurnedDown(state); break;
             case SafeMung: ObjectActions.SafeMung(state, e.Argument); break;
             case LedgeMung: ObjectActions.LedgeMung(state); break;
-            case Volgnome: ObjectActions.Volgnome(state); break;
-            case GnomeLeave: ObjectActions.GnomeLeave(state); break;
+            case Volgnome: Game.Balloon.Volgnome(state); break;
+            case GnomeLeave: Game.Balloon.GnomeLeave(state); break;
             case Bucket: ObjectActions.BucketTick(state); break;
-            case Burnup: ObjectActions.Burnup(state); break;
+            case Burnup: Game.Balloon.Burnup(state); break;
+            case Balloon: Game.Balloon.Tick(state); break;
             case MaintRoom: RoomActions.MaintRoomRising(state); break;
             default: throw new InvalidOperationException("Unknown clock event: " + e.Name);
         }

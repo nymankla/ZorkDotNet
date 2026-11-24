@@ -28,6 +28,8 @@ public class Room
     public string? MungedMessage { get; set; }
     /// <summary>MDL RWATERBIT (the river): only a boat can go here. Every other room is land (RLANDBIT).</summary>
     public bool IsWater { get; set; }
+    /// <summary>MDL RAIRBIT (inside the volcano): only the balloon can go here.</summary>
+    public bool IsAir { get; set; }
 }
 
 public readonly struct ExitTarget
