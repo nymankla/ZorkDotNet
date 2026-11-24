@@ -74,7 +74,7 @@ public class GameState
                 Output.WriteLine("The candles have been blown out by a gust of wind.");
             }
         }
-        if (Here?.Id?.StartsWith("LEDG") == true && !GetFlag("VOLGNOME-SCHEDULED!-FLAG"))
+        if (Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) == true && !GetFlag("VOLGNOME-SCHEDULED!-FLAG"))
         {
             SetFlag("VOLGNOME-SCHEDULED!-FLAG", true);
             ScheduledEvents.Add(new ScheduledEvent(Moves + 10, ObjectActions.Volgnome));

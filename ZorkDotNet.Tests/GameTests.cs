@@ -1,9 +1,8 @@
 using Xunit;
-using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
-public class GameTests : IDisposable
+public class GameTests
 {
     private readonly string _logDir = Path.Combine(
         Path.GetDirectoryName(typeof(GameTests).Assembly.Location) ?? ".",
@@ -20,8 +19,6 @@ public class GameTests : IDisposable
             try { Directory.Delete(fullPath, recursive: true); } catch { }
         }
     }
-
-    public void Dispose() { }
 
     [Fact]
     public void Game_starts_in_West_of_House()
@@ -600,5 +597,120 @@ public class GameTests : IDisposable
         var output = runner.GetOutput();
         Assert.Contains("runs from the room", output, StringComparison.OrdinalIgnoreCase);
         Assert.True(runner.State.GetFlag("MAGIC-FLAG!-FLAG"));
+    }
+
+    /// <summary>Place the player directly in a room (for testing areas that are far from the start).</summary>
+    private static void Teleport(GameRunner runner, string roomId) =>
+        runner.State.Winner.CurrentRoom = runner.State.World!.FindRoom(roomId)!;
+
+    [Fact]
+    public void Every_exit_is_a_message_or_leads_to_an_existing_room()
+    {
+        using var runner = new GameRunner();
+        var world = runner.State.World!;
+        var broken = world.Rooms
+            .SelectMany(r => r.Exits.Select(e => (Room: r.Id, Dir: e.Key, Exit: e.Value)))
+            .Where(x => !x.Exit.IsBlocked && world.FindRoom(x.Exit.RoomId ?? "") == null)
+            .Select(x => $"{x.Room} {x.Dir} -> {x.Exit.RoomId}")
+            .ToList();
+        Assert.True(broken.Count == 0, "Exits pointing at unknown rooms:\n" + string.Join("\n", broken));
+    }
+
+    [Fact]
+    public void Blocked_exit_prints_its_message()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Blocked_exit_prints_its_message", _logDir));
+        runner.Execute("EAST");
+
+        var output = runner.GetOutput();
+        Assert.Contains("The door is locked, and there is evidently no key.", output);
+        Assert.DoesNotContain("You can't go that way.", output);
+        Assert.Equal("WHOUS", runner.State.Here?.Id);
+    }
+
+    [Fact]
+    public void TAKE_reports_once()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("TAKE_reports_once", _logDir));
+        runner.Execute("TAKE MAILBOX");
+
+        var output = runner.GetOutput();
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(output, "Taken\\."));
+        Assert.DoesNotContain("You already have that.", output);
+    }
+
+    [Fact]
+    public void Falls_north_leads_to_shore_and_canyon_has_no_north_exit()
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Falls_north_leads_to_shore", _logDir));
+        Teleport(runner, "FALLS");
+        runner.Execute("NORTH");
+        Assert.Equal("FANTE", runner.State.Here?.Id);
+
+        Teleport(runner, "CANY1");
+        runner.Execute("NORTH");
+        Assert.Equal("CANY1", runner.State.Here?.Id);
+    }
+
+    [Theory]
+    [InlineData("FALLS")]
+    [InlineData("RIVR5")]
+    public void Going_down_over_the_falls_is_fatal(string fromRoom)
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("Going_down_over_the_falls_" + fromRoom, _logDir));
+        Teleport(runner, fromRoom);
+        runner.Execute("DOWN");
+
+        Assert.Contains("gone over Aragain Falls", runner.GetOutput());
+        Assert.False(runner.State.Running);
+    }
+
+    [Theory]
+    [InlineData("RIVR1")]
+    [InlineData("RIVR2")]
+    [InlineData("RIVR3")]
+    [InlineData("RIVR4")]
+    [InlineData("RIVR5")]
+    public void River_cannot_be_travelled_upstream(string room)
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath("River_upstream_" + room, _logDir));
+        Teleport(runner, room);
+        runner.Execute("UP");
+
+        Assert.Contains("You cannot go upstream due to strong currents.", runner.GetOutput());
+        Assert.Equal(room, runner.State.Here?.Id);
+    }
+
+    [Theory]
+    [InlineData("DOCK", "LAUNCH", "RIVR1")]
+    [InlineData("FANTE", "LAUNCH", "RIVR5")]
+    [InlineData("BEACH", "LAUNCH", "RIVR4")]
+    [InlineData("RCAVE", "LAUNCH", "RIVR3")]
+    [InlineData("WCLF1", "LAUNCH", "RIVR3")]
+    [InlineData("WCLF2", "LAUNCH", "RIVR4")]
+    [InlineData("RIVR1", "LAND", "DOCK")]
+    [InlineData("RIVR5", "LAND", "FANTE")]
+    public void River_launch_and_land_exits(string from, string command, string expected)
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath($"River_{command}_{from}", _logDir));
+        Teleport(runner, from);
+        runner.Execute(command);
+
+        Assert.Equal(expected, runner.State.Here?.Id);
+    }
+
+    [Theory]
+    [InlineData("RIVR1", "EAST", "The White Cliffs prevent your landing here.")]
+    [InlineData("RIVR2", "EAST", "The White Cliffs prevent your landing here.")]
+    [InlineData("RIVR3", "LAND", "You must specify which direction here.")]
+    [InlineData("RIVR4", "LAND", "Specify the direction to land.")]
+    public void River_blocked_exits_print_original_messages(string room, string command, string message)
+    {
+        using var runner = new GameRunner(GameRunner.GetLogPath($"River_blocked_{room}_{command}", _logDir));
+        Teleport(runner, room);
+        runner.Execute(command);
+
+        Assert.Contains(message, runner.GetOutput());
+        Assert.Equal(room, runner.State.Here?.Id);
     }
 }

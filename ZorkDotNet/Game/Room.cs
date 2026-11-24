@@ -43,17 +43,23 @@ public readonly struct ExitTarget
         ConditionFlag = null;
     }
 
-    public ExitTarget(string blockedMessage, bool _ = false)
-    {
-        RoomId = null;
-        BlockedMessage = blockedMessage;
-        ConditionFlag = null;
-    }
-
     public ExitTarget(string conditionFlag, string roomId, string? blockedMessage)
     {
         ConditionFlag = conditionFlag;
         RoomId = roomId;
         BlockedMessage = blockedMessage;
     }
+
+    private ExitTarget(string blockedMessage, object? _)
+    {
+        RoomId = null;
+        BlockedMessage = blockedMessage;
+        ConditionFlag = null;
+    }
+
+    /// <summary>
+    /// MDL #NEXIT: an exit that cannot be taken; the message is printed instead.
+    /// A factory (not a constructor overload) so a message can't be mistaken for a room id.
+    /// </summary>
+    public static ExitTarget Blocked(string message) => new(message, null);
 }

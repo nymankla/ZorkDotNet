@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Shared lint/analyzer settings for all projects. Rule severities are tuned in .editorconfig. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- Pinned so local SDKs newer than CI's (8.0.x) don't introduce different rules. -->
+    <AnalysisLevel>8.0-recommended</AnalysisLevel>
+    <!-- Enforce IDExxxx code-style rules from .editorconfig during build, not just in the IDE. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: missing XML doc on public members; docs are encouraged but not required. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

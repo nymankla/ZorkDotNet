@@ -21,4 +21,10 @@
     <ProjectReference Include="..\ZorkDotNet\ZorkDotNet.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Original MIT source and the known-differences baseline, read by OriginalWorldTests. -->
+    <None Include="Original\dung.56" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Original\KnownDifferences.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
