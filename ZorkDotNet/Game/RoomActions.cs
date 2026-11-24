@@ -458,6 +458,12 @@ public static class RoomActions
     }
 
     /// <summary>CAROUSEL (Round room): LOOK text; compass message when CAROUSEL-FLIP is false.</summary>
+    /// <summary>act1.38 CAROUSEL-ROOM on WALK-IN: with the carousel at full speed (CAROUSEL-ZOOM), it kills you.</summary>
+    public static void CarouselEnter(GameState state)
+    {
+        if (state.GetFlag("CAROUSEL-ZOOM!-FLAG")) state.JigsUp(Robot.SpinDizzy);
+    }
+
     public static void CarouselRoom(GameState state, string verb)
     {
         if (verb != "LOOK") return;

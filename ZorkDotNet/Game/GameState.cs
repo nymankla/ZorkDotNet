@@ -32,6 +32,10 @@ public class GameState
     /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
     public int MatchesLeft { get; set; } = 5;
 
+    /// <summary>The robot as an adventurer (its ADV in dung.56): its room and what it carries.</summary>
+    public Adventurer Robot { get; } = new();
+    /// <summary>The robot is carrying out a TELL ROBOT command (MDL WINNER is the robot).</summary>
+    public bool RobotActing { get; set; }
     /// <summary>MDL BLOC: the room the balloon is in, or heading for (act2.27).</summary>
     public string BalloonLocation { get; set; } = "VLBOT";
     /// <summary>act2.27 LIGHT-SHAFT: the points for lighting the bottom of the shaft have been given.</summary>
@@ -120,7 +124,6 @@ public class GameState
         RunRobberDemon();
         // CEVENTs with no effect in original MDL (dung.56 CURIN, SPHIN)
         CureClock(this);
-        SphereFunction(this);
     }
 
     // act1.38 CANDLE-TICKS and CANDLE-TELLS
@@ -186,9 +189,6 @@ public class GameState
 
     /// <summary>CURE-CLOCK (CURIN). CEVENT in dung.56; no-op in original MDL — implemented as explicit no-op.</summary>
     public static void CureClock(GameState _) { }
-
-    /// <summary>SPHERE-FUNCTION (SPHIN). CEVENT in dung.56; no-op in original MDL — implemented as explicit no-op.</summary>
-    public static void SphereFunction(GameState _) { }
 
     /// <summary>ROBBER-DEMON (act1.37 ROBBER): thief in room can rob (ROB-ROOM + ROB-ADV); thief not in room can appear.</summary>
     private void RunRobberDemon()
