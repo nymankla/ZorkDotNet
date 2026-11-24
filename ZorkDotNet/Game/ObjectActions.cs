@@ -767,22 +767,35 @@ public static class ObjectActions
         state.MungRoom(room.Id, "The way is blocked by debris from an explosion.");
     }
 
-    /// <summary>LEDGE-MUNG (CEVENT): if on LEDG4 with balloon tied → death; else message; mung LEDG4.</summary>
+    /// <summary>act2.27 LEDGE-MUNG: eight moves after the safe room collapsed, so does the wide ledge outside it.</summary>
     public static void LedgeMung(GameState state)
     {
-        if (state.Here?.Id == "LEDG4")
+        var world = state.World!;
+        if (state.Here.Id == "LEDG4")
         {
-            var inBalloon = state.Winner.Vehicle?.Id == "BALLO";
-            if (inBalloon && state.GetFlag("BTIE!-FLAG"))
+            if (state.Winner.Vehicle != null)
             {
-                state.Output.WriteLine("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
-                state.JigsUp(null);
-                return;
+                if (state.GetFlag("BTIE!-FLAG"))
+                {
+                    var bottom = world.FindRoom("VLBOT")!;
+                    state.BalloonLocation = "VLBOT";
+                    var ball = world.FindObject("BALLO")!;
+                    ball.InRoom?.Objects.Remove(ball);
+                    ball.InRoom = null;
+                    var broken = world.FindObject("DBALL")!;
+                    broken.InRoom = bottom;
+                    bottom.Objects.Add(broken);
+                    state.SetFlag("BTIE!-FLAG", false);
+                    state.SetFlag("BINF!-FLAG", false);
+                    Balloon.StopClock(state);
+                    state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
+                    state.JigsUp("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
+                }
+                else
+                    state.Output.WriteLine("The ledge collapses, leaving you with no place to land.");
             }
-            if (inBalloon)
-                state.Output.WriteLine("The ledge collapses, leaving you with no place to land.");
             else
-                state.Output.WriteLine("The force of the explosion has caused the ledge to collapse belatedly.");
+                state.JigsUp("The force of the explosion has caused the ledge to collapse belatedly.");
         }
         else
             state.Output.WriteLine("The ledge collapses, giving you a narrow escape.");
@@ -808,61 +821,6 @@ public static class ObjectActions
         }
     }
 
-    /// <summary>GNOME-FUNCTION (CEVENT): GIVE valuable → door appears; clock tick → gnome leaves.</summary>
-    public static void GnomeFunction(GameState state, string verb, GameObject? obj)
-    {
-        if (verb == "GIVE" || verb == "THROW")
-        {
-            if (obj != null && obj.TrophyScore > 0)
-            {
-                state.Output.WriteLine("Thank you very much for the " + obj.DescriptionShort + ".  I don't believe I've ever seen one as beautiful. 'Follow me', he says, and a door appears on the west end of the ledge.  Through the door, you can see a narrow chimney sloping steeply downward.");
-                state.SetFlag("GNOME-DOOR!-FLAG", true);
-            }
-            else if (obj != null)
-            {
-                state.Output.WriteLine("'That wasn't quite what I had in mind', he says, crunching the " + obj.DescriptionShort + " in his rock-hard hands.");
-                RemoveFromWhere(obj);
-            }
-            return;
-        }
-        if (verb == "C-INT" || verb == "TICK")
-        {
-            state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
-            var gnome = state.World?.FindObject("GNOME");
-            if (gnome != null) RemoveFromWhere(gnome);
-            return;
-        }
-        state.Output.WriteLine("The gnome appears increasingly nervous.");
-        state.SetFlag("GNOME-FLAG!-FLAG", true);
-    }
-
-    /// <summary>VOLGNOME (CEVENT): when in LEDG room, gnome appears after 10 moves.</summary>
-    public static void Volgnome(GameState state)
-    {
-        if (state.Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) != true) return;
-        state.Output.WriteLine("A volcano gnome seems to walk straight out of the wall and says 'I have a very busy appointment schedule and little time to waste on tresspassers, but for a small fee, I'll show you the way out.'  You notice the gnome nervously glancing at his watch.");
-        var gnome = state.World?.FindObject("GNOME");
-        if (gnome != null && state.Here != null)
-        {
-            gnome.Container?.Contents.Remove(gnome);
-            gnome.InRoom?.Objects.Remove(gnome);
-            gnome.Carrier?.Inventory.Remove(gnome);
-            gnome.InRoom = state.Here;
-            gnome.Carrier = null;
-            gnome.Container = null;
-            state.Here.Objects.Add(gnome);
-            state.Schedule(5, Clocks.GnomeLeave);
-        }
-    }
-
-    /// <summary>Gnome leaves after 5 moves (GNOIN clock).</summary>
-    public static void GnomeLeave(GameState state)
-    {
-        state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
-        var gnome = state.World?.FindObject("GNOME");
-        if (gnome != null) RemoveFromWhere(gnome);
-    }
-
     /// <summary>BUCKET (CEVENT): scheduled tick toggles bucket between TWELL and BWELL. Schedule when water put in bucket in BWELL.</summary>
     public static void BucketTick(GameState state)
     {
@@ -882,44 +840,6 @@ public static class ObjectActions
             var twell = state.World?.FindRoom("TWELL");
             if (twell != null && bucket.InRoom != null) { bucket.InRoom.Objects.Remove(bucket); bucket.InRoom = twell; twell.Objects.Add(bucket); }
             state.Schedule(100, Clocks.Bucket);
-        }
-    }
-
-    /// <summary>BURNUP (original CEVENT): when the object burning in RECEP burns out – remove it, message, clear BINF!-FLAG.</summary>
-    public static void Burnup(GameState state)
-    {
-        var recep = state.World?.FindObject("RECEP");
-        if (recep == null || recep.Contents.Count == 0)
-        {
-            state.SetFlag("BINF!-FLAG", false);
-            return;
-        }
-        var obj = recep.Contents[0];
-        recep.Contents.RemoveAt(0);
-        obj.Container = null;
-        obj.InRoom = null;
-        obj.Carrier = null;
-        obj.LightAmount = 0;
-        state.Output.WriteLine("It seems that the " + obj.DescriptionShort + " has burned out, and the cloth bag starts to collapse.");
-        state.SetFlag("BINF!-FLAG", false);
-    }
-
-    /// <summary>When player BURNs something that is inside RECEP (balloon receptacle): light it, schedule BURNUP.</summary>
-    public static void BurnInReceptacle(GameState state, GameObject obj)
-    {
-        if (obj.LightAmount > 0)
-        {
-            state.Output.WriteLine("The " + obj.DescriptionShort + " is already burning.");
-            return;
-        }
-        state.Output.WriteLine("The " + obj.DescriptionShort + " burns inside the receptacle.");
-        obj.LightAmount = 1;
-        var ticks = Math.Max(1, obj.Size * 20);
-        state.Schedule(ticks, Clocks.Burnup);
-        if (!state.GetFlag("BINF!-FLAG"))
-        {
-            state.Output.WriteLine("The cloth bag inflates as it fills with hot air.");
-            state.SetFlag("BINF!-FLAG", true);
         }
     }
 
@@ -1350,18 +1270,6 @@ public static class ObjectActions
             state.Output.WriteLine("Nobody but a greedy surgeon would allow you to attempt that trick.");
         if (verb == "LOOK" || verb == "EXAMI")
             state.Output.WriteLine(state.GetFlag("MIRROR-MUNG!-FLAG") ? "The mirror is broken into many pieces." : "There is an ugly person staring at you.");
-    }
-
-    /// <summary>BALLO (balloon): LOOK shows inflated/draped; BOARD/DISEMBARK handled in parser.</summary>
-    public static void BalloonFunction(GameState state, string verb, GameObject? _)
-    {
-        if (verb != "LOOK" && verb != "EXAMI") return;
-        var recep = state.World?.FindObject("RECEP");
-        var burning = recep?.Contents.FirstOrDefault(o => o.LightAmount > 0);
-        if (state.GetFlag("BINF!-FLAG") && burning != null)
-            state.Output.WriteLine("The cloth bag is inflated and there is a " + burning.DescriptionShort + " burning in the receptacle.");
-        else
-            state.Output.WriteLine("The cloth bag is draped over the basket.");
     }
 
     /// <summary>STICK (magic): WAVE in FALLS toggles RAINBOW; WAVE in RAINB → rainbow collapses, death.</summary>

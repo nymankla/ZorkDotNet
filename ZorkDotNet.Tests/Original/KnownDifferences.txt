@@ -9,22 +9,6 @@ Exit condition: MAGNE SE: original FROBOZZ, port none
 Exit condition: MAGNE SOUTH: original FROBOZZ, port none
 Exit condition: MAGNE SW: original FROBOZZ, port none
 Exit condition: MAGNE WEST: original FROBOZZ, port none
-Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
-Exit missing: LEDG2 LAUNC -> VAIR2
-Exit missing: LEDG4 LAUNC -> VAIR4
-Exit missing: VAIR2 LAND -> LEDG2
-Exit missing: VAIR2 WEST -> LEDG2
-Exit missing: VAIR4 EAST -> LEDG4
-Exit missing: VAIR4 LAND -> LEDG4
-Exit not in original: LEDG2 UP -> VAIR2 if IN-BALLOON
-Exit not in original: LEDG4 UP -> VAIR1 if IN-BALLOON
-Exit not in original: VAIR1 DOWN -> LEDG4
-Exit not in original: VAIR1 UP -> VAIR2
-Exit not in original: VAIR2 DOWN -> VAIR1
-Exit not in original: VAIR2 UP -> VAIR3
-Exit not in original: VAIR3 DOWN -> VAIR2
-Exit not in original: VAIR3 UP -> VAIR4
-Exit not in original: VAIR4 DOWN -> VAIR3
 Object action missing: BUCKE: BUCKET
 Object action missing: SPHER: SPHERE-FUNCTION
 Object action missing: TROLL: TROLL
@@ -32,6 +16,7 @@ Object bit not modelled: BAT: TRYTAKEBIT
 Object bit not modelled: BODIE: TRYTAKEBIT
 Object bit not modelled: BONES: TRYTAKEBIT
 Object bit not modelled: BRICK: SEARCHBIT
+Object bit not modelled: BROPE: TIEBIT
 Object bit not modelled: BUOY: FINDMEBIT
 Object bit not modelled: CYCLO: VICBIT
 Object bit not modelled: GHOST: VICBIT
@@ -51,32 +36,21 @@ Object bit not modelled: SPHER: TRYTAKEBIT
 Object bit not modelled: THIEF: VICBIT
 Object bit not modelled: TOMB: TRYTAKEBIT
 Object bit not modelled: TROLL: VICBIT
-Object flags: BALLO: extra Take Container
 Object flags: BUCKE: missing Vehicle extra Take Container
 Object flags: IRBOX: extra Visible
 Object flags: POT: extra Visible
 Object flags: SPHER: extra Take
 Object missing: ##### (cretin)
-Object missing: BLABE (blue label)
-Object missing: BLBK (blue book)
-Object missing: BROPE (braided wire)
-Object missing: CBAG (cloth bag)
 Object missing: CHALI (chalice)
-Object missing: DBALL (broken balloon)
 Object missing: EVERY (everything)
-Object missing: GRBK (green book)
-Object missing: PUBK (purple book)
 Object missing: RBTLB (green piece of paper)
 Object missing: RNBUT (button)
 Object missing: ROBOT (robot)
 Object missing: SQBUT (button)
-Object missing: STAMP (stamp)
 Object missing: STILL (stilletto)
 Object missing: STRAD (fancy violin)
 Object missing: TRBUT (button)
 Object missing: VALUA (valuables)
-Object missing: WHBK (white book)
-Object start location: BALLO: original room VLBOT, port room LEDG4
 Object start location: CAGE: original room CAGED, port nowhere
 Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
@@ -85,6 +59,5 @@ Object start location: RCAGE: original nowhere, port room CAGED
 Object start location: THIEF: original nowhere, port room TREAS
 Room action missing: CAGED: CAGED-ROOM
 Room action missing: CMACH: CMACH-ROOM
-Room action missing: LEDG4: LEDGE-FUNCTION
 Room action missing: MAGNE: MAGNET-ROOM
 Room action missing: TREAS: TREASURE-ROOM

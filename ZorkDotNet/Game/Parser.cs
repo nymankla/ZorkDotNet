@@ -295,8 +295,12 @@ public static class Parser
     {
         switch (action)
         {
-            case "LOOK": DoLook(state); break;
+            case "LOOK":
+                DoLook(state);
+                Balloon.ReadOut(state);
+                break;
             case "TAKE":
+                if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
                 if (direct != null)
                 {
                     // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
@@ -587,14 +591,18 @@ public static class Parser
     private const string NoWay = "There is no way to go in that direction.";
 
     /// <summary>
-    /// rooms.99 GOTO: the river (RWATERBIT) needs the magic boat, and you can't walk from land to land sitting in it.
-    /// (The balloon, not ported yet, counts as a land vehicle here.)
+    /// rooms.99 GOTO: the river (RWATERBIT) needs the magic boat, the volcano's air (RAIRBIT) the balloon, and you
+    /// can't walk from land to land sitting in either.
     /// </summary>
     private static bool CanGo(GameState state, Room from, Room to)
     {
         var vehicle = state.Winner.Vehicle;
+        // The vehicle's ORAND: the boat goes on water (RWATERBIT), the balloon in the air (RAIRBIT).
         var boat = vehicle?.Id == "RBOAT";
-        if ((to.IsWater && !boat) || (!from.IsWater && !to.IsWater && boat))
+        var balloon = vehicle?.Id == "BALLO";
+        static bool Land(Room r) => !r.IsWater && !r.IsAir;
+        var fits = to.IsWater ? boat : !to.IsAir || balloon;
+        if (!fits || (Land(from) && Land(to) && (boat || balloon)))
         {
             state.Output.WriteLine(vehicle != null ? "You can't go there in a " + vehicle.DescriptionShort + "." : "You can't go there without a vehicle.");
             return false;
@@ -605,6 +613,7 @@ public static class Parser
     private static void TryGo(GameState state, string direction)
     {
         var r = state.Here;
+        if (Balloon.ReadIn(state, "WALK", null, null, direction)) return;
         // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
         // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
         if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
@@ -658,6 +667,9 @@ public static class Parser
         }
         MoveToRoom(state, nextRoom);
     }
+
+    /// <summary>rooms.99 ROOM-INFO T: describe the room in full, as LOOK does.</summary>
+    public static void Describe(GameState state) => DoLook(state);
 
     /// <summary>
     /// rooms.99 GOTO without ROOM-INFO: the player (and vehicle) is now in <paramref name="room"/>, its points are
@@ -776,69 +788,39 @@ public static class Parser
         return sb.ToString();
     }
 
-    /// <summary>rooms.99 BOARD (the balloon keeps the port's own rules until it is ported).</summary>
+    /// <summary>rooms.99 BOARD</summary>
     private static void DoBoard(GameState state, GameObject obj)
     {
-        if (obj.Id != "BALLO")
-        {
-            if (obj.InRoom != state.Here)
-                state.Output.WriteLine("The " + obj.DescriptionShort + " must be on the ground to be boarded.");
-            else if ((obj.Flags & ObjectFlags.Vehicle) == 0)
-                state.Output.WriteLine("I suppose you have a theory on boarding " + obj.DescriptionShort + "s.");
-            else if (state.Winner.Vehicle != null)
-                state.Output.WriteLine("You are already in a " + obj.DescriptionShort + ", cretin!");
-            else if (!ObjectActions.Try(state, obj, "BOARD", null))
-            {
-                state.Output.WriteLine("You are in the " + obj.DescriptionShort + ".");
-                state.Winner.Vehicle = obj;
-            }
-            return;
-        }
         if (obj.InRoom != state.Here)
+            state.Output.WriteLine("The " + obj.DescriptionShort + " must be on the ground to be boarded.");
+        else if ((obj.Flags & ObjectFlags.Vehicle) == 0)
+            state.Output.WriteLine("I suppose you have a theory on boarding " + obj.DescriptionShort + "s.");
+        else if (state.Winner.Vehicle != null)
+            state.Output.WriteLine("You are already in a " + obj.DescriptionShort + ", cretin!");
+        else if (!ObjectActions.Try(state, obj, "BOARD", null))
         {
-            state.Output.WriteLine("You need to be at the balloon.");
-            return;
+            state.Output.WriteLine("You are in the " + obj.DescriptionShort + ".");
+            state.Winner.Vehicle = obj;
         }
-        if (!state.GetFlag("BINF!-FLAG"))
-        {
-            state.Output.WriteLine("The balloon isn't inflated.");
-            return;
-        }
-        if (state.Winner.Vehicle == obj)
-        {
-            state.Output.WriteLine("You're already in the balloon.");
-            return;
-        }
-        state.Winner.Vehicle = obj;
-        state.SetFlag("IN-BALLOON!-FLAG", true);
-        state.Output.WriteLine("You are now in the basket of the balloon.");
     }
 
+    /// <summary>rooms.99 UNBOARD</summary>
     private static void DoDisembark(GameState state)
     {
-        if (state.Winner.Vehicle == null)
-        {
-            state.Output.WriteLine("You're not in anything.");
-            return;
-        }
         var v = state.Winner.Vehicle;
-        if (v.Id != "BALLO")
+        if (v == null)
         {
-            // rooms.99 UNBOARD
-            if (ObjectActions.Try(state, v, "DISEMBARK", null)) return;
-            if (state.Here.IsWater)
-                state.Output.WriteLine("You realize, just in time, that disembarking here would probably be fatal.");
-            else
-            {
-                state.Output.WriteLine("You are on your own feet again.");
-                state.Winner.Vehicle = null;
-            }
+            state.Output.WriteLine("You aren't in that!");
             return;
         }
-        state.Winner.Vehicle = null;
-        if (v.Id == "BALLO")
-            state.SetFlag("IN-BALLOON!-FLAG", false);
-        state.Output.WriteLine("You have left the " + v.DescriptionShort + ".");
+        if (ObjectActions.Try(state, v, "DISEMBARK", null)) return;
+        if (state.Here.IsWater || state.Here.IsAir)
+            state.Output.WriteLine("You realize, just in time, that disembarking here would probably be fatal.");
+        else
+        {
+            state.Output.WriteLine("You are on your own feet again.");
+            state.Winner.Vehicle = null;
+        }
     }
 
     private static bool DoTake(GameState state, GameObject obj, bool tell = true)
@@ -1101,6 +1083,7 @@ public static class Parser
         if (cont == null) { state.Output.WriteLine("What do you want to put that in?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = cont;
+        if (Balloon.ReadIn(state, "PUT", obj, cont, null)) return;
         if (obj.IsGlobal || cont.IsGlobal) { state.Output.WriteLine("Nice try."); return; }
         if (!cont.Open && !cont.IsContainer && (cont.Flags & ObjectFlags.Vehicle) == 0) { state.Output.WriteLine("I can't do that."); return; }
         if (!cont.Open) { state.Output.WriteLine("I can't reach inside."); return; }
@@ -1148,7 +1131,7 @@ public static class Parser
         }
         if (obj.Container?.Id == "RECEP")
         {
-            ObjectActions.BurnInReceptacle(state, obj);
+            Balloon.Burn(state, obj);
             return;
         }
         state.LastDirectObject = obj;

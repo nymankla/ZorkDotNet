@@ -32,6 +32,8 @@ public class GameState
     /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
     public int MatchesLeft { get; set; } = 5;
 
+    /// <summary>MDL BLOC: the room the balloon is in, or heading for (act2.27).</summary>
+    public string BalloonLocation { get; set; } = "VLBOT";
     /// <summary>act2.27 LIGHT-SHAFT: the points for lighting the bottom of the shaft have been given.</summary>
     public bool LightShaftScored { get; set; }
     /// <summary>
@@ -112,11 +114,6 @@ public class GameState
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
         foreach (var e in toRun) Clocks.Run(this, e);
-        if (Here?.Id?.StartsWith("LEDG", StringComparison.Ordinal) == true && !GetFlag("VOLGNOME-SCHEDULED!-FLAG"))
-        {
-            SetFlag("VOLGNOME-SCHEDULED!-FLAG", true);
-            Schedule(10, Clocks.Volgnome);
-        }
         // Demons (SWORD-DEMON, FIGHT-DEMON, ROBBER-DEMON)
         Combat.SwordDemon(this);
         Combat.FightDemon(this);

@@ -85,7 +85,8 @@ public class World
         _state.SetFlag("CYCLOPS-FLAG!-FLAG", false);
         _state.SetFlag("RAINBOW!-FLAG", false);
         _state.SetFlag("BINF!-FLAG", false);
-        _state.SetFlag("IN-BALLOON!-FLAG", false);
+        _state.SetFlag("BTIE!-FLAG", false);
+        _state.SetFlag("BLAB!-FLAG", false);
         _state.SetFlag("RIDDLE-FLAG!-FLAG", false);
         _state.SetFlag("LIGHT-LOAD!-FLAG", false);
         _state.SetFlag("BUOY-FLAG!-FLAG", true);
@@ -589,16 +590,17 @@ public class World
         AddRoom("LEDG4", "", "Wide Ledge", false,
             new Dictionary<string, ExitTarget>
             {
-                ["SOUTH"] = new("SAFE"),
-                ["UP"] = new ExitTarget("IN-BALLOON!-FLAG", "VAIR1", "You need to be in the balloon to go up."),
                 ["DOWN"] = ExitTarget.Blocked("It's a long way down."),
-                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", "The gnome blocks your way.")
-            });
+                ["LAUNC"] = new("VAIR4"),
+                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", null),
+                ["SOUTH"] = new("SAFE")
+            },
+            roomAction: Balloon.LedgeFunction, onEnter: Balloon.LedgeEnter);
         AddRoom("VAIR1",
             "You are about one hundred feet above the bottom of the volcano.  The top of the volcano is clearly visible here.",
             "Volcano Core",
             false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("LEDG4"), ["UP"] = new("VAIR2") });
+            new Dictionary<string, ExitTarget>());
         AddRoom("SAFE", "", "Dusty Room", true,
             new Dictionary<string, ExitTarget> { ["NORTH"] = new("LEDG4") },
             roomAction: RoomActions.SafeRoom);
@@ -653,20 +655,21 @@ public class World
             new Dictionary<string, ExitTarget> { ["LAUNC"] = new("RIVR4"), ["SOUTH"] = new("FANTE") },
             roomAction: RoomActions.BeachRoom);
         AddRoom("VAIR2", "You are about two hundred feet above the volcano floor.  Looming above is the rim of the volcano.  There is a small ledge on the west side.", "Volcano Core", false,
-            new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR3"), ["DOWN"] = new("VAIR1") });
+            new Dictionary<string, ExitTarget> { ["WEST"] = new("LEDG2"), ["LAND"] = new("LEDG2") });
         AddRoom("VAIR3", "You are high above the floor of the volcano.  From here the rim of the volcano looks very narrow and you are very near it.  To the east is what appears to be a viewing ledge, too thin to land on.", "Volcano Core", false,
-            new Dictionary<string, ExitTarget> { ["UP"] = new("VAIR4"), ["DOWN"] = new("VAIR2") });
+            new Dictionary<string, ExitTarget>());
         AddRoom("VAIR4", "You are near the rim of the volcano which is only about 15 feet across.  To the west, there is a place to land on a wide ledge.", "Volcano Core", false,
-            new Dictionary<string, ExitTarget> { ["DOWN"] = new("VAIR3") });
+            new Dictionary<string, ExitTarget> { ["LAND"] = new("LEDG4"), ["EAST"] = new("LEDG4") });
         AddRoom("LEDG2",
             "You are on a narrow ledge overlooking the inside of an old dormant volcano.  This ledge appears to be about in the middle between the floor below and the rim above.  There is an exit here to the south.",
             "Narrow Ledge",
             false,
             new Dictionary<string, ExitTarget>
             {
-                ["SOUTH"] = new("LIBRA"),
-                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", "The gnome blocks your way."),
-                ["UP"] = new ExitTarget("IN-BALLOON!-FLAG", "VAIR2", "You need to be in the balloon to go up.")
+                ["DOWN"] = ExitTarget.Blocked("I wouldn't jump from here."),
+                ["LAUNC"] = new("VAIR2"),
+                ["WEST"] = new ExitTarget("GNOME-DOOR!-FLAG", "VLBOT", null),
+                ["SOUTH"] = new("LIBRA")
             });
         AddRoom("LIBRA",
             "You are in a room which must have been a large library, probably for the royal family.  All of the shelves appear to have been gnawed to pieces by unfriendly gnomes.  To the north is an exit.",
@@ -957,6 +960,17 @@ public class World
         AddObject("CROWN", "Lord Dimwit's crown is here.", "crown", "The excessively gaudy crown of Lord Dimwit Flathead is here.", null, ObjectFlags.Visible | ObjectFlags.Take, 0, 15, 10, 10, 0, adjectives: new[] { "GAUDY" });
         AddObject("CARD", "There is a card with writing on it here.", "card", null, null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 1, 0, new[] { "NOTE" });
 
+        // The balloon and the library in the volcano (dung.56)
+        AddObject("CBAG", "", "cloth bag", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "BAG" }, new[] { "CLOTH" });
+        AddObject("BROPE", "", "braided wire", null, Balloon.WireFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "WIRE" }, new[] { "BRAID" });
+        AddObject("DBALL", "There is a balloon here, broken into pieces.", "broken balloon", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 40, 0, new[] { "BALLO", "BASKE" }, new[] { "BROKE" });
+        AddObject("BLABE", "There is a blue label here.", "blue label", null, null, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable, 0, 0, 0, 1, 0, new[] { "LABEL" }, new[] { "BLUE" });
+        AddObject("BLBK", "There is a blue book here.", "blue book", null, null, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 2, new[] { "BOOK" }, new[] { "BLUE" });
+        AddObject("GRBK", "There is a green book here.", "green book", null, null, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 2, new[] { "BOOK" }, new[] { "GREEN" });
+        AddObject("PUBK", "There is a purple book here.", "purple book", null, null, ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable | ObjectFlags.Container, 0, 0, 0, 10, 2, new[] { "BOOK" }, new[] { "PURPL" });
+        AddObject("WHBK", "There is a white book here.", "white book", null, null, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible | ObjectFlags.Readable, 0, 0, 0, 10, 2, new[] { "BOOK" }, new[] { "WHITE" });
+        AddObject("STAMP", "There is a Flathead Commemorative stamp here.", "stamp", null, null, ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Burnable | ObjectFlags.Visible, 0, 4, 10, 1, 0);
+
         // Flood Control Dam #3 (dung.56)
         AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
         AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
@@ -973,8 +987,8 @@ public class World
         AddObject("BRBUT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "BROWN" });
         AddObject("THIEF", "There is a suspicious-looking individual, holding a bag, leaning against one wall.  He is armed with a vicious-looking stilletto.", "thief", null, ObjectActions.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 4, new[] { "ROBBE", "SEEDY", "CROOK", "CRIME", "CRIMI", "BANDI", "GENT", "GENTL", "MAN", "SHADY", "THUG", "BAGMA", "MAFIA" });
         AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 6);
-        AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind. Attached to the basket on the outside is a piece of wire.", "basket", null, ObjectActions.BalloonFunction, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Vehicle, 0, 0, 0, 70, 100, new[] { "BALLOON", "BASKE" });
-        AddObject("GNOME", "There is a nervous Volcano Gnome here.", "Volcano Gnome", null, ObjectActions.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TROLL" });
+        AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind.  Attached to the basket on the outside is a piece of wire.", "basket", null, Balloon.BalloonAction, ObjectFlags.Vehicle | ObjectFlags.Visible, 0, 0, 0, 70, 100, new[] { "BASKE" }, new[] { "WICKE" });
+        AddObject("GNOME", "There is a nervous Volcano Gnome here.", "Volcano Gnome", null, Balloon.GnomeFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "TROLL" });
         AddObject("BUCKE", "There is a wooden bucket here, 3 feet in diameter and 3 feet high.", "wooden bucket", null, null, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take, 0, 0, 0, 100, 100);
         // LLD (Hades): exorcism
         AddObject("GHOST", "", "", null, ObjectActions.GhostFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "SPIRI", "FIEND" });
@@ -1029,10 +1043,15 @@ public class World
         PlaceInRoom("CELLA", "TDOOR");
         PlaceInRoom("MTROL", "TROLL");
         PutInContainer("TROLL", "AXE");
-        PutInContainer("BALLO", "RECEP");
-        var ballo = FindObject("BALLO");
-        if (ballo != null) ballo.Open = true;
-        PlaceInRoom("LEDG4", "BALLO", "HOOK2");
+        PutInContainer("BALLO", "CBAG", "BROPE", "RECEP");
+        FindObject("BALLO")!.Open = true; // dung.56: <PUT <FIND-OBJ "BALLO"> ,OOPEN? T>
+        PlaceInRoom("VLBOT", "BALLO");
+        FindObject("BLABE")!.Container = FindObject("BALLO"); // dung.56 gives the label OCAN BALLO, but it shows only once inflated
+        PlaceInRoom("LEDG4", "HOOK2");
+        PlaceInRoom("LIBRA", "BLBK", "GRBK", "PUBK", "WHBK");
+        PutInContainer("PUBK", "STAMP");
+        foreach (var air in new[] { "VAIR1", "VAIR2", "VAIR3", "VAIR4" })
+            FindRoom(air)!.IsAir = true;
         PlaceInRoom("LEDG2", "HOOK1", "ZORKM");
         PlaceInRoom("MGRAI", "GRAIL");
         PlaceInRoom("MPEAR", "PEARL");
