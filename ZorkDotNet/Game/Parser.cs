@@ -385,7 +385,14 @@ public static class Parser
                     state.Output.WriteLine(action == "TURN" ? "What do you want to turn?" : "What do you want to turn " + (action == "TURNON" ? "on" : "off") + "?");
                     break;
                 }
-                if (direct.ObjectAction != null) direct.ObjectAction(state, action, null);
+                if (action == "TURN" && (direct.Flags & ObjectFlags.Turnable) != 0)
+                {
+                    // dung.56 TURN obj WITH tool: GWIM picks the one tool you carry.
+                    indirect ??= ObjectActions.FindOnlyTool(state);
+                    if (indirect == null) { state.Output.WriteLine("With what?"); break; }
+                    state.LastIndirectObject = indirect;
+                }
+                if (direct.ObjectAction != null) direct.ObjectAction(state, action, indirect);
                 else if (action == "TURNON") LampOn(state, direct);
                 else if (action == "TURNOFF") LampOff(state, direct);
                 else state.Output.WriteLine("Nothing happens.");
@@ -482,6 +489,7 @@ public static class Parser
         state.PendingAmbiguousCandidates = null;
         if (state.World == null) return null;
         var lit = GameState.IsLit(state);
+        var adjectives = new List<string>();
         for (var i = startIndex; i < words.Length; i++)
         {
             var w = NormWord(words[i]);
@@ -530,6 +538,14 @@ public static class Parser
             }
             var inRoom = inRoomList.Where(o => MatchObject(o, w)).ToList();
             var all = inInv.Concat(inRoom).Distinct().ToList();
+            // An adjective (MDL OADJS) narrows the noun that follows it: "PUSH YELLOW BUTTON".
+            if (all.Count == 0 && state.Winner.Inventory.Concat(inRoomList).Any(o => o.Adjectives.Contains(w)))
+            {
+                adjectives.Add(w);
+                continue;
+            }
+            if (adjectives.Count > 0)
+                all = all.Where(o => adjectives.All(o.Adjectives.Contains)).ToList();
             if (all.Count > 1) { ambiguousWord = words[i]; state.PendingAmbiguousCandidates = all; return null; }
             if (all.Count == 1) { state.PendingAmbiguousCandidates = null; return all[0]; }
             if (!lit && inInv.Count == 0) state.Output.WriteLine("It is too dark in here to see.");
@@ -791,12 +807,9 @@ public static class Parser
     /// <summary>OPEN: try ObjectAction first (e.g. window, trap door) so objects with custom open behavior work even if not Container/Door.</summary>
     private static void DoOpen(GameState state, GameObject obj)
     {
-        if (obj.ObjectAction != null)
-        {
-            state.LastDirectObject = obj;
-            obj.ObjectAction(state, "OPEN", null);
-            return;
-        }
+        // rooms.99 OPENER: the object's own action first, if it has something to say.
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "OPEN", null)) return;
         if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) != 0)
         {
             // Doors without their own action (the original's DDOOR-FUNCTION isn't ported yet).
@@ -824,12 +837,9 @@ public static class Parser
     /// <summary>CLOSE: try ObjectAction first (e.g. window) so objects with custom close behavior work.</summary>
     private static void DoClose(GameState state, GameObject obj)
     {
-        if (obj.ObjectAction != null)
-        {
-            state.LastDirectObject = obj;
-            obj.ObjectAction(state, "CLOSE", null);
-            return;
-        }
+        // rooms.99 CLOSER: the object's own action first, if it has something to say.
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "CLOSE", null)) return;
         // rooms.99 CLOSER (doors without their own action keep the plain open/closed toggle)
         if (!obj.IsContainer && (obj.Flags & ObjectFlags.Door) == 0)
             state.Output.WriteLine("You must tell me how to do that to a " + obj.DescriptionShort + ".");
@@ -1020,6 +1030,8 @@ public static class Parser
             obj.ObjectAction(state, "PUT", cont);
             return;
         }
+        // OBJECT-ACTION asks the indirect object too (e.g. TUBE-FUNCTION refuses everything).
+        if (ObjectActions.Try(state, cont, "PUT", obj)) return;
         if (!cont.IsContainer && (cont.Flags & ObjectFlags.Container) == 0) { state.Output.WriteLine("You can't put things in that."); return; }
         if (!cont.Open && !cont.IsTransparent) { state.Output.WriteLine("That's closed."); return; }
         if (cont.Contents.Sum(o => o.Size) + obj.Size > cont.Capacity) { state.Output.WriteLine("That won't fit."); return; }

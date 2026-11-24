@@ -377,7 +377,8 @@ public class World
                 ["NORTH"] = new ExitTarget("LOW-TIDE!-FLAG", "RESEN", "You are not equipped for swimming."),
                 ["CROSS"] = new ExitTarget("LOW-TIDE!-FLAG", "RESEN", "You are not equipped for swimming.")
             },
-            objectIds: new[] { "TRUNK" });
+            objectIds: new[] { "TRUNK" },
+            roomAction: RoomActions.ReservoirSouth);
         AddRoom("STREA",
             "You are standing on a path beside a flowing stream.  The path travels to the north and the east.",
             "Stream",
@@ -535,7 +536,8 @@ public class World
             "You are in what appears to have been the maintenance room for Flood Control Dam #3, judging by the assortment of tool chests around the room.  Apparently, this room has been ransacked recently, for most of the valuable equipment is gone. On the wall in front of you is a panel of buttons, which are labelled in EBCDIC. However, they are of different colors:  Blue, Yellow, Brown, and Red. The doors to this room are in the west and south ends.",
             "Maintenance Room",
             false,
-            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("LOBBY"), ["WEST"] = new("LOBBY") });
+            new Dictionary<string, ExitTarget> { ["SOUTH"] = new("LOBBY"), ["WEST"] = new("LOBBY") },
+            roomAction: RoomActions.MaintRoom);
         AddRoom("DOCK",
             "You are at the base of Flood Control Dam #3, which looms above you and to the north.  The river Frigid is flowing by here.  Across the river are the White Cliffs which seem to form a giant wall stretching from north to south along the east shore of the river as it winds its way downstream.",
             "Dam Base",
@@ -710,8 +712,14 @@ public class World
             new Dictionary<string, ExitTarget> { ["SE"] = new("RESEN"), ["UP"] = new("CAVE1") },
             objectIds: new[] { "TRIDE" });
         AddRoom("RESEN", "", "Reservoir North", false,
-            new Dictionary<string, ExitTarget> { ["NORTH"] = new("ATLAN") },
-            objectIds: new[] { "PUMP" });
+            new Dictionary<string, ExitTarget>
+            {
+                ["NORTH"] = new("ATLAN"),
+                ["CROSS"] = new ExitTarget("LOW-TIDE!-FLAG", "RESES", "You are not equipped for swimming."),
+                ["SOUTH"] = new ExitTarget("LOW-TIDE!-FLAG", "RESES", "You are not equipped for swimming.")
+            },
+            objectIds: new[] { "PUMP" },
+            roomAction: RoomActions.ReservoirNorth);
         AddRoom("LLD1", "", "Entrance to Hades", true,
             new Dictionary<string, ExitTarget>
             {
@@ -867,7 +875,7 @@ public class World
         AddObject("REFL2", "", "mirror", null, ObjectActions.MirrorFunction, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "MIRRO" });
         AddObject("IRBOX", "There is a dented iron box here.", "iron box", null, ObjectActions.IronBoxFunction, ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Container, 0, 0, 0, 40, 20, new[] { "BOX", "IRON", "DENTE" });
         AddObject("CYCLO", "", "cyclops", null, ObjectActions.CyclopsFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 10000, new[] { "ONE-E", "MONST" });
-        AddObject("TRUNK", "There is an old trunk here, bulging with assorted jewels.", "trunk with jewels", "Lying half buried in the mud is an old trunk, bulging with jewels.", null, ObjectFlags.Container | ObjectFlags.Visible, 0, 15, 8, 35, 0, new[] { "CHEST" });
+        AddObject("TRUNK", "There is an old trunk here, bulging with assorted jewels.", "trunk with jewels", "Lying half buried in the mud is an old trunk, bulging with jewels.", null, ObjectFlags.Take, 0, 15, 8, 35, 0, new[] { "CHEST" });
         AddObject("FUSE", "There is a coil of thin shiny wire here.", "wire coil", null, ObjectActions.FuseFunction, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 1, 0, new[] { "COIL", "WIRE" });
         AddObject("COFFI", "There is a solid-gold coffin, used for the burial of Ramses II, here.", "gold coffin", null, null, ObjectFlags.Container | ObjectFlags.Sacred | ObjectFlags.Take | ObjectFlags.Visible, 0, 3, 7, 55, 35, new[] { "CASKE" });
         AddObject("TRIDE", "Neptune's own crystal trident is here.", "crystal trident", "On the shore lies Neptune's own crystal trident.", null, ObjectFlags.Take | ObjectFlags.Visible, 0, 4, 11, 20, 0, new[] { "FORK" });
@@ -876,7 +884,22 @@ public class World
         AddObject("RAILI", "A railing is here.", "railing", null, null, ObjectFlags.Visible, 0, 0, 0, 100, 0, new[] { "RAIL" });
         AddObject("PUMP", "There is a small pump here.", "hand-held air pump", null, null, ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "AIR-P", "AIRPU" });
         AddObject("MSWIT", "A screw is here.", "switch", null, ObjectActions.MSwitchFunction, ObjectFlags.Visible | ObjectFlags.Tool, 0, 0, 0, 1, 0, new[] { "SWITC" });
-        AddObject("SCREW", "There is a screwdriver here.", "screwdriver", null, null, ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+        AddObject("SCREW", "There is a screwdriver here.", "screwdriver", null, null, ObjectFlags.Tool | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 5, 0);
+
+        // Flood Control Dam #3 (dung.56)
+        AddObject("BOLT", "", "bolt", null, ObjectActions.BoltFunction, ObjectFlags.Turnable | ObjectFlags.Visible | ObjectFlags.Door | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BOLT", "NUT" });
+        AddObject("DAM", "", "dam", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "GATE", "GATES", "FCD" });
+        AddObject("BUBBL", "", "bubble", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0);
+        AddObject("BUTTO", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "SWITC" });
+        AddObject("GUIDE", "There are tour guidebooks here.", "tour guidebook", "Some guidebooks entitled 'Flood Control Dam #3' are on the reception desk.", null, ObjectFlags.Burnable | ObjectFlags.Take | ObjectFlags.Readable | ObjectFlags.Visible, 0, 0, 0, 5, 0, new[] { "BOOK" }, new[] { "TOUR" });
+        AddObject("LEAK", "", "leak", null, ObjectActions.LeakFunction, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "DRIP", "HOLE" });
+        AddObject("TUBE", "There is an object which looks like a tube of toothpaste here.", "tube", null, ObjectActions.TubeFunction, ObjectFlags.Container | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 7);
+        AddObject("PUTTY", "There is some gunk here", "viscous material", null, null, ObjectFlags.Tool | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 6, 0, new[] { "MATER", "GUNK", "GLUE" }, new[] { "VISCO" });
+        AddObject("WRENC", "There is a wrench here.", "wrench", null, null, ObjectFlags.Tool | ObjectFlags.Take | ObjectFlags.Visible, 0, 0, 0, 10, 0);
+        AddObject("RBUTT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "RED" });
+        AddObject("YBUTT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "YELLO" });
+        AddObject("BLBUT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "BLUE" });
+        AddObject("BRBUT", "", "button", null, null, ObjectFlags.Visible | ObjectFlags.NoDescribe, 0, 0, 0, 0, 0, new[] { "BUTTO", "SWITC" }, new[] { "BROWN" });
         AddObject("THIEF", "There is a suspicious-looking individual, holding a bag, leaning against one wall.  He is armed with a vicious-looking stilletto.", "thief", null, ObjectActions.ThiefFunction, ObjectFlags.Visible | ObjectFlags.Villain, 0, 0, 0, 100, 4, new[] { "ROBBE", "SEEDY", "CROOK", "CRIME", "CRIMI", "BANDI", "GENT", "GENTL", "MAN", "SHADY", "THUG", "BAGMA", "MAFIA" });
         AddObject("RECEP", "", "receptacle", null, null, ObjectFlags.Container | ObjectFlags.Visible, 0, 0, 0, 100, 6);
         AddObject("BALLO", "There is a very large and extremely heavy wicker basket with a cloth bag here. Inside the basket is a metal receptacle of some kind. Attached to the basket on the outside is a piece of wire.", "basket", null, ObjectActions.BalloonFunction, ObjectFlags.Container | ObjectFlags.Visible | ObjectFlags.Take | ObjectFlags.Vehicle, 0, 0, 0, 70, 100, new[] { "BALLOON", "BASKE" });
@@ -903,7 +926,10 @@ public class World
         PlaceInRoom("WHOUS", "FDOOR", "MAILB");
         PlaceInRoom("EHOUS", "WIND1");
         PlaceInRoom("KITCH", "WIND2", "SBAG", "BOTTL");
-        PlaceInRoom("LOBBY", "MATCH");
+        PlaceInRoom("LOBBY", "MATCH", "GUIDE");
+        PlaceInRoom("DAM", "BOLT", "DAM", "BUBBL");
+        PlaceInRoom("MAINT", "LEAK", "TUBE", "WRENC", "BLBUT", "RBUTT", "BRBUT", "YBUTT", "SCREW");
+        PutInContainer("TUBE", "PUTTY");
         PlaceInRoom("CYCLO", "CYCLO");
         PutInContainer("MAILB", "ADVER");
         PutInContainer("SBAG", "GARLI", "FOOD");
@@ -1056,7 +1082,7 @@ public class World
     private void AddObject(string id, string descHere, string descShort, string? descUntouched,
         Action<GameState, string, GameObject?>? action,
         ObjectFlags flags, int light, int findScore, int trophyScore, int size, int capacity,
-        string[]? synonyms = null)
+        string[]? synonyms = null, string[]? adjectives = null)
     {
         if (_objects.ContainsKey(NormId(id))) return; // LAMP added twice in data
         var o = new GameObject
@@ -1075,6 +1101,8 @@ public class World
         };
         if (synonyms != null)
             o.Synonyms = synonyms.ToList();
+        if (adjectives != null)
+            o.Adjectives = adjectives.ToList();
         _objects[NormId(id)] = o;
     }
 

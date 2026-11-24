@@ -108,7 +108,28 @@ public static class ObjectActions
     }
 
     /// <summary>np.93 GWIM for a tool: the only visible tool carried, else the only visible takeable tool in the room.</summary>
-    private static GameObject? FindOnlyTool(GameState state)
+    /// <summary>
+    /// MDL OBJECT-ACTION for one object: run its action and report whether it dealt with the verb, which here means
+    /// it said something.
+    /// </summary>
+    internal static bool Try(GameState state, GameObject obj, string verb, GameObject? indirect)
+    {
+        if (obj.ObjectAction == null) return false;
+        var output = state.Output;
+        var tell = new TellWriter(output);
+        state.Output = tell;
+        try
+        {
+            obj.ObjectAction(state, verb, indirect);
+        }
+        finally
+        {
+            state.Output = output;
+        }
+        return tell.Told;
+    }
+
+    internal static GameObject? FindOnlyTool(GameState state)
     {
         static bool IsTool(GameObject o) => o.IsVisible && (o.Flags & ObjectFlags.Tool) != 0;
         var carried = state.Winner.Inventory.Where(IsTool).ToList();
@@ -142,6 +163,56 @@ public static class ObjectActions
     }
 
     /// <summary>act1.38 RUG. (The third argument is the indirect object, which the rug never uses.)</summary>
+    /// <summary>act1.38 BOLT-FUNCTION: TURN BOLT WITH WRENCH opens or closes the sluice gates, once the yellow button is pushed.</summary>
+    public static void BoltFunction(GameState state, string verb, GameObject? tool)
+    {
+        if (verb != "TURN" || tool == null) return;
+        if (tool.Id != "WRENC")
+        {
+            state.Output.WriteLine("The bolt won't turn using the " + tool.DescriptionShort + ".");
+            return;
+        }
+        if (!state.GetFlag("GATE-FLAG!-FLAG"))
+        {
+            state.Output.WriteLine("The bolt won't turn with your best effort.");
+            return;
+        }
+        var trunk = state.World?.FindObject("TRUNK");
+        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        {
+            state.SetFlag("LOW-TIDE!-FLAG", false);
+            state.Output.WriteLine("The sluice gates close and water starts to collect behind the dam.");
+            if (trunk != null && trunk.InRoom?.Id == "RESES") trunk.Flags &= ~ObjectFlags.Visible;
+        }
+        else
+        {
+            state.SetFlag("LOW-TIDE!-FLAG", true);
+            state.Output.WriteLine("The sluice gates open and water pours through the dam.");
+            if (trunk != null) trunk.Flags |= ObjectFlags.Visible;
+        }
+    }
+
+    /// <summary>act1.38 LEAK-FUNCTION: PLUG LEAK WITH PUTTY stops the flood in the maintenance room.</summary>
+    public static void LeakFunction(GameState state, string verb, GameObject? with)
+    {
+        if (verb != "PLUG" || state.Here.RVars <= 0) return;
+        if (with?.Id == "PUTTY")
+        {
+            state.Here.RVars = -1;
+            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MaintRoom);
+            state.Output.WriteLine("By some miracle of elven technology, you have managed to stop the leak in the dam.");
+        }
+        else if (with != null)
+            state.Output.WriteLine("With a " + with.DescriptionShort + "?"); // act1.38 WITH-TELL
+    }
+
+    /// <summary>act1.38 TUBE-FUNCTION: nothing can be put into the tube.</summary>
+    public static void TubeFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "PUT" && state.LastIndirectObject?.Id == "TUBE")
+            state.Output.WriteLine("The tube refuses to accept anything.");
+    }
+
     public static void Rug(GameState state, string verb, GameObject? _)
     {
         if (verb == "TAKE")

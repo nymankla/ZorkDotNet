@@ -200,7 +200,9 @@ public static class VerbTable
             new Syntax(ArgRoom, ArgInvWith, "ATTACK")));
 
         // MOVE / LIFT
-        AddWords(new[] { "MOVE", "PUSH", "SLIDE", "PULL", "TUG", "PRESS" }, V("MOVE", "move",
+        // dung.56 PUSH/PRESS is its own verb (PUSHER), not MOVE.
+        AddWords(new[] { "PUSH", "PRESS" }, V("PUSH", "push", new Syntax(ArgRoomNoTake, VArg.Empty, "PUSH", isDriver: true)));
+        AddWords(new[] { "MOVE", "SLIDE", "PULL", "TUG" }, V("MOVE", "move",
             new Syntax(ArgRoom, VArg.Empty, "MOVE", isDriver: true)));
         AddWords(new[] { "LIFT", "RAISE" }, V("LIFT", "lift",
             new Syntax(ArgRoom, VArg.Empty, "LIFT", isDriver: true)));
@@ -241,6 +243,7 @@ public static class VerbTable
         // dung.56 TURN: TURN obj [WITH tool] (driver), TURN ON light, TURN OFF light. The light slots are AOBJS ROBJS
         // without NO-TAKE, so a lamp on the floor is taken first (np.93 TAKE-IT-OR-LEAVE-IT).
         AddWords(new[] { "TURN" }, V("TURN", "turn",
+            new Syntax(ArgRoomNoTake, A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.With), "TURN"),
             new Syntax(ArgRoomNoTake, VArg.Empty, "TURN", isDriver: true),
             new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.On), VArg.Empty, "TURNON"),
             new Syntax(A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.Off), VArg.Empty, "TURNOFF")));

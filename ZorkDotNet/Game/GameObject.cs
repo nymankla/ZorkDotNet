@@ -7,6 +7,8 @@ public class GameObject
 {
     public string Id { get; set; } = "";
     public List<string> Synonyms { get; set; } = new();
+    /// <summary>MDL OADJS: adjectives that tell this object apart from others with the same name ("YELLOW BUTTON").</summary>
+    public List<string> Adjectives { get; set; } = new();
     /// <summary>Description when in room / not carried.</summary>
     public string DescriptionHere { get; set; } = "";
     /// <summary>Short description (e.g. "lamp", "sword").</summary>
