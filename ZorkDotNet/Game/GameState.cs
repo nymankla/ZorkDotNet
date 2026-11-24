@@ -69,6 +69,9 @@ public class GameState
     /// <summary>Random numbers for chance events such as the grue (MDL PROB); tests can replace it.</summary>
     public Random Random { get; set; } = Random.Shared;
 
+    /// <summary>Set by <see cref="ObjectActions.FallThrough"/> while an object action runs.</summary>
+    internal bool ActionFellThrough { get; set; }
+
     /// <summary>MDL JIGS-UP: the player dies (see <see cref="Death"/>). The message may already have been told.</summary>
     public void JigsUp(string? message) => Death.JigsUp(this, message);
     public string? LastVerb { get; set; }

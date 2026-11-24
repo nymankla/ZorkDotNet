@@ -125,6 +125,7 @@ public static class Verbs
                 return true;
             case "BRUSH": Brush(state, direct, indirect); return true;
             case "WAKE": Alarm(state, direct); return true;
+            case "RAISE" or "LOWER": HackHack(state, direct, action, "Playing in this way with a "); return true; // act1.38 R/L
             case "MELT": // act1.38 MELTER
                 if (direct != null && !ObjectAction(state, direct, "MELT", indirect))
                     output.WriteLine("I'm not sure that a " + direct.DescriptionShort + " can be melted.");

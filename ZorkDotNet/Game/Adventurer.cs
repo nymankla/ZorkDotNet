@@ -21,6 +21,5 @@ public class Adventurer
     public bool BriefMode { get; set; }
     public bool SuperBriefMode { get; set; }
 
-    public int CarryingSize => Inventory.Sum(o => o.Size);
     public const int MaxLoad = 100; // LOAD-MAX 100 in defs.63
 }

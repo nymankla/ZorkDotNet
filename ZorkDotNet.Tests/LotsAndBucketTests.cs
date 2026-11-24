@@ -73,6 +73,7 @@ public class LotsAndBucketTests
         runner.Teleport("BWELL");
 
         Assert.Contains("You are in the wooden bucket.", Do(runner, "BOARD BUCKET"));
+        Do(runner, "OPEN BOTTLE");
         var rise = Do(runner, "PUT WATER IN BUCKET");
         Assert.Contains("There is now a puddle in the bottom of the wooden bucket.", rise);
         Assert.Contains("The bucket rises and comes to a stop.", rise);

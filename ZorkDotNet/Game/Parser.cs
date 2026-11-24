@@ -303,21 +303,12 @@ public static class Parser
             case "TAKE":
                 if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
                 if (direct?.Id is Obj.Every or Obj.Valua) { DoLots(state, "TAKE", direct, null); break; }
-                if (direct != null)
-                {
-                    // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
-                    if (direct.ObjectAction != null && !direct.Flags.HasFlag(ObjectFlags.Take))
-                    {
-                        direct.ObjectAction(state, "TAKE", null);
-                        return;
-                    }
-                    DoTake(state, direct);
-                }
+                if (direct != null) DoTake(state, direct);
                 else state.Output.WriteLine("What do you want to take?");
                 break;
             case "DROP":
                 if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "DROP", direct, null);
-                else if (direct != null) DoDrop(state, direct);
+                else if (direct != null) Dropper(state, "DROP", direct, indirect);
                 else state.Output.WriteLine("What do you want to drop?");
                 break;
             case "INVENTORY": DoInventory(state); break;
@@ -350,7 +341,10 @@ public static class Parser
                 if (direct != null) ObjectActions.DrinkObject(state, direct);
                 else state.Output.WriteLine("What do you want to drink?");
                 break;
-            case "THROW": DoThrow(state, direct, indirect); break;
+            case "THROW":
+                if (direct != null) Dropper(state, "THROW", direct, indirect);
+                else state.Output.WriteLine("What do you want to throw?");
+                break;
             case "WAVE":
                 if (direct != null) DoWave(state, direct);
                 else state.Output.WriteLine("What do you want to wave?");
@@ -368,14 +362,12 @@ public static class Parser
                 if (direct?.Id is Obj.Every or Obj.Valua) DoLots(state, "PUT", direct, indirect);
                 else DoPut(state, direct, indirect);
                 break;
-            case "GIVE": DoGive(state, direct, indirect); break;
-            case "RAISE":
-                if (direct == null || !ObjectActions.Try(state, direct, "RAISE", null))
-                    state.Output.WriteLine("You can't raise that.");
-                break;
-            case "LOWER":
-                if (direct == null || !ObjectActions.Try(state, direct, "LOWER", null))
-                    state.Output.WriteLine("You can't lower that.");
+            case "GIVE":
+                // dung.56 GIVE obj TO victim is DROPPER; a missing victim is GWIM'd.
+                if (direct == null) { state.Output.WriteLine("What do you want to give?"); break; }
+                indirect ??= Gwim(state, ObjectFlags.Victim, noTake: true);
+                if (indirect == null) state.Output.WriteLine("To what?");
+                else Dropper(state, "GIVE", direct, indirect);
                 break;
             case "BURN":
                 if (direct != null) DoBurn(state, direct, indirect);
@@ -384,16 +376,18 @@ public static class Parser
             case "FILL": DoFill(state, direct); break;
             case "TIE": DoTie(state, direct, indirect); break;
             case "UNTIE":
-                if (direct == null || !ObjectActions.Try(state, direct, "UNTIE", null))
-                    state.Output.WriteLine("What do you want to untie?");
+                // act1.38 UNTIE
+                if (direct == null) state.Output.WriteLine("What do you want to untie?");
+                else if (ObjectActions.ObjectAction(state, "UNTIE", direct, indirect)) { }
+                else if ((direct.Flags & ObjectFlags.Tie) != 0) state.Output.WriteLine("I don't think so.");
+                else state.Output.WriteLine("This cannot be tied, so it cannot be untied!");
                 break;
             case "BREAK":
-                if (direct == null || !ObjectActions.Try(state, direct, "MUNG", null))
-                    state.Output.WriteLine("What do you want to break?");
-                break;
+                // dung.56 makes BREAK a synonym of POKE (act1.38 MUNGER).
+                goto case "POKE";
             case "POUR":
-                if (direct == null || !ObjectActions.Try(state, direct, "POUR", null))
-                    state.Output.WriteLine("What do you want to pour?");
+                if (direct != null) Dropper(state, "POUR", direct, indirect);
+                else state.Output.WriteLine("What do you want to pour?");
                 break;
             case "TURN":
             case "TURNON":
@@ -403,17 +397,22 @@ public static class Parser
                     state.Output.WriteLine(action == "TURN" ? "What do you want to turn?" : "What do you want to turn " + (action == "TURNON" ? "on" : "off") + "?");
                     break;
                 }
-                if (action == "TURN" && (direct.Flags & ObjectFlags.Turnable) != 0)
+                if (action == "TURN")
                 {
-                    // dung.56 TURN obj WITH tool: GWIM picks the one tool you carry.
+                    // act1.38 TURNER (TURN obj WITH tool; GWIM picks the one tool you carry).
+                    if ((direct.Flags & ObjectFlags.Turnable) == 0) { state.Output.WriteLine("You can't turn that!"); break; }
                     indirect ??= ObjectActions.FindOnlyTool(state);
                     if (indirect == null) { state.Output.WriteLine("With what?"); break; }
                     state.LastIndirectObject = indirect;
+                    if ((indirect.Flags & ObjectFlags.Tool) == 0)
+                        state.Output.WriteLine("You certainly can't turn it with a " + indirect.DescriptionShort + ".");
+                    else if (!ObjectActions.ObjectAction(state, action, direct, indirect))
+                        state.Output.WriteLine("Nothing happens.");
+                    break;
                 }
-                if (ObjectActions.Try(state, direct, action, indirect)) break;
+                if (ObjectActions.ObjectAction(state, action, direct, indirect)) break;
                 if (action == "TURNON") LampOn(state, direct);
-                else if (action == "TURNOFF") LampOff(state, direct);
-                else state.Output.WriteLine("Nothing happens.");
+                else LampOff(state, direct);
                 break;
             case "QUIT": Scoring.Quit(state); break;
             case "SCORE": Scoring.PrintScore(state, ask: true); break;
@@ -484,7 +483,7 @@ public static class Parser
         switch (verb)
         {
             case "TAKE": DoTake(state, obj); break;
-            case "DROP": DoDrop(state, obj); break;
+            case "DROP": Dropper(state, "DROP", obj, null); break;
             case "OPEN": DoOpen(state, obj); break;
             case "CLOSE": DoClose(state, obj); break;
             default: state.Output.WriteLine("I don't know how to do that."); break;
@@ -788,38 +787,78 @@ public static class Parser
         }
     }
 
+    // act1.38 YUKS: TAKE of something that can't be taken and has nothing to say about it.
+    private static readonly string[] Yuks = ["Nice try.", "You can't be serious.", "Chomp, Chomp.", "Not a prayer.", "I don't think so."];
+
+    /// <summary>
+    /// rooms.99 TAKE. The object's own action is asked first (APPLY-OBJECT) and it is taken only if the action lets
+    /// it be; it goes to the head of your possessions. Returns false when TAKE failed.
+    /// </summary>
     private static bool DoTake(GameState state, GameObject obj, bool tell = true)
     {
-        if (obj == state.Winner.Vehicle)
+        if ((obj.Flags & ObjectFlags.NoCheck) != 0) return ObjectActions.ObjectAction(state, "TAKE", obj, null);
+        var container = obj.Container;
+        var getter = false;
+        if (container != null)
         {
-            state.Output.WriteLine("You're already in the " + obj.DescriptionShort + ".");
+            if (!container.IsVisible || !container.IsOpenOrTransparent) { state.Output.WriteLine("I can't see one here."); return false; }
+            if (!container.Open) { state.Output.WriteLine("I can't reach that."); return false; }
+            getter = true;
+        }
+        if (obj == state.Winner.Vehicle) { state.Output.WriteLine("You are in it, loser!"); return false; }
+        if (!obj.CanTake)
+        {
+            if (!ObjectActions.Try(state, obj, "TAKE", null)) state.Output.WriteLine(Yuks[state.Random.Next(Yuks.Length)]);
             return false;
         }
-        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have that."); return false; }
-        if (!obj.CanTake) { state.Output.WriteLine("You can't take that."); return false; }
-        if (obj.Container != null && !obj.Container.Open && !obj.Container.IsTransparent)
-        { state.Output.WriteLine("You can't reach that."); return false; }
-        if (obj.InRoom != null)
+        if (getter || state.Here.Objects.Contains(obj))
         {
-            if (state.Winner.CarryingSize + obj.Size > Adventurer.MaxLoad)
-            { state.Output.WriteLine("You're carrying too much."); return false; }
+            var fromCarried = getter && container!.Holder == state.Winner;
+            if (!fromCarried && GameObject.Weight(state.Winner.Inventory) + GameObject.Weight(obj.Contents) + obj.Size > Adventurer.MaxLoad)
+            {
+                state.Output.WriteLine("Your load is too heavy.  You will have to leave something behind.");
+                return false;
+            }
+            if (ObjectActions.Try(state, obj, "TAKE", null)) return true;
+            obj.MoveTo(state.Winner, first: true);
+            // OTOUCH? is set on every take; SCORE-OBJ scores the find only the first time.
+            if (!obj.Touched) state.Winner.Score += obj.FindScore;
+            obj.Touched = true;
+            if (tell) state.Output.WriteLine("Taken.");
+            return true;
         }
-        obj.MoveTo(state.Winner);
-        // TAKE calls the object's action (rooms.99 APPLY-OBJECT): the candles start their clock, the rusty knife
-        // makes the sword pulse.
-        if (obj.Id is Obj.Candl or Obj.Rknif) obj.ObjectAction?.Invoke(state, "TAKE", null);
-        // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
-        if (!obj.Touched) state.Winner.Score += obj.FindScore;
-        obj.Touched = true;
-        if (tell) state.Output.WriteLine("Taken.");
-        return true;
+        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have it."); return false; }
+        state.Output.WriteLine("I can't see one here.");
+        return false;
     }
 
-    private static void DoDrop(GameState state, GameObject obj)
+    /// <summary>
+    /// rooms.99 DROPPER, for DROP, THROW, GIVE and POUR: what you carry (or hold in an open container) lands in the
+    /// room, or in the vehicle you're in; then OBJECT-ACTION (the target first: the troll catches it, the glacier
+    /// melts), and "Dropped." or "Thrown." if nothing answered. DROP or POUR into something is PUT.
+    /// </summary>
+    private static void Dropper(GameState state, string verb, GameObject obj, GameObject? indirect)
     {
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        obj.MoveTo(state.Here);
-        state.Output.WriteLine("Dropped.");
+        if (verb is "DROP" or "POUR" && indirect != null) { DoPut(state, obj, indirect); return; }
+        bool Held(GameObject o) => o.Carrier == state.Winner || o.Container?.Carrier == state.Winner;
+        if (indirect != null && !Held(obj)) (obj, indirect) = (indirect, obj);
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = indirect;
+        if ((obj.Flags & ObjectFlags.NoCheck) != 0) { ObjectActions.ObjectAction(state, verb, obj, indirect); return; }
+        var getter = false;
+        if (obj.Container is { } container && container.Carrier == state.Winner)
+        {
+            if (container.Open) getter = true;
+            else if (container.IsTransparent) { state.Output.WriteLine("I can't reach that."); return; }
+            else state.Output.WriteLine("I can't see that here.");
+        }
+        if (!getter && obj.Carrier != state.Winner) { state.Output.WriteLine("You are not carrying that."); return; }
+        // (In a vehicle DROPPER calls PUTTER to put it there; the port just puts it there.)
+        if (state.Winner.Vehicle is { } vehicle) obj.MoveTo(vehicle);
+        else obj.MoveTo(state.Here);
+        if (ObjectActions.ObjectAction(state, verb, obj, indirect)) return;
+        if (verb == "DROP") state.Output.WriteLine("Dropped.");
+        else if (verb == "THROW") state.Output.WriteLine("Thrown.");
     }
 
     /// <summary>OPEN: try ObjectAction first (e.g. window, trap door) so objects with custom open behavior work even if not Container/Door.</summary>
@@ -916,24 +955,6 @@ public static class Parser
     }
 
 
-    /// <summary>
-    /// rooms.99 DROPPER for THROW: what you carry (or hold in an open container) lands in the room, or in the
-    /// vehicle you're in; then OBJECT-ACTION (the target first: the troll catches it, the glacier melts), and
-    /// "Thrown." if nothing answered.
-    /// </summary>
-    private static void DoThrow(GameState state, GameObject? obj, GameObject? atObj)
-    {
-        if (obj == null) { state.Output.WriteLine("What do you want to throw?"); return; }
-        if (obj.Carrier != state.Winner && !(obj.Container is { Open: true } c && c.Carrier == state.Winner))
-        { state.Output.WriteLine("You're not carrying that."); return; }
-        state.LastDirectObject = obj;
-        state.LastIndirectObject = atObj;
-        if (state.Winner.Vehicle is { } vehicle) obj.MoveTo(vehicle);
-        else obj.MoveTo(state.Here);
-        if (!ObjectActions.ObjectAction(state, "THROW", obj, atObj))
-            state.Output.WriteLine("Thrown.");
-    }
-
     private static void DoWave(GameState state, GameObject obj)
     {
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
@@ -1000,11 +1021,8 @@ public static class Parser
             state.LastIndirectObject = into;
             switch (action)
             {
-                case "TAKE":
-                    if (!o.CanTake) { if (!ObjectActions.Try(state, o, "TAKE", null)) state.Output.WriteLine("You can't take that."); }
-                    else DoTake(state, o);
-                    break;
-                case "DROP": DoDrop(state, o); break;
+                case "TAKE": DoTake(state, o); break;
+                case "DROP": Dropper(state, "DROP", o, null); break;
                 default: DoPut(state, o, into); break;
             }
             if (state.Here != here) break;
@@ -1023,30 +1041,19 @@ public static class Parser
         if (!cont.Open && !cont.IsContainer && (cont.Flags & ObjectFlags.Vehicle) == 0) { state.Output.WriteLine("I can't do that."); return; }
         if (!cont.Open) { state.Output.WriteLine("I can't reach inside."); return; }
         if (cont == obj) { state.Output.WriteLine("How can you do that?"); return; }
-        if (cont.Contents.Sum(o => o.Size) + obj.Size > cont.Capacity) { state.Output.WriteLine("It won't fit."); return; }
+        if (GameObject.Weight(cont.Contents) + obj.Size > cont.Capacity) { state.Output.WriteLine("It won't fit."); return; }
         if (obj.Carrier != state.Winner)
         {
             // PUTTER takes it first, without saying so.
             if (!DoTake(state, obj, tell: false)) return;
         }
-        if (ObjectActions.Try(state, obj, "PUT", cont)) return;
-        if (ObjectActions.Try(state, cont, "PUT", obj)) return;
-        obj.MoveTo(cont);
+        state.LastDirectObject = obj;
+        state.LastIndirectObject = cont;
+        if (ObjectActions.ObjectAction(state, "PUT", obj, cont)) return;
+        obj.MoveTo(cont, first: true);
         if (cont.Id == Obj.Tcase && obj.TrophyScore > 0)
             state.Winner.Score += obj.TrophyScore;
         state.Output.WriteLine("Done.");
-    }
-
-    private static void DoGive(GameState state, GameObject? obj, GameObject? toObj)
-    {
-        if (obj == null) { state.Output.WriteLine("What do you want to give?"); return; }
-        // Held, or inside something held (the water in the bottle), as the AOBJS search finds it.
-        if (obj.Holder != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
-        state.LastDirectObject = obj;
-        state.LastIndirectObject = toObj;
-        if (!ObjectActions.Try(state, toObj, "GIVE", obj))
-            state.Output.WriteLine("The " + toObj.DescriptionShort + " doesn't want that.");
     }
 
     /// <summary>
@@ -1132,12 +1139,13 @@ public static class Parser
         state.Output.WriteLine("The bottle is now full of water.");
     }
 
+    /// <summary>act1.38 TIE: only something that can be tied (TIEBIT), and then only where an action allows it.</summary>
     private static void DoTie(GameState state, GameObject? obj, GameObject? toObj)
     {
         if (obj == null) { state.Output.WriteLine("What do you want to tie?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
-        if (!ObjectActions.Try(state, obj, "TIE", toObj))
-            state.Output.WriteLine("You can't tie that.");
+        if ((obj.Flags & ObjectFlags.Tie) == 0) state.Output.WriteLine("How can you tie that to anything.");
+        else if (!ObjectActions.ObjectAction(state, "TIE", obj, toObj)) state.Output.WriteLine("You can't tie it to that.");
     }
 }

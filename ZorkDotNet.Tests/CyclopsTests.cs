@@ -40,6 +40,8 @@ public class CyclopsTests
         Assert.Contains("I love hot peppers!", Do(runner, "GIVE FOOD TO CYCLOPS"));
         Assert.True(runner.State.Here.RVars < 0);
         Assert.Contains("appears to be gasping", Do(runner, "LOOK"));
+        Assert.Contains("I can't reach that.", Do(runner, "GIVE WATER TO CYCLOPS")); // the bottle is closed
+        Do(runner, "OPEN BOTTLE");
         Assert.Contains("falls fast asleep", Do(runner, "GIVE WATER TO CYCLOPS"));
         Assert.True(runner.State.GetFlag("CYCLOPS-FLAG!-FLAG"));
         Assert.Contains("is sleeping blissfully at the foot of the stairs", Do(runner, "LOOK"));
@@ -53,6 +55,7 @@ public class CyclopsTests
     {
         using var runner = InCyclopsRoom();
         runner.Give("BOTTL");
+        Do(runner, "OPEN BOTTLE");
 
         Assert.Contains("was not thirsty at the time and refuses your generous gesture", Do(runner, "GIVE WATER TO CYCLOPS"));
         Assert.False(runner.State.GetFlag("CYCLOPS-FLAG!-FLAG"));

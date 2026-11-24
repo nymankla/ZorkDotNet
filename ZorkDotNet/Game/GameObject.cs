@@ -92,6 +92,13 @@ public class GameObject
         }
     }
 
+    /// <summary>
+    /// rooms.99 WEIGHT: the sizes of the objects and of everything inside them. A BIGFIX size counts nothing (the port
+    /// stores BIGFIX as <see cref="Adventurer.MaxLoad"/>).
+    /// </summary>
+    public static int Weight(IEnumerable<GameObject> objects) =>
+        objects.Sum(o => (o.Size >= Adventurer.MaxLoad ? 0 : o.Size) + Weight(o.Contents));
+
     private static List<GameObject> ListOf(Place place) => place switch
     {
         Room r => r.Items,

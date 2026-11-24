@@ -119,12 +119,17 @@ public static class ObjectActions
     internal static bool ObjectAction(GameState state, string verb, GameObject? direct, GameObject? indirect) =>
         (indirect != null && Try(state, indirect, verb, direct)) || (direct != null && Try(state, direct, verb, indirect));
 
+    /// <summary>
+    /// Asks one object's action (MDL APPLY-OBJECT) and reports whether it dealt with the verb: an action that said
+    /// something has, unless it called <see cref="FallThrough"/>.
+    /// </summary>
     internal static bool Try(GameState state, GameObject obj, string verb, GameObject? indirect)
     {
         if (obj.ObjectAction == null) return false;
         var output = state.Output;
         var tell = new TellWriter(output);
         state.Output = tell;
+        state.ActionFellThrough = false;
         try
         {
             obj.ObjectAction(state, verb, indirect);
@@ -133,8 +138,16 @@ public static class ObjectActions
         {
             state.Output = output;
         }
-        return tell.Told;
+        var handled = tell.Told && !state.ActionFellThrough;
+        state.ActionFellThrough = false;
+        return handled;
     }
+
+    /// <summary>
+    /// For an action that says something and then lets the verb go on, as an MDL action that TELLs and returns
+    /// false: the rusty knife's pulse before TAKE takes it, the glacier's reply before THROW's "Thrown.".
+    /// </summary>
+    internal static void FallThrough(GameState state) => state.ActionFellThrough = true;
 
     internal static GameObject? FindOnlyTool(GameState state)
     {
@@ -278,6 +291,7 @@ public static class ObjectActions
         {
             if (state.Winner.Inventory.Any(o => o.Id == Obj.Sword))
                 state.Output.WriteLine("As you pick up the rusty knife, your sword gives a single pulse of blinding blue light.");
+            FallThrough(state); // TAKE still takes it
         }
         else if (verb is "ATTACK" or "SWING" or "THROW" or "KILL")
         {
@@ -609,7 +623,7 @@ public static class ObjectActions
     {
         var match = state.World?.FindObject(Obj.Match);
         if (match == null) return;
-        if (verb == "TURNON")
+        if (verb == "TURNON" && state.LastDirectObject == match) // LIGHT MATCH, not LIGHT something WITH MATCH
         {
             if (--state.MatchesLeft <= 0)
             {
@@ -1063,9 +1077,8 @@ public static class ObjectActions
             var torch = world.FindObject(Obj.Torch)!;
             if (thrown != torch)
             {
-                // GLACIER says this and returns false, so DROPPER goes on to say "Thrown." as well.
                 state.Output.WriteLine("The glacier is unmoved by your ridiculous attempt.");
-                state.Output.WriteLine("Thrown.");
+                FallThrough(state); // GLACIER returns false, so DROPPER says "Thrown." too
                 return;
             }
             state.Output.WriteLine("The torch hits the glacier and explodes into a great ball of flame, devouring the glacier.  The water from the melting glacier rushes downstream, carrying the torch with it.  In the place of the glacier, there is a passageway leading west.");
