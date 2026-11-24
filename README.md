@@ -5,9 +5,6 @@
 [![License: MIT No Attribution](https://img.shields.io/badge/License-MIT%20No%20Attribution-green.svg)](LICENSE.md)
 [![Build and test](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml)
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J7L5UMN)
-[![Patreon](https://img.shields.io/badge/Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/teamresurgent)
-
 [![Download](https://img.shields.io/badge/download-latest-brightgreen.svg?style=for-the-badge&logo=github)](https://github.com/nymankla/ZorkDotNet/releases/latest)
 
 <img src="Images/Cover.png" alt="Zork cover art" width="400" height="400" />
@@ -70,12 +67,12 @@ New to this kind of game? [How to Play Interactive Fiction](https://www.eblong.c
 
 This repository is a fork of **[Team-Resurgent/ZorkDotNet](https://github.com/Team-Resurgent/ZorkDotNet)**, which created the .NET port.
 
-Work here is ongoing, with two goals:
+This fork set out to do two things, and both are done:
 
-- **Fixing bugs** in the port.
-- **Closing every gap to the original 1977 version**, so that the rooms, objects, puzzles, vocabulary and messages match the MDL source exactly.
+- **Fix the bugs** in the port.
+- **Close every gap to the original 1977 version**, so that the rooms, objects, puzzles, vocabulary and messages match the MDL source.
 
-The original dungeon data is checked automatically against the port, and every remaining difference is tracked in [issue #1](https://github.com/nymankla/ZorkDotNet/issues/1).
+All known bugs are fixed and all the gaps are closed: every item in the tracking issue, [issue #1](https://github.com/nymankla/ZorkDotNet/issues/1), is done. The original dungeon data is still checked automatically against the port on every build, so any new difference is caught. The one part that can't be ported line by line is fighting, whose original code isn't in MIT's archive.
 
 ## Original source
 
