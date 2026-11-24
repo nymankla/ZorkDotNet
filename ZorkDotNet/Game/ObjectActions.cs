@@ -551,7 +551,7 @@ public static class ObjectActions
         if (with?.Id == Obj.Putty)
         {
             state.Here.RVars = -1;
-            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MaintRoom);
+            state.CancelClock(Clocks.MaintRoom);
             state.Output.WriteLine("By some miracle of elven technology, you have managed to stop the leak in the dam.");
         }
         else if (with != null)
@@ -603,15 +603,17 @@ public static class ObjectActions
             RemoveFromWhere(lamp!);
             blamp?.MoveTo(state.Here);
         }
-        // TURN ON / OFF: the original LANTERN only enables or disables the lamp's clock and lets LAMP-ON /
-        // LAMP-OFF do the rest. Here the lamp clock runs whenever the lamp is on (GameState.ProcessClocks).
-        else if ((verb == "TURNON" || verb == "TURN ON") && lamp != null)
+        // TURN ON / OFF: LANTERN only enables or disables the lamp's clock, then lets LAMP-ON / LAMP-OFF do the rest
+        // (it says nothing and returns false).
+        else if (verb == "TURNON")
         {
-            Parser.LampOn(state, lamp);
+            state.EnableClock(Clocks.Lantern, true);
+            Parser.LampOn(state, lamp!);
         }
-        else if ((verb == "TURNOFF" || verb == "TURN OFF") && lamp != null)
+        else if (verb == "TURNOFF")
         {
-            Parser.LampOff(state, lamp);
+            state.EnableClock(Clocks.Lantern, false);
+            Parser.LampOff(state, lamp!);
         }
     }
 
@@ -632,7 +634,6 @@ public static class ObjectActions
             }
             match.Flags |= ObjectFlags.OnFire;
             match.LightAmount = 1;
-            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MatchOut);
             state.Schedule(2, Clocks.MatchOut, match.Id);
             state.Output.WriteLine("One of the matches starts to burn.");
         }
@@ -641,7 +642,7 @@ public static class ObjectActions
             state.Output.WriteLine("The match is out.");
             match.Flags &= ~ObjectFlags.OnFire;
             match.LightAmount = 0;
-            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MatchOut);
+            state.CancelClock(Clocks.MatchOut);
         }
     }
 
@@ -663,7 +664,11 @@ public static class ObjectActions
     {
         var candles = state.World?.FindObject(Obj.Candl);
         if (candles == null) return;
-        if (state.Lights.CandleTicks == 0 && state.Lights.CandleStage == 0) state.Lights.CandleTicks = 50; // ORAND set on first use
+        if (!state.Lights.CandleClockSet) // <OR <ORAND .C> <PUT .C ,ORAND [0 <CLOCK-INT ,CNDIN 50>]>>
+        {
+            state.Lights.CandleClockSet = true;
+            state.Schedule(50, Clocks.Candles);
+        }
         if (verb == "TURNON")
         {
             if (candles.LightAmount == 0)
@@ -677,6 +682,7 @@ public static class ObjectActions
                 {
                     candles.LightAmount = 1;
                     state.Output.WriteLine("The candles are lighted.");
+                    state.EnableClock(Clocks.Candles, true);
                 }
             }
             else if (with.Id == Obj.Torch)
@@ -694,6 +700,7 @@ public static class ObjectActions
         }
         else if (verb == "TURNOFF")
         {
+            state.EnableClock(Clocks.Candles, false);
             if (candles.LightAmount > 0)
             {
                 state.Output.WriteLine("The flame is extinguished.");
@@ -712,7 +719,6 @@ public static class ObjectActions
     {
         if (verb != "BURN") return;
         state.Output.WriteLine("The wire starts to burn.");
-        state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Fuse);
         state.Schedule(2, Clocks.Fuse);
     }
 
@@ -805,7 +811,7 @@ public static class ObjectActions
                     state.SetFlag(Flag.Btie, false);
                     state.SetFlag(Flag.Binf, false);
                     Balloon.StopClock(state);
-                    state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
+                    state.CancelClock(Clocks.Burnup);
                     state.JigsUp("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
                 }
                 else
@@ -861,7 +867,6 @@ public static class ObjectActions
             state.Output.WriteLine("The bucket rises and comes to a stop.");
             state.SetFlag(Flag.BucketTop, true);
             PassTheBucket(state, world.FindRoom(RoomId.Twell)!, bucket);
-            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Bucket);
             state.Schedule(100, Clocks.Bucket);
         }
         else if (top && !full)

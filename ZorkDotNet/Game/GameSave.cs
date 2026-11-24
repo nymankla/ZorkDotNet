@@ -88,7 +88,7 @@ public static class GameSave
             Progress = state.Progress,
             RobotRoom = state.Robot.CurrentRoom?.Id,
             RobotInventory = state.Robot.Inventory.Select(o => o.Id).ToList(),
-            Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
+            Events = state.ClockEvents.Select(e => new EventData { Name = e.Name, Ticks = e.Ticks, Enabled = e.Enabled, Argument = e.Argument }).ToList(),
             Rooms = world.Rooms.Select(r => new RoomData
             {
                 Id = r.Id,
@@ -211,8 +211,8 @@ public static class GameSave
         state.Progress = data.Progress;
         if (data.RobotRoom != null) state.Robot.CurrentRoom = world.FindRoom(data.RobotRoom)!;
         foreach (var id in data.RobotInventory) world.FindObject(id)!.MoveTo(state.Robot);
-        state.ScheduledEvents.Clear();
-        state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
+        state.ClockEvents.Clear();
+        state.ClockEvents.AddRange(data.Events.Select(e => new ClockEvent { Name = e.Name, Ticks = e.Ticks, Enabled = e.Enabled, Argument = e.Argument }));
 
         // Nothing from before the restore is pending any more.
         state.PendingVerb = null;
@@ -261,7 +261,8 @@ internal sealed class PlayerData
 
 internal sealed class EventData
 {
-    public int TriggerMove { get; set; }
+    public int Ticks { get; set; }
+    public bool Enabled { get; set; } = true;
     public string Name { get; set; } = "";
     public string? Argument { get; set; }
 }

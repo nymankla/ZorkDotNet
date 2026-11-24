@@ -1,4 +1,5 @@
 using Xunit;
+using ZorkDotNet.Game;
 
 namespace ZorkDotNet.Tests;
 
@@ -129,14 +130,17 @@ public class ThiefAndTrollTests
     public void Wounds_heal_one_at_a_time_with_the_cure_clock()
     {
         using var runner = new GameRunner();
-        runner.State.Winner.Strength = 40;
+        runner.State.Winner.Strength = 40; // wounded three times, which sets the clock
+        runner.State.Schedule(GameState.CureInterval, Clocks.Cure);
 
-        for (var i = 0; i < 30; i++) runner.Execute("WAIT");
-        var once = runner.State.Winner.Strength;
-        for (var i = 0; i < 300; i++) runner.Execute("WAIT");
+        for (var i = 0; i < 29; i++) runner.Execute("LOOK");
+        Assert.Equal(40, runner.State.Winner.Strength);
+        runner.Execute("LOOK");
+        Assert.Equal(60, runner.State.Winner.Strength);
+        for (var i = 0; i < 60; i++) runner.Execute("LOOK");
 
-        Assert.InRange(once, 60, 80); // one or two wounds, depending on where the 30-move cycle falls
-        Assert.Equal(100, runner.State.Winner.Strength); // never above full strength
+        Assert.Equal(100, runner.State.Winner.Strength);
+        Assert.Null(runner.State.FindClock(Clocks.Cure)); // whole again: the clock stops
     }
 
     [Fact]

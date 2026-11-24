@@ -433,6 +433,7 @@ public static class RoomActions
         if (candles != null && candles.LightAmount > 0 && state.Random.Next(100) < 50)
         {
             candles.LightAmount = -1;
+            state.EnableClock(Clocks.Candles, false);
             state.Output.WriteLine("The cave is very windy at the moment and your candles have blown out.");
         }
     }

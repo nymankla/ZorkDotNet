@@ -54,14 +54,11 @@ public sealed class RobberState
 /// <summary>The lamp, the candles and the matchbook.</summary>
 public sealed class LightState
 {
-    /// <summary>Lamp clock (LNTIN): moves while lit until the next LIGHT-INT step. Starts at 350 (dung.56).</summary>
-    public int LampTicks { get; set; } = GameState.LampFirstInterval;
-
     /// <summary>Lamp clock: LIGHT-INT steps taken so far (MDL ORAND count), indexes LAMP-TICKS / LAMP-TELLS.</summary>
     public int LampStage { get; set; }
 
-    /// <summary>Candle clock (CNDIN): moves left until the next LIGHT-INT step; 0 until the candles are first touched.</summary>
-    public int CandleTicks { get; set; }
+    /// <summary>The candles' clock has been set (the candles' ORAND, set the first time they are used).</summary>
+    public bool CandleClockSet { get; set; }
 
     /// <summary>Candle clock: LIGHT-INT steps taken so far (the count in the candles' ORAND).</summary>
     public int CandleStage { get; set; }

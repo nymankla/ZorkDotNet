@@ -35,8 +35,8 @@ public class SafeTests
         Assert.Contains("Done.", Do(runner, "PUT WIRE IN BRICK"));
         Assert.Contains("Done.", Do(runner, "PUT BRICK IN SLOT"));
         Assert.Contains("The wire starts to burn.", Do(runner, "BURN WIRE"));
-        Do(runner, "NORTH");
-        Assert.Contains("There is an explosion nearby.", Do(runner, "WAIT"));
+        // FUSIN is set to 2: CLOCK-DEMON counts it down at the end of this move and goes off at the end of the next.
+        Assert.Contains("There is an explosion nearby.", Do(runner, "NORTH"));
         Assert.True(runner.State.GetFlag("SAFE-FLAG!-FLAG"));
 
         Do(runner, "SOUTH");
@@ -56,9 +56,7 @@ public class SafeTests
         using var runner = InDustyRoom();
         runner.Run("PUT WIRE IN BRICK", "BURN WIRE");
 
-        var output = Do(runner, "LOOK") + Do(runner, "LOOK");
-
-        Assert.Contains("the ability to blow you to smithereens", output);
+        Assert.Contains("the ability to blow you to smithereens", Do(runner, "LOOK"));
         Assert.True(runner.State.AwaitingPatchAnswer);
     }
 

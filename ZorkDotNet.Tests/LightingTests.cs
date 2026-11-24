@@ -132,7 +132,7 @@ public class LightingTests
         Assert.DoesNotContain(Dimmer, runner.GetOutput());
 
         Assert.Contains(Dimmer, Do(runner, "LOOK"));
-        Assert.Equal(50, runner.State.Lights.LampTicks);
+        Assert.Equal(50, runner.State.FindClock(Clocks.Lantern)!.Ticks);
     }
 
     [Fact]
@@ -141,11 +141,11 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "LOOK", "TURN OFF LAMP");
-        var ticks = runner.State.Lights.LampTicks;
+        var ticks = runner.State.FindClock(Clocks.Lantern)!.Ticks;
 
         runner.Run("LOOK", "LOOK", "LOOK");
 
-        Assert.Equal(ticks, runner.State.Lights.LampTicks);
+        Assert.Equal(ticks, runner.State.FindClock(Clocks.Lantern)!.Ticks);
     }
 
     [Fact]
@@ -154,10 +154,31 @@ public class LightingTests
         using var runner = new GameRunner();
         runner.Give("LAMP");
         runner.Run("TURN ON LAMP", "DROP LAMP");
-        var ticks = runner.State.Lights.LampTicks;
+        var ticks = runner.State.FindClock(Clocks.Lantern)!.Ticks;
 
         runner.Run("LOOK", "LOOK");
 
-        Assert.Equal(ticks - 2, runner.State.Lights.LampTicks);
+        Assert.Equal(ticks - 2, runner.State.FindClock(Clocks.Lantern)!.Ticks);
+    }
+
+    [Fact]
+    public void Putting_the_candles_out_stops_their_clock_until_they_are_lit_again()
+    {
+        // act1.38 CANDLES: TURN-OFF does CLOCK-DISABLE, LIGHT with a burning match CLOCK-ENABLE.
+        using var runner = new GameRunner();
+        runner.Teleport("TEMP2");
+        runner.Execute("TAKE CANDLES");
+        var clock = runner.State.FindClock(Clocks.Candles)!;
+        Assert.True(clock.Enabled);
+
+        Assert.Contains("The flame is extinguished.", Do(runner, "EXTINGUISH CANDLES"));
+        var ticks = clock.Ticks;
+        runner.Run("LOOK", "LOOK");
+        Assert.Equal(ticks, clock.Ticks);
+
+        runner.Give("MATCH");
+        runner.Execute("LIGHT MATCH");
+        Assert.Contains("The candles are lighted.", Do(runner, "LIGHT CANDLES WITH MATCH"));
+        Assert.True(clock.Enabled);
     }
 }

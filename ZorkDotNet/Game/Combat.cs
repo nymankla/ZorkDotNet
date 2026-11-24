@@ -68,6 +68,7 @@ public static class Combat
                 continue;
             }
             state.Winner.Strength = Math.Max(0, state.Winner.Strength - GameState.WoundStrength);
+            if (state.FindClock(Clocks.Cure) == null) state.Schedule(GameState.CureInterval, Clocks.Cure);
             if (state.Random.Next(100) < 30) state.Winner.Staggered = true;
             state.Output.WriteLine(state.Winner.Staggered
                 ? "The " + villain.DescriptionShort + "'s blow staggers you."

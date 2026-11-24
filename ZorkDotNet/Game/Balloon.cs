@@ -66,7 +66,6 @@ public static class Balloon
     public static void Burn(GameState state, GameObject obj)
     {
         state.Output.WriteLine("The " + obj.DescriptionShort + " burns inside the receptacle.");
-        state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
         state.Schedule(obj.Size * 20, Clocks.Burnup);
         obj.Flags = (obj.Flags | ObjectFlags.OnFire) & ~(ObjectFlags.Take | ObjectFlags.Readable);
         obj.LightAmount = 1;
@@ -90,7 +89,7 @@ public static class Balloon
         state.Schedule(3, Clocks.Balloon);
     }
 
-    public static void StopClock(GameState state) => state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Balloon);
+    public static void StopClock(GameState state) => state.CancelClock(Clocks.Balloon);
 
     /// <summary>
     /// BALLOON as the basket's own action. BURN (of what's in the receptacle) and the clock come in through
@@ -123,7 +122,7 @@ public static class Balloon
         {
             if (bl == "VAIR4")
             {
-                state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Burnup);
+                state.CancelClock(Clocks.Burnup);
                 StopClock(state);
                 Remove(ball);
                 Put(world.FindObject(Obj.Dball)!, world.FindRoom(RoomId.Vlbot)!);

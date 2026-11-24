@@ -191,7 +191,7 @@ public static class Robot
     {
         var world = state.World!;
         state.Output.WriteLine("The cage shakes and is hurled across the room.");
-        state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Sphere);
+        state.CancelClock(Clocks.Sphere);
         var closet = world.FindRoom(RoomId.Cager)!;
         Parser.Goto(state, closet);
         var cage = world.FindObject(Obj.Cage)!;

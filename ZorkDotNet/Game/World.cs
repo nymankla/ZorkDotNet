@@ -90,6 +90,9 @@ public class World
         _state.SetFlag(Flag.Riddle, false);
         _state.SetFlag(Flag.LightLoad, false);
         _state.SetFlag(Flag.Buoy, true);
+        // dung.56: <PUT <FIND-OBJ "LAMP"> ,ORAND [0 <CLOCK-DISABLE <CLOCK-INT ,LNTIN 350>>]>
+        _state.Schedule(GameState.LampFirstInterval, Clocks.Lantern);
+        _state.EnableClock(Clocks.Lantern, false);
         _state.SetFlag(Flag.Deflate, true);
         _state.SetFlag(Flag.EmptyHanded, false);
         _state.SetFlag(Flag.Echo, false);

@@ -285,7 +285,7 @@ public static class Thief
         else if (verb is "THROW" or "GIVE" && other != null && other != thief)
         {
             var fuse = world.FindObject(Obj.Fuse)!;
-            if (other.Id == Obj.Brick && fuse.Container == other && state.ScheduledEvents.Exists(e => e.Name == Clocks.Fuse))
+            if (other.Id == Obj.Brick && fuse.Container == other && state.FindClock(Clocks.Fuse) != null)
                 state.Output.WriteLine("The thief seems rather offended by your offer.  Do you think he's as stupid as you are?");
             else
             {
