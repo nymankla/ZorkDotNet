@@ -1137,7 +1137,10 @@ public static class Parser
     {
         var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to give?"); return; }
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
+        // Held, or inside something held (the water in the bottle), as the AOBJS search finds it.
+        var holder = obj;
+        while (holder.Carrier == null && holder.Container != null) holder = holder.Container;
+        if (holder.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
         var toIdx = Array.FindIndex(words, i => i.Equals("to", StringComparison.OrdinalIgnoreCase));
         var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
