@@ -305,7 +305,7 @@ public static class VerbTable
         AddWords(new[] { "UNSCR" }, V("UNSCRIPT", "unscript", new Syntax(VArg.Empty, VArg.Empty, "UNSCRIPT", isDriver: true)));
         AddWords(new[] { "DIAGN" }, V("DIAGNOSE", "diagnose", new Syntax(VArg.Empty, VArg.Empty, "DIAGNOSE", isDriver: true)));
         AddWords(new[] { "EXORC", "EXORCI", "XORCI" }, V("EXORCISE", "exorcise", new Syntax(VArg.Empty, VArg.Empty, "EXORCISE", isDriver: true)));
-        AddWords(new[] { "BOARD" }, V("BOARD", "board", new Syntax(ArgRoom, VArg.Empty, "BOARD", isDriver: true)));
+        AddWords(new[] { "BOARD" }, V("BOARD", "board", new Syntax(ArgRoomNoTake, VArg.Empty, "BOARD", isDriver: true))); // dung.56: (VEHBIT ROBJS NO-TAKE)
         AddWords(new[] { "DISEM", "GETOU" }, V("DISEMBARK", "disembark", new Syntax(VArg.Empty, VArg.Empty, "DISEMBARK", isDriver: true)));
 
         // Short verbs of the Verbs class (dung.56 SADD-ACTION and friends)

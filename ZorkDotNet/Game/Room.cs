@@ -26,6 +26,8 @@ public class Room
     public bool Munged { get; set; }
     /// <summary>Message shown when trying to enter a munged room.</summary>
     public string? MungedMessage { get; set; }
+    /// <summary>MDL RWATERBIT (the river): only a boat can go here. Every other room is land (RLANDBIT).</summary>
+    public bool IsWater { get; set; }
 }
 
 public readonly struct ExitTarget

@@ -12,8 +12,6 @@ Exit condition: MAGNE SOUTH: original FROBOZZ, port none
 Exit condition: MAGNE SW: original FROBOZZ, port none
 Exit condition: MAGNE WEST: original FROBOZZ, port none
 Exit condition: TIMBE SW: original EMPTY-HANDED, port none
-Exit condition: WCLF1 SOUTH: original DEFLATE, port none
-Exit condition: WCLF2 NORTH: original DEFLATE, port none
 Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
 Exit missing: LEDG2 LAUNC -> VAIR2
 Exit missing: LEDG4 LAUNC -> VAIR4
@@ -43,6 +41,7 @@ Object action missing: WIND2: WINDOW-FUNCTION
 Object bit not modelled: BAT: TRYTAKEBIT
 Object bit not modelled: BONES: TRYTAKEBIT
 Object bit not modelled: BRICK: SEARCHBIT
+Object bit not modelled: BUOY: FINDMEBIT
 Object bit not modelled: CYCLO: VICBIT
 Object bit not modelled: GHOST: VICBIT
 Object bit not modelled: GNOME: VICBIT
@@ -74,7 +73,6 @@ Object flags: GRAT2: missing Door NoDescribe
 Object flags: IRBOX: extra Visible
 Object flags: MSWIT: missing NoDescribe Turnable extra Tool
 Object flags: POT: extra Visible
-Object flags: PUMP: missing Take Tool
 Object flags: RAILI: missing NoDescribe
 Object flags: SBAG: missing OnFire extra Burnable
 Object flags: SPHER: extra Take
@@ -92,16 +90,13 @@ Object missing: BLBK (blue book)
 Object missing: BLICE (piece of cake with blue icing)
 Object missing: BODIE (pile of bodies)
 Object missing: BROPE (braided wire)
-Object missing: BUOY (red buoy)
 Object missing: CARD (card)
 Object missing: CBAG (cloth bag)
 Object missing: CHALI (chalice)
 Object missing: COKES (bunch of Coke bottles)
 Object missing: CROWN (crown)
 Object missing: DBALL (broken balloon)
-Object missing: DBOAT (plastic boat (with hole))
 Object missing: ECAKE (piece of 'Eat Me' cake)
-Object missing: EMERA (large emerald)
 Object missing: ENGRA (wall with engravings)
 Object missing: ETCH1 (wall with etchings)
 Object missing: ETCH2 (wall with etchings)
@@ -109,12 +104,9 @@ Object missing: EVERY (everything)
 Object missing: FLASK (glass flask filled with liquid)
 Object missing: GRBK (green book)
 Object missing: GRUE (lurking grue)
-Object missing: GUANO (hunk of bat guano)
 Object missing: HANDS (pair of hands)
 Object missing: HEADS (set of poled heads)
 Object missing: HPOLE (head on a pole)
-Object missing: IBOAT (plastic inflatable boat)
-Object missing: LABEL (tan label)
 Object missing: LCASE (large case)
 Object missing: LISTS (stack of listings)
 Object missing: LUNGS (breath)
@@ -125,7 +117,6 @@ Object missing: POSTS (wooden posts)
 Object missing: PRAYE (prayer)
 Object missing: PUBK (purple book)
 Object missing: RAINB (rainbow)
-Object missing: RBOAT (magic boat)
 Object missing: RBTLB (green piece of paper)
 Object missing: RDICE (piece of cake with red icing)
 Object missing: RNBUT (button)
@@ -134,11 +125,9 @@ Object missing: SAFE (box)
 Object missing: SAFFR (tin of spices)
 Object missing: SAILO (sailor)
 Object missing: SDOOR (door)
-Object missing: SHOVE (shovel)
 Object missing: SQBUT (button)
 Object missing: SSLOT (hole)
 Object missing: STAMP (stamp)
-Object missing: STATU (statue)
 Object missing: STILL (stilletto)
 Object missing: STRAD (fancy violin)
 Object missing: TEETH (set of teeth)
@@ -157,10 +146,8 @@ Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
 Object start location: MSWIT: original room MACHI, port nowhere
 Object start location: RCAGE: original nowhere, port room CAGED
-Object start location: STICK: original room DOCK, port room CANY1
 Object start location: THIEF: original nowhere, port room TREAS
 Object untouched description: CANDL: original "On the two ends of the altar are burning candles.", port ""
-Room action missing: BEACH: BEACH-ROOM
 Room action missing: BLROO: TIME
 Room action missing: BSHAF: NO-OBJS
 Room action missing: CAGED: CAGED-ROOM
@@ -172,9 +159,5 @@ Room action missing: LEDG4: LEDGE-FUNCTION
 Room action missing: MAGNE: MAGNET-ROOM
 Room action missing: MGRAT: MAZE-11
 Room action missing: MTORC: TORCH-ROOM
-Room action missing: RIVR4: RIVR4-ROOM
-Room action missing: TCAVE: TCAVE-ROOM
 Room action missing: TIMBE: NO-OBJS
 Room action missing: TREAS: TREASURE-ROOM
-Room action missing: WCLF1: CLIFF-FUNCTION
-Room action missing: WCLF2: CLIFF-FUNCTION

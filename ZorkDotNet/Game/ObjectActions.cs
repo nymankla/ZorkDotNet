@@ -163,6 +163,96 @@ public static class ObjectActions
     }
 
     /// <summary>act1.38 RUG. (The third argument is the indirect object, which the rug never uses.)</summary>
+    /// <summary>Put <paramref name="replacement"/> where <paramref name="old"/> is (room or inventory) and take <paramref name="old"/> away.</summary>
+    private static void Swap(GameObject old, GameObject replacement)
+    {
+        if (old.InRoom != null)
+        {
+            var room = old.InRoom;
+            room.Objects.Remove(old);
+            old.InRoom = null;
+            replacement.InRoom = room;
+            room.Objects.Add(replacement);
+        }
+        else if (old.Carrier != null)
+        {
+            var carrier = old.Carrier;
+            carrier.Inventory.Remove(old);
+            old.Carrier = null;
+            replacement.Carrier = carrier;
+            carrier.Inventory.Add(replacement);
+        }
+    }
+
+    /// <summary>act2.27 IBOAT-FUNCTION: INFLATE the folded boat on the ground, with the pump.</summary>
+    public static void IboatFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb != "INFLATE") return;
+        var iboat = state.World!.FindObject("IBOAT")!;
+        if (iboat.InRoom != state.Here)
+            state.Output.WriteLine("The boat must be on the ground to be inflated.");
+        else if (state.Winner.Inventory.Exists(o => o.Id == "PUMP"))
+        {
+            state.Output.WriteLine("The boat inflates and appears seaworthy.");
+            state.SetFlag("DEFLATE!-FLAG", false);
+            Swap(iboat, state.World.FindObject("RBOAT")!);
+        }
+        else
+            state.Output.WriteLine("I don't think you have enough lung-power to inflate this boat.");
+    }
+
+    /// <summary>act2.27 DBOAT-FUNCTION: the punctured boat can be repaired with putty.</summary>
+    public static void DboatFunction(GameState state, string verb, GameObject? with)
+    {
+        if (verb == "INFLATE")
+            state.Output.WriteLine("This boat will not inflate since some moron put a hole in it.");
+        else if (verb == "PLUG")
+        {
+            if (with?.Id == "PUTTY")
+            {
+                state.Output.WriteLine("Well done.  The boat is repaired.");
+                Swap(state.World!.FindObject("DBOAT")!, state.World.FindObject("IBOAT")!);
+            }
+            else if (with != null)
+                state.Output.WriteLine("With a " + with.DescriptionShort + "?");
+        }
+    }
+
+    /// <summary>
+    /// act2.27 RBOAT-FUNCTION: boarding with the sharp stick punctures the boat, disembarking on the river drowns you,
+    /// and the boat deflates only on the ground with you out of it.
+    /// </summary>
+    public static void RboatFunction(GameState state, string verb, GameObject? _)
+    {
+        var rboat = state.World!.FindObject("RBOAT")!;
+        switch (verb)
+        {
+            case "BOARD":
+                if (state.Winner.Inventory.Exists(o => o.Id == "STICK"))
+                {
+                    state.Output.WriteLine("There is a hissing sound and the boat deflates.");
+                    Swap(rboat, state.World.FindObject("DBOAT")!);
+                }
+                break;
+            case "DISEMBARK":
+                if (state.Here.Id.StartsWith("RIVR", StringComparison.Ordinal))
+                    state.JigsUp("Unfortunately, that leaves you in the water, where you drown.");
+                break;
+            case "DEFLATE":
+                if (state.Winner.Vehicle == rboat)
+                    state.Output.WriteLine("You can't deflate the boat while you're in it.");
+                else if (rboat.InRoom != state.Here)
+                    state.Output.WriteLine("The boat must be on the ground to be deflated.");
+                else
+                {
+                    state.Output.WriteLine("The boat deflates.");
+                    state.SetFlag("DEFLATE!-FLAG", true);
+                    Swap(rboat, state.World.FindObject("IBOAT")!);
+                }
+                break;
+        }
+    }
+
     /// <summary>act1.38 BOLT-FUNCTION: TURN BOLT WITH WRENCH opens or closes the sluice gates, once the yellow button is pushed.</summary>
     public static void BoltFunction(GameState state, string verb, GameObject? tool)
     {

@@ -715,6 +715,11 @@ public class GameTests
     {
         using var runner = new GameRunner(GameRunner.GetLogPath($"River_{command}_{from}", _logDir));
         runner.Teleport(from);
+        // The river needs the magic boat (rooms.99 GOTO); sit in it, wherever it is.
+        var boat = runner.State.World!.FindObject("RBOAT")!;
+        runner.State.Here.Objects.Add(boat);
+        boat.InRoom = runner.State.Here;
+        runner.State.Winner.Vehicle = boat;
         runner.Execute(command);
 
         Assert.Equal(expected, runner.State.Here?.Id);

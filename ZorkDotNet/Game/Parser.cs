@@ -280,6 +280,9 @@ public static class Parser
         state.LastDirectObject = dobj;
         state.LastIndirectObject = iobj;
         Dispatch(state, chosen.Action, dobj, iobj, words);
+        // rooms.99 RDCOM: after the verb, the room's own action gets its turn (the dam's buttons, digging on the beach).
+        if (chosen.Action != "LOOK" && state.Running && !state.AwaitingPatchAnswer)
+            state.Here.RoomAction?.Invoke(state, chosen.Action);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
@@ -565,6 +568,22 @@ public static class Parser
 
     private const string NoWay = "There is no way to go in that direction.";
 
+    /// <summary>
+    /// rooms.99 GOTO: the river (RWATERBIT) needs the magic boat, and you can't walk from land to land sitting in it.
+    /// (The balloon, not ported yet, counts as a land vehicle here.)
+    /// </summary>
+    private static bool CanGo(GameState state, Room from, Room to)
+    {
+        var vehicle = state.Winner.Vehicle;
+        var boat = vehicle?.Id == "RBOAT";
+        if ((to.IsWater && !boat) || (!from.IsWater && !to.IsWater && boat))
+        {
+            state.Output.WriteLine(vehicle != null ? "You can't go there in a " + vehicle.DescriptionShort + "." : "You can't go there without a vehicle.");
+            return false;
+        }
+        return true;
+    }
+
     private static void TryGo(GameState state, string direction)
     {
         var r = state.Here;
@@ -613,6 +632,7 @@ public static class Parser
         }
         var nextRoom = state.World!.FindRoom(target.RoomId!);
         if (nextRoom == null) { state.Output.WriteLine(NoWay); return; }
+        if (!CanGo(state, r, nextRoom)) return;
         if (nextRoom.Munged)
         {
             state.Output.WriteLine(nextRoom.MungedMessage ?? "The way is blocked.");
@@ -661,12 +681,15 @@ public static class Parser
         }
         var brief = state.Winner.BriefMode && seen && !full;
         var superBrief = state.Winner.SuperBriefMode && !full;
+        // ROOM-INFO: the room's action describes it only when the room has no description of its own.
         if ((superBrief || brief) && !string.IsNullOrEmpty(r.DescriptionShort))
             state.Output.WriteLine(r.DescriptionShort);
+        else if (!string.IsNullOrEmpty(r.DescriptionLong))
+            state.Output.WriteLine(r.DescriptionLong);
         else if (r.RoomAction != null)
             r.RoomAction(state, "LOOK");
         else
-            state.Output.WriteLine(string.IsNullOrEmpty(r.DescriptionLong) ? r.DescriptionShort : r.DescriptionLong);
+            state.Output.WriteLine(r.DescriptionShort);
         var vehicle = state.Winner.Vehicle;
         if (vehicle != null) state.Output.WriteLine("You are in the " + vehicle.DescriptionShort + ".");
         // PRINT-CONT's CASE?: the trophy case contents are left out of brief room descriptions.
@@ -724,11 +747,22 @@ public static class Parser
         return sb.ToString();
     }
 
+    /// <summary>rooms.99 BOARD (the balloon keeps the port's own rules until it is ported).</summary>
     private static void DoBoard(GameState state, GameObject obj)
     {
         if (obj.Id != "BALLO")
         {
-            state.Output.WriteLine("You can't board that.");
+            if (obj.InRoom != state.Here)
+                state.Output.WriteLine("The " + obj.DescriptionShort + " must be on the ground to be boarded.");
+            else if ((obj.Flags & ObjectFlags.Vehicle) == 0)
+                state.Output.WriteLine("I suppose you have a theory on boarding " + obj.DescriptionShort + "s.");
+            else if (state.Winner.Vehicle != null)
+                state.Output.WriteLine("You are already in a " + obj.DescriptionShort + ", cretin!");
+            else if (!ObjectActions.Try(state, obj, "BOARD", null))
+            {
+                state.Output.WriteLine("You are in the " + obj.DescriptionShort + ".");
+                state.Winner.Vehicle = obj;
+            }
             return;
         }
         if (obj.InRoom != state.Here)
@@ -759,6 +793,19 @@ public static class Parser
             return;
         }
         var v = state.Winner.Vehicle;
+        if (v.Id != "BALLO")
+        {
+            // rooms.99 UNBOARD
+            if (ObjectActions.Try(state, v, "DISEMBARK", null)) return;
+            if (state.Here.IsWater)
+                state.Output.WriteLine("You realize, just in time, that disembarking here would probably be fatal.");
+            else
+            {
+                state.Output.WriteLine("You are on your own feet again.");
+                state.Winner.Vehicle = null;
+            }
+            return;
+        }
         state.Winner.Vehicle = null;
         if (v.Id == "BALLO")
             state.SetFlag("IN-BALLOON!-FLAG", false);

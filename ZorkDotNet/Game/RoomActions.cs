@@ -259,6 +259,71 @@ public static class RoomActions
         state.Schedule(1, Clocks.MaintRoom);
     }
 
+    // act2.27 BDIGS / CDIGS
+    private static readonly string[] BeachDigs =
+        ["You seem to be digging a hole here.", "The hole is getting deeper, but that's about it.", "You are surrounded by a wall of sand on all sides."];
+    private static readonly string[] CaveDigs =
+        ["You are digging into a pile of bat guano.", "You seem to be getting knee deep in guano.", "You are covered with bat turds, cretin."];
+
+    /// <summary>The shovel was the thing dug with (DIG WITH SHOVEL makes it the direct object).</summary>
+    private static bool DugWithShovel(GameState state, string verb) => verb == "DIG" && state.LastDirectObject?.Id == "SHOVE";
+
+    /// <summary>act2.27 BEACH-ROOM: the fourth spadeful uncovers the statue; the fifth buries you.</summary>
+    public static void BeachRoom(GameState state, string verb)
+    {
+        if (!DugWithShovel(state, verb)) return;
+        var here = state.Here;
+        var count = ++here.RVars;
+        if (count > 4)
+        {
+            here.RVars = 0;
+            state.JigsUp("The hole collapses, smothering you.");
+        }
+        else if (count == 4)
+        {
+            state.Output.WriteLine("You can see a small statue here in the sand.");
+            var statue = state.World?.FindObject("STATU");
+            if (statue != null) statue.Flags |= ObjectFlags.Visible;
+        }
+        else if (count > 0)
+            state.Output.WriteLine(BeachDigs[count - 1]);
+    }
+
+    /// <summary>act2.27 TCAVE-ROOM: digging in the guano gets you nowhere.</summary>
+    public static void TcaveRoom(GameState state, string verb)
+    {
+        if (!DugWithShovel(state, verb)) return;
+        var here = state.Here;
+        if (!here.Objects.Exists(o => o.Id == "GUANO"))
+        {
+            state.Output.WriteLine("There's nothing to dig into here.");
+            return;
+        }
+        var count = ++here.RVars;
+        state.Output.WriteLine(count > 3 ? "This is getting you nowhere." : CaveDigs[count - 1]);
+    }
+
+    /// <summary>
+    /// act2.27 CLIFF-FUNCTION: the narrow path along the White Cliffs is passable only without an inflated boat
+    /// (DEFLATE). It runs after every command here, and (through a before-exit hook) when you set off.
+    /// </summary>
+    public static void CliffFunction(GameState state, string _) => CliffPath(state);
+
+    public static void CliffPath(GameState state) =>
+        state.SetFlag("DEFLATE!-FLAG", !state.Winner.Inventory.Exists(o => o.Id == "RBOAT"));
+
+    /// <summary>act2.27 RIVR4-ROOM: carrying the buoy here, you notice it is heavier than it should be (the emerald).</summary>
+    public static void Rivr4Room(GameState state, string _)
+    {
+        if (state.Winner.Inventory.Exists(o => o.Id == "BUOY") && state.GetFlag("BUOY-FLAG!-FLAG"))
+        {
+            state.Output.WriteLine("Something seems funny about the feel of the buoy.");
+            state.SetFlag("BUOY-FLAG!-FLAG", false);
+        }
+    }
+
+    public static void Rivr4Enter(GameState state) => Rivr4Room(state, "WALK-IN");
+
     /// <summary>LLD1 (Entrance to Hades): LOOK text.</summary>
     public static void LldRoom(GameState state, string verb)
     {

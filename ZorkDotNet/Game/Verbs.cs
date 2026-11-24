@@ -178,9 +178,8 @@ public static class Verbs
             return;
         }
         if (ObjectAction(state, obj, "PUSH", null)) return;
-        if (obj.Id == "BUTTO" || obj.Synonyms.Contains("BUTTO"))
-            state.Here.RoomAction?.Invoke(state, "PUSH");
-        else
+        // A button is left to the room's action, which RDCOM runs after every verb.
+        if (obj.Id != "BUTTO" && !obj.Synonyms.Contains("BUTTO"))
             state.Output.WriteLine("Pushing the " + obj.DescriptionShort + PickOne(HoHum));
     }
 
@@ -236,6 +235,7 @@ public static class Verbs
     /// <summary>act1.38 INFLATER (INFLATE obj WITH tool).</summary>
     private static void Inflater(GameState state, GameObject? obj, GameObject? tool)
     {
+        tool ??= ObjectActions.FindOnlyTool(state); // GWIM: INFLATE BOAT with the one tool you carry
         if (obj?.Id == "IBOAT")
         {
             if (tool?.Id != "PUMP" || !ObjectAction(state, obj, "INFLATE", tool))
