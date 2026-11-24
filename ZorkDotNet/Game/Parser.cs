@@ -648,6 +648,17 @@ public static class Parser
         MoveToRoom(state, nextRoom);
     }
 
+    /// <summary>
+    /// rooms.99 GOTO without ROOM-INFO: the player (and vehicle) is now in <paramref name="room"/>, its points are
+    /// scored, but nothing is described.
+    /// </summary>
+    public static void Goto(GameState state, Room room)
+    {
+        state.Winner.CurrentRoom = room;
+        if (!room.Seen) state.Winner.Score += room.VisitScore;
+        room.Seen = true;
+    }
+
     /// <summary>Move player to a room (score, seen, onEnter, look). Used by TryGo and exit actions (e.g. CAROUSEL-OUT).</summary>
     public static void MoveToRoom(GameState state, Room nextRoom)
     {

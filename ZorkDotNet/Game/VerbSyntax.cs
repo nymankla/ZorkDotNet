@@ -171,8 +171,10 @@ public static class VerbTable
             new Syntax(ArgRoomNoTake, VArg.Empty, "LOCK", isDriver: true)));
 
         // READ (verb that takes object)
+        // dung.56 READ obj [WITH obj] (reading through something, like the icing through the flask)
         AddWords(new[] { "READ", "SKIM", "SCAN" }, V("READ", "read",
-            new Syntax(ArgRoom, VArg.Empty, "READ", isDriver: true)));
+            new Syntax(ArgRoomNoTake, VArg.Empty, "READ", isDriver: true),
+            new Syntax(ArgRoomNoTake, A(VArgFlags.VABIT | VArgFlags.VRBIT, Preposition.With), "READ")));
         // Note: LOOK words also have READ; LOOK takes precedence in current code. We register READ separately for "read X".
 
         // EAT / DRINK
