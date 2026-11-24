@@ -273,6 +273,34 @@ public static class ObjectActions
             state.Output.WriteLine("There is no grue here, but I'm sure there is at least one lurking in the darkness nearby.  I wouldn't let my light go out if I were you!");
     }
 
+    /// <summary>
+    /// act1.38 RUSTY-KNIFE: picking it up with the sword makes the sword pulse; using it as a weapon makes it cut
+    /// your own throat. (Parser calls it for TAKE and when the knife is the weapon.)
+    /// </summary>
+    public static void RustyKnife(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "TAKE")
+        {
+            if (state.Winner.Inventory.Exists(o => o.Id == "SWORD"))
+                state.Output.WriteLine("As you pick up the rusty knife, your sword gives a single pulse of blinding blue light.");
+        }
+        else if (verb is "ATTACK" or "SWING" or "THROW" or "KILL")
+        {
+            var knife = state.World?.FindObject("RKNIF");
+            if (knife != null) RemoveFromWhere(knife); // KILL-OBJ
+            state.JigsUp("As the knife approaches its victim, your mind is submerged by an overmastering will.  Slowly, your hand turns, until the rusty blade is an inch from your neck.  The knife seems to sing as it savagely slits your throat.");
+        }
+    }
+
+    /// <summary>
+    /// act1.38 SWORD: taking it starts the sword demon (SWORD-GLOW). Here the demon simply runs whenever you
+    /// carry the sword (Combat.SwordDemon), so the action itself has nothing to do.
+    /// </summary>
+    public static void Sword(GameState _1, string _2, GameObject? _3) { }
+
+    /// <summary>act2.27: the bat's action is FLY-ME; whatever you do to it, it carries you off.</summary>
+    public static void BatFunction(GameState state, string _1, GameObject? _2) => RoomActions.FlyMe(state);
+
     /// <summary>act1.38 BLACK-BOOK: burning the prayer book is a mistake.</summary>
     public static void BlackBook(GameState state, string verb, GameObject? _)
     {

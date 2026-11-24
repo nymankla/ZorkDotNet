@@ -54,6 +54,11 @@ public static class Parser
             Scoring.AnswerQuit(state, input.Trim());
             return;
         }
+        if (state.EchoListening)
+        {
+            EchoTurn(state, input);
+            return;
+        }
         if (state.AwaitingPatchAnswer)
         {
             // JIGS-UP reads the answer inside the turn the player died in; the rest of that turn follows.
@@ -81,6 +86,37 @@ public static class Parser
             return;
         }
         if (state.Running) state.ProcessClocks();
+    }
+
+    /// <summary>
+    /// act1.38 ECHO-ROOM's own input loop: every line counts as a move and is echoed back, except walking out of the
+    /// room, or a line starting with ECHO, which quiets the room for good.
+    /// </summary>
+    private static void EchoTurn(GameState state, string input)
+    {
+        state.Winner.Moves++;
+        var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => !BuzzWords.Contains(NormWord(w))).ToArray();
+        var dir = words.Length == 0 ? null : ResolveDirection(NormWord(words[0]));
+        if (dir == null && words.Length >= 2 && NormWord(words[0]) == "WALK") dir = ResolveDirection(NormWord(words[1]));
+        if (dir != null && state.Here.Exits.ContainsKey(dir))
+        {
+            var room = state.Here;
+            state.EchoListening = false;
+            TryGo(state, dir);
+            if (state.Here != room) RoomActions.EchoRestore(state);
+            else state.EchoListening = true;
+            if (state.Running && !state.AwaitingPatchAnswer) state.ProcessClocks();
+            return;
+        }
+        state.Output.WriteLine(input);
+        if (input.TrimStart().StartsWith("ECHO", StringComparison.OrdinalIgnoreCase))
+        {
+            state.Output.WriteLine("The acoustics of the room change subtly.");
+            state.SetFlag("ECHO-FLAG!-FLAG", true);
+            state.EchoListening = false;
+            RoomActions.EchoRestore(state);
+        }
     }
 
     /// <summary>dung.56 ADD-BUZZ: words the parser skips ("WHERE IS THE GRUE", "GO NORTH").</summary>
@@ -249,8 +285,9 @@ public static class Parser
         state.LastIndirectObject = iobj;
         Dispatch(state, chosen.Action, dobj, iobj, words);
         // rooms.99 RDCOM: after the verb, the room's own action gets its turn (the dam's buttons, digging on the beach).
-        if (chosen.Action != "LOOK" && state.Running && !state.AwaitingPatchAnswer)
-            state.Here.RoomAction?.Invoke(state, chosen.Action);
+        // After LOOK, ROOM-INFO has swapped the verb for the innocuous FOO, so the description isn't repeated.
+        if (state.Running && !state.AwaitingPatchAnswer)
+            state.Here.RoomAction?.Invoke(state, chosen.Action == "LOOK" ? "FOO" : chosen.Action);
     }
 
     /// <summary>Dispatch to Do* or ObjectActions by action name (SFCN).</summary>
@@ -323,12 +360,12 @@ public static class Parser
             case "PUT": DoPut(state, words); break;
             case "GIVE": DoGive(state, words); break;
             case "RAISE":
-                if (direct != null && direct.ObjectAction != null) { direct.ObjectAction(state, "RAISE", null); }
-                else state.Output.WriteLine("You can't raise that.");
+                if (direct == null || !ObjectActions.Try(state, direct, "RAISE", null))
+                    state.Output.WriteLine("You can't raise that.");
                 break;
             case "LOWER":
-                if (direct != null && direct.ObjectAction != null) { direct.ObjectAction(state, "LOWER", null); }
-                else state.Output.WriteLine("You can't lower that.");
+                if (direct == null || !ObjectActions.Try(state, direct, "LOWER", null))
+                    state.Output.WriteLine("You can't lower that.");
                 break;
             case "BURN":
                 if (direct != null) DoBurn(state, direct);
@@ -337,16 +374,16 @@ public static class Parser
             case "FILL": DoFill(state, words); break;
             case "TIE": DoTie(state, words); break;
             case "UNTIE":
-                if (direct != null && direct.ObjectAction != null) direct.ObjectAction(state, "UNTIE", null);
-                else state.Output.WriteLine("What do you want to untie?");
+                if (direct == null || !ObjectActions.Try(state, direct, "UNTIE", null))
+                    state.Output.WriteLine("What do you want to untie?");
                 break;
             case "BREAK":
-                if (direct != null && direct.ObjectAction != null) { direct.ObjectAction(state, "MUNG", null); }
-                else state.Output.WriteLine("What do you want to break?");
+                if (direct == null || !ObjectActions.Try(state, direct, "MUNG", null))
+                    state.Output.WriteLine("What do you want to break?");
                 break;
             case "POUR":
-                if (direct != null && direct.ObjectAction != null) direct.ObjectAction(state, "POUR", null);
-                else state.Output.WriteLine("What do you want to pour?");
+                if (direct == null || !ObjectActions.Try(state, direct, "POUR", null))
+                    state.Output.WriteLine("What do you want to pour?");
                 break;
             case "TURN":
             case "TURNON":
@@ -363,8 +400,8 @@ public static class Parser
                     if (indirect == null) { state.Output.WriteLine("With what?"); break; }
                     state.LastIndirectObject = indirect;
                 }
-                if (direct.ObjectAction != null) direct.ObjectAction(state, action, indirect);
-                else if (action == "TURNON") LampOn(state, direct);
+                if (ObjectActions.Try(state, direct, action, indirect)) break;
+                if (action == "TURNON") LampOn(state, direct);
                 else if (action == "TURNOFF") LampOff(state, direct);
                 else state.Output.WriteLine("Nothing happens.");
                 break;
@@ -805,8 +842,9 @@ public static class Parser
         obj.Container = null;
         obj.Carrier = state.Winner;
         state.Winner.Inventory.Add(obj);
-        // TAKE calls the object's action (rooms.99 APPLY-OBJECT); for the candles that starts their clock.
-        if (obj.Id == "CANDL") obj.ObjectAction?.Invoke(state, "TAKE", null);
+        // TAKE calls the object's action (rooms.99 APPLY-OBJECT): the candles start their clock, the rusty knife
+        // makes the sword pulse.
+        if (obj.Id is "CANDL" or "RKNIF") obj.ObjectAction?.Invoke(state, "TAKE", null);
         // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
         if (!obj.Touched) state.Winner.Score += obj.FindScore;
         obj.Touched = true;
@@ -943,11 +981,7 @@ public static class Parser
             state.Output.WriteLine("The troll, who is remarkably coordinated, catches the " + obj.DescriptionShort + ".");
             return;
         }
-        if (obj.ObjectAction != null)
-        {
-            obj.ObjectAction(state, "THROW", atObj);
-            return;
-        }
+        if (ObjectActions.Try(state, obj, "THROW", atObj)) return;
         state.Winner.Inventory.Remove(obj);
         obj.Carrier = null;
         obj.InRoom = state.Here;
@@ -958,12 +992,14 @@ public static class Parser
     private static void DoWave(GameState state, GameObject obj)
     {
         if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
-        if (obj.ObjectAction != null) { obj.ObjectAction(state, "WAVE", null); return; }
+        if (ObjectActions.Try(state, obj, "WAVE", null)) return;
         state.Output.WriteLine("Nothing happens.");
     }
 
     private static void DoAttack(GameState state, string[] words)
     {
+        // OBJECT-ACTION asks the weapon too: the rusty knife turns on its owner.
+        if (state.LastIndirectObject?.Id == "RKNIF") { ObjectActions.RustyKnife(state, "ATTACK", null); return; }
         var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to attack?"); return; }
         var withStart = 2;
@@ -1003,18 +1039,15 @@ public static class Parser
             }
             return;
         }
-        if (obj.ObjectAction != null)
-        {
-            state.LastDirectObject = obj;
-            obj.ObjectAction(state, "ATTACK", withObj);
-            return;
-        }
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "ATTACK", withObj)) return;
         state.Output.WriteLine("Violence isn't the answer to this one.");
     }
 
     private static void DoMove(GameState state, GameObject obj)
     {
-        if (obj.ObjectAction != null) { state.LastDirectObject = obj; obj.ObjectAction(state, "MOVE", null); return; }
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "MOVE", null)) return;
         if (state.Here.Id == "CLEAR" && obj.Id == "LEAVE" && state.Here.RVars == 0)
         {
             state.Output.WriteLine("A grating appears on the ground.");
@@ -1028,7 +1061,8 @@ public static class Parser
 
     private static void DoLift(GameState state, GameObject obj)
     {
-        if (obj.ObjectAction != null) { state.LastDirectObject = obj; obj.ObjectAction(state, "LIFT", null); return; }
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "LIFT", null)) return;
         state.Output.WriteLine("You can't lift that.");
     }
 
@@ -1044,11 +1078,7 @@ public static class Parser
         if (cont == null) { state.Output.WriteLine("What do you want to put that in?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = cont;
-        if (obj.ObjectAction != null)
-        {
-            obj.ObjectAction(state, "PUT", cont);
-            return;
-        }
+        if (ObjectActions.Try(state, obj, "PUT", cont)) return;
         // OBJECT-ACTION asks the indirect object too (e.g. TUBE-FUNCTION refuses everything).
         if (ObjectActions.Try(state, cont, "PUT", obj)) return;
         if (!cont.IsContainer && (cont.Flags & ObjectFlags.Container) == 0) { state.Output.WriteLine("You can't put things in that."); return; }
@@ -1073,8 +1103,8 @@ public static class Parser
         if (toObj == null) { state.Output.WriteLine("Who do you want to give that to?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
-        if (toObj.ObjectAction != null) toObj.ObjectAction(state, "GIVE", obj);
-        else state.Output.WriteLine("The " + toObj.DescriptionShort + " doesn't want that.");
+        if (!ObjectActions.Try(state, toObj, "GIVE", obj))
+            state.Output.WriteLine("The " + toObj.DescriptionShort + " doesn't want that.");
     }
 
     private static void DoBurn(GameState state, GameObject obj)
@@ -1092,7 +1122,8 @@ public static class Parser
             ObjectActions.BurnInReceptacle(state, obj);
             return;
         }
-        if (obj.ObjectAction != null) { state.LastDirectObject = obj; obj.ObjectAction(state, "BURN", null); return; }
+        state.LastDirectObject = obj;
+        if (ObjectActions.Try(state, obj, "BURN", null)) return;
         state.Output.WriteLine("You can't burn that.");
     }
 
@@ -1125,7 +1156,7 @@ public static class Parser
         var toObj = state.LastIndirectObject ?? (toIdx >= 0 && toIdx + 1 < words.Length ? ResolveObject(state, words, toIdx + 1, out _) : null);
         state.LastDirectObject = obj;
         state.LastIndirectObject = toObj;
-        if (obj.ObjectAction != null) obj.ObjectAction(state, "TIE", toObj);
-        else state.Output.WriteLine("You can't tie that.");
+        if (!ObjectActions.Try(state, obj, "TIE", toObj))
+            state.Output.WriteLine("You can't tie that.");
     }
 }

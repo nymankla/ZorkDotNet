@@ -32,6 +32,16 @@ public class GameState
     /// <summary>The matchbook's ORAND: matches left (dung.56 starts it at 5; the last one never lights).</summary>
     public int MatchesLeft { get; set; } = 5;
 
+    /// <summary>act2.27 LIGHT-SHAFT: the points for lighting the bottom of the shaft have been given.</summary>
+    public bool LightShaftScored { get; set; }
+    /// <summary>
+    /// act1.38 ECHO-ROOM: the Loud Room is drowning out everything; each line is echoed until you walk out or say
+    /// ECHO. Never true across a SAVE (SAVE would be echoed too).
+    /// </summary>
+    public bool EchoListening { get; set; }
+    /// <summary>The objects the Loud Room hid while listening (MDL ECHO-ROOM-BIT).</summary>
+    public List<string> EchoHidden { get; } = new();
+
     /// <summary>MDL DEATHS: how many times the player has died.</summary>
     public int Deaths { get; set; }
     /// <summary>JIGS-UP asked "Do you want me to try to patch you?"; the next input line is the answer.</summary>
@@ -39,7 +49,7 @@ public class GameState
     /// <summary>The player died during a command, so that turn's clocks run after being patched up.</summary>
     public bool ClocksAfterPatch { get; set; }
     /// <summary>The next input line answers a question rather than being a command (no prompt is shown).</summary>
-    public bool AwaitingAnswer => AwaitingQuitConfirmation || AwaitingPatchAnswer;
+    public bool AwaitingAnswer => AwaitingQuitConfirmation || AwaitingPatchAnswer || EchoListening;
     /// <summary>Random numbers for chance events such as the grue (MDL PROB); tests can replace it.</summary>
     public Random Random { get; set; } = Random.Shared;
 
