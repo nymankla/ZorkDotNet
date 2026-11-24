@@ -17,8 +17,6 @@ Exit condition: WCLF2 NORTH: original DEFLATE, port none
 Exit missing: LEDG2 DOWN -> blocked "I wouldn't jump from here."
 Exit missing: LEDG2 LAUNC -> VAIR2
 Exit missing: LEDG4 LAUNC -> VAIR4
-Exit missing: RESEN CROSS -> RESES if LOW-TIDE
-Exit missing: RESEN SOUTH -> RESES if LOW-TIDE
 Exit missing: VAIR2 LAND -> LEDG2
 Exit missing: VAIR2 WEST -> LEDG2
 Exit missing: VAIR4 EAST -> LEDG4
@@ -79,10 +77,8 @@ Object flags: POT: extra Visible
 Object flags: PUMP: missing Take Tool
 Object flags: RAILI: missing NoDescribe
 Object flags: SBAG: missing OnFire extra Burnable
-Object flags: SCREW: missing Tool
 Object flags: SPHER: extra Take
 Object flags: STICK: extra Tool
-Object flags: TRUNK: missing Take extra Visible Container
 Object flags: WDOOR: missing Readable NoDescribe extra Door
 Object flags: WIND1: missing Door NoDescribe
 Object flags: WIND2: missing Door NoDescribe
@@ -93,21 +89,15 @@ Object missing: AVIAT (flyer)
 Object missing: BARRE (barrel)
 Object missing: BLABE (blue label)
 Object missing: BLBK (blue book)
-Object missing: BLBUT (button)
 Object missing: BLICE (piece of cake with blue icing)
 Object missing: BODIE (pile of bodies)
-Object missing: BOLT (bolt)
-Object missing: BRBUT (button)
 Object missing: BROPE (braided wire)
-Object missing: BUBBL (bubble)
 Object missing: BUOY (red buoy)
-Object missing: BUTTO (button)
 Object missing: CARD (card)
 Object missing: CBAG (cloth bag)
 Object missing: CHALI (chalice)
 Object missing: COKES (bunch of Coke bottles)
 Object missing: CROWN (crown)
-Object missing: DAM (dam)
 Object missing: DBALL (broken balloon)
 Object missing: DBOAT (plastic boat (with hole))
 Object missing: ECAKE (piece of 'Eat Me' cake)
@@ -120,14 +110,12 @@ Object missing: FLASK (glass flask filled with liquid)
 Object missing: GRBK (green book)
 Object missing: GRUE (lurking grue)
 Object missing: GUANO (hunk of bat guano)
-Object missing: GUIDE (tour guidebook)
 Object missing: HANDS (pair of hands)
 Object missing: HEADS (set of poled heads)
 Object missing: HPOLE (head on a pole)
 Object missing: IBOAT (plastic inflatable boat)
 Object missing: LABEL (tan label)
 Object missing: LCASE (large case)
-Object missing: LEAK (leak)
 Object missing: LISTS (stack of listings)
 Object missing: LUNGS (breath)
 Object missing: ORICE (piece of cake with orange icing)
@@ -136,11 +124,9 @@ Object missing: POOL (pool of sewage)
 Object missing: POSTS (wooden posts)
 Object missing: PRAYE (prayer)
 Object missing: PUBK (purple book)
-Object missing: PUTTY (viscous material)
 Object missing: RAINB (rainbow)
 Object missing: RBOAT (magic boat)
 Object missing: RBTLB (green piece of paper)
-Object missing: RBUTT (button)
 Object missing: RDICE (piece of cake with red icing)
 Object missing: RNBUT (button)
 Object missing: ROBOT (robot)
@@ -158,12 +144,9 @@ Object missing: STRAD (fancy violin)
 Object missing: TEETH (set of teeth)
 Object missing: TOMB (tomb)
 Object missing: TRBUT (button)
-Object missing: TUBE (tube)
 Object missing: VALUA (valuables)
 Object missing: WALL (wall)
 Object missing: WHBK (white book)
-Object missing: WRENC (wrench)
-Object missing: YBUTT (button)
 Object not in original: GATES (gate)
 Object start location: BALLO: original room VLBOT, port room LEDG4
 Object start location: BAR: original room ECHO, port nowhere
@@ -174,7 +157,6 @@ Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
 Object start location: MSWIT: original room MACHI, port nowhere
 Object start location: RCAGE: original nowhere, port room CAGED
-Object start location: SCREW: original room MAINT, port nowhere
 Object start location: STICK: original room DOCK, port room CANY1
 Object start location: THIEF: original nowhere, port room TREAS
 Object untouched description: CANDL: original "On the two ends of the altar are burning candles.", port ""
@@ -188,11 +170,8 @@ Room action missing: DOME: DOME-ROOM
 Room action missing: ECHO: ECHO-ROOM
 Room action missing: LEDG4: LEDGE-FUNCTION
 Room action missing: MAGNE: MAGNET-ROOM
-Room action missing: MAINT: MAINT-ROOM
 Room action missing: MGRAT: MAZE-11
 Room action missing: MTORC: TORCH-ROOM
-Room action missing: RESEN: RESERVOIR-NORTH
-Room action missing: RESES: RESERVOIR-SOUTH
 Room action missing: RIVR4: RIVR4-ROOM
 Room action missing: TCAVE: TCAVE-ROOM
 Room action missing: TIMBE: NO-OBJS

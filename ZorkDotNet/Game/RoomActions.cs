@@ -168,6 +168,97 @@ public static class RoomActions
             state.Output.WriteLine("The green bubble is glowing.");
     }
 
+    // act1.38 RESDESC
+    private const string ResDesc = "However, with the water level lowered, there is merely a wide stream running through the center of the room.";
+
+    /// <summary>act1.38 RESERVOIR-SOUTH</summary>
+    public static void ReservoirSouth(GameState state, string verb)
+    {
+        if (verb != "LOOK") return;
+        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        {
+            state.Output.WriteLine("You are in the south end of a large cavernous room which was formerly a reservoir.");
+            state.Output.WriteLine(ResDesc);
+        }
+        else
+            state.Output.WriteLine("You are at the south end of a large reservoir.");
+        state.Output.WriteLine("There is a western exit, a passageway south, and a steep pathway climbing up along the edge of a cliff.");
+    }
+
+    /// <summary>act1.38 RESERVOIR-NORTH</summary>
+    public static void ReservoirNorth(GameState state, string verb)
+    {
+        if (verb != "LOOK") return;
+        if (state.GetFlag("LOW-TIDE!-FLAG"))
+        {
+            state.Output.WriteLine("You are in the north end of a large cavernous room which was formerly a reservoir.");
+            state.Output.WriteLine(ResDesc);
+        }
+        else
+            state.Output.WriteLine("You are at the north end of a large reservoir.");
+        state.Output.WriteLine("There is a tunnel leaving the room to the north.");
+    }
+
+    // act1.38 DROWNINGS
+    private static readonly string[] Drownings =
+    [
+        "up to your ankles.", "up to your shin.", "up to your knees.", "up to your hips.", "up to your waist.",
+        "up to your chest.", "up to your neck.", "over your head.", "high in your lungs.",
+    ];
+
+    /// <summary>
+    /// act1.38 MAINT-ROOM for PUSH: the four buttons. The room's RVARS is the water level: 0 before the leak, rising
+    /// while it floods, -1 once the leak is plugged.
+    /// </summary>
+    public static void MaintRoom(GameState state, string verb)
+    {
+        if (verb != "PUSH") return;
+        var here = state.Here;
+        switch (state.LastDirectObject?.Id)
+        {
+            case "BLBUT":
+                if (here.RVars == 0)
+                {
+                    state.Output.WriteLine("There is a rumbling sound and a stream of water appears to burst from the east wall of the room (apparently, a leak has occurred in a pipe.)");
+                    here.RVars = 1;
+                    state.Schedule(0, Clocks.MaintRoom); // CLOCK-INT MNTIN -1: every move, starting with this one
+                }
+                else
+                    state.Output.WriteLine("The blue button appears to be jammed.");
+                break;
+            case "RBUTT":
+                here.HasLight = !here.HasLight;
+                state.Output.WriteLine(here.HasLight ? "The lights within the room come on." : "The lights within the room shut off.");
+                break;
+            case "BRBUT":
+                state.SetFlag("GATE-FLAG!-FLAG", false);
+                state.Output.WriteLine("Click.");
+                break;
+            case "YBUTT":
+                state.SetFlag("GATE-FLAG!-FLAG", true);
+                state.Output.WriteLine("Click.");
+                break;
+        }
+    }
+
+    /// <summary>act1.38 MAINT-ROOM clock (C-INT): the water rises; at 16 the room is flooded for good.</summary>
+    public static void MaintRoomRising(GameState state)
+    {
+        var maint = state.World?.FindRoom("MAINT");
+        if (maint == null || maint.RVars <= 0) return;
+        maint.RVars++;
+        var here = state.Here == maint;
+        if (here) state.Output.WriteLine("The water level here is now " + Drownings[Math.Min(maint.RVars / 2, Drownings.Length - 1)]);
+        if (maint.RVars >= 16)
+        {
+            maint.Munged = true;
+            maint.MungedMessage = "The room is full of water and cannot be entered.";
+            if (here) state.JigsUp("I'm afraid you have done drowned yourself.");
+            return;
+        }
+        state.Schedule(1, Clocks.MaintRoom);
+    }
+
     /// <summary>LLD1 (Entrance to Hades): LOOK text.</summary>
     public static void LldRoom(GameState state, string verb)
     {

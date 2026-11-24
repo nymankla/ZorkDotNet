@@ -63,8 +63,6 @@ public class GameState
     private static readonly string[] LampTells = [Dimmer, Dimmer, Dimmer, Dimmer, "The lamp is dying."];
     /// <summary>Scheduled events (MATCH burnout, FUSE explode, etc.) fired when Moves >= TriggerMove.</summary>
     public List<ScheduledEvent> ScheduledEvents { get; } = new();
-    /// <summary>MAINT room: move count when leak message fires (0 = not set).</summary>
-    public int MaintLeakAtMove { get; set; }
     /// <summary>Sword glow state (0=none, 1=faint, 2=bright). MDL OTVAL on sword.</summary>
     public Dictionary<string, int> ObjectState { get; } = new();
     /// <summary>Villain health in melee (e.g. TROLL -> 2 hits to kill).</summary>
@@ -93,15 +91,6 @@ public class GameState
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
         foreach (var e in toRun) Clocks.Run(this, e);
-        if (Here?.Id == "MAINT")
-        {
-            if (MaintLeakAtMove == 0) MaintLeakAtMove = Moves + 3;
-            if (MaintLeakAtMove > 0 && Moves >= MaintLeakAtMove && !GetFlag("MAINT-LEAK!-FLAG"))
-            {
-                SetFlag("MAINT-LEAK!-FLAG", true);
-                Output.WriteLine("Water is leaking into the maintenance room.");
-            }
-        }
         if (Here?.Id == "CAVE2")
         {
             var candl = World.FindObject("CANDL");

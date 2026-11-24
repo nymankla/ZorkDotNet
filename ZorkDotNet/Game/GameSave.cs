@@ -89,7 +89,6 @@ public static class GameSave
             VillainStrength = new Dictionary<string, int>(state.VillainStrength),
             LampTicks = state.LampTicks,
             LampStage = state.LampStage,
-            MaintLeakAtMove = state.MaintLeakAtMove,
             HelloCount = state.HelloCount,
             Deaths = state.Deaths,
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
@@ -233,7 +232,6 @@ public static class GameSave
         foreach (var (k, v) in data.VillainStrength) state.VillainStrength[k] = v;
         state.LampTicks = data.LampTicks;
         state.LampStage = data.LampStage;
-        state.MaintLeakAtMove = data.MaintLeakAtMove;
         state.HelloCount = data.HelloCount;
         state.Deaths = data.Deaths;
         state.ScheduledEvents.Clear();
@@ -266,7 +264,6 @@ internal sealed class SaveData
     public Dictionary<string, int> VillainStrength { get; set; } = new();
     public int LampTicks { get; set; }
     public int LampStage { get; set; }
-    public int MaintLeakAtMove { get; set; }
     public int HelloCount { get; set; }
     public int Deaths { get; set; }
     public List<EventData> Events { get; set; } = new();

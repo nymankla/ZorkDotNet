@@ -118,6 +118,7 @@ public static class Verbs
                 output.WriteLine(WaterRooms.Contains(state.Here.Id) ? "Swimming is not allowed in this dungeon." : PickOne(SwimYuks));
                 return true;
             case "KICK": HackHack(state, direct, "KICK", "Munging a "); return true; // act1.38 KICKER
+            case "PUSH": Pusher(state, direct); return true;
             case "MUNG": Munger(state, direct, indirect); return true;
             case "RING": // act1.38 RING
                 output.WriteLine(direct?.Id == "BELL" ? "Ding, dong." : "How, exactly, can I ring that?");
@@ -153,22 +154,8 @@ public static class Verbs
     /// MDL OBJECT-ACTION for one object: run its action and report whether it dealt with the verb, which here means
     /// it said something.
     /// </summary>
-    private static bool ObjectAction(GameState state, GameObject obj, string verb, GameObject? indirect)
-    {
-        if (obj.ObjectAction == null) return false;
-        var output = state.Output;
-        var tell = new TellWriter(output);
-        state.Output = tell;
-        try
-        {
-            obj.ObjectAction(state, verb, indirect);
-        }
-        finally
-        {
-            state.Output = output;
-        }
-        return tell.Told;
-    }
+    private static bool ObjectAction(GameState state, GameObject obj, string verb, GameObject? indirect) =>
+        ObjectActions.Try(state, obj, verb, indirect);
 
     /// <summary>act1.38 HACK-HACK: the object's own action, or "Munging a mailbox does not seem to do anything."</summary>
     private static void HackHack(GameState state, GameObject? obj, string verb, string prefix)
@@ -177,6 +164,24 @@ public static class Verbs
             state.Output.WriteLine("What do you want to do that to?");
         else if (!ObjectAction(state, obj, verb, null))
             state.Output.WriteLine(prefix + obj.DescriptionShort + PickOne(HoHum));
+    }
+
+    /// <summary>
+    /// act1.38 PUSHER: the object's action; for a button, nothing here, and RDCOM then lets the room's action
+    /// handle the push (the maintenance room's panel).
+    /// </summary>
+    private static void Pusher(GameState state, GameObject? obj)
+    {
+        if (obj == null)
+        {
+            state.Output.WriteLine("What do you want to push?");
+            return;
+        }
+        if (ObjectAction(state, obj, "PUSH", null)) return;
+        if (obj.Id == "BUTTO" || obj.Synonyms.Contains("BUTTO"))
+            state.Here.RoomAction?.Invoke(state, "PUSH");
+        else
+            state.Output.WriteLine("Pushing the " + obj.DescriptionShort + PickOne(HoHum));
     }
 
     /// <summary>act1.38 MUNGER for something that isn't a villain (POKE/JAB at a villain is an attack).</summary>
