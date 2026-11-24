@@ -25,7 +25,7 @@ dotnet format ZorkDotNet.sln --verify-no-changes    # lint check, also run in CI
 - `end_of_line` is deliberately not set. Git stores LF, and `core.autocrlf` converts per platform.
 - Object/room action handlers must match a fixed delegate signature. If a parameter is unused, name it `_`, `_1`, `_2` to satisfy IDE0060.
 
-CI (`.github/workflows/dotnet-desktop.yml`) runs the tests and then publishes self-contained, single-file, **trimmed** executables for win/linux/osx (x64/arm64, plus linux-arm). Trimming matters: avoid reflection-based patterns that the trimmer can't see. When you push a `v*` tag or start the workflow manually, it creates a GitHub Release. The Linux and macOS binaries are renamed to `zork`.
+CI (`.github/workflows/dotnet-desktop.yml`) runs lint and tests, then publishes **Native AOT** executables for win/linux/osx (x64/arm64), each on its own OS's runner. linux-arm (32-bit) has no Native AOT and is published trimmed single-file. `PublishAot` is set in `ZorkDotNet.csproj`, so the AOT and trim analyzers run on every build and their warnings fail it: avoid reflection, reflection-based JSON, `Type.GetType` and runtime code generation. A local `dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r win-x64` needs the Visual Studio C++ build tools. When you push a `v*` tag or start the workflow manually, it creates a GitHub Release. The Linux and macOS binaries are renamed to `zork`.
 
 ## Architecture
 
