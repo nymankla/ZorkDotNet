@@ -1,6 +1,8 @@
-# Build ZorkDotNet as single-file trimmed executables for Windows, macOS, and Linux.
+# Build ZorkDotNet as Native AOT executables for Windows, macOS, and Linux.
+# Native AOT compiles with the platform's own toolchain, so each OS publishes on its own runner.
+# linux-arm (32-bit) is not supported by Native AOT and is published trimmed single-file instead.
 # Mac and Linux executables are named "zork"; Windows remains "Zork.exe".
-# On push to main: build, test, upload artifacts. On tag v* or manual run: create a GitHub Release.
+# On push to main: lint, test, publish, upload artifacts. On tag v* or manual run: create a GitHub Release.
 
 name: Build and test
 
@@ -18,9 +20,8 @@ on:
         type: string
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +29,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "11.0.x"
 
       - name: Lint (formatting, code style, analyzers)
         run: dotnet format ZorkDotNet.sln --verify-no-changes --verbosity diagnostic
@@ -36,66 +37,76 @@ jobs:
       - name: Run tests
         run: dotnet test ZorkDotNet.sln -c Release --verbosity normal
 
-      - name: Publish Windows (win-x64, win-arm64)
-        run: |
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r win-x64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/win-x64
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r win-arm64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/win-arm64
+  publish:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: win-x64, os: windows-latest, aot: true }
+          - { rid: win-arm64, os: windows-latest, aot: true }
+          - { rid: linux-x64, os: ubuntu-latest, aot: true }
+          - { rid: linux-arm64, os: ubuntu-24.04-arm, aot: true }
+          - { rid: linux-arm, os: ubuntu-latest, aot: false }
+          - { rid: osx-x64, os: macos-latest, aot: true }
+          - { rid: osx-arm64, os: macos-latest, aot: true }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Publish Linux (linux-x64, linux-arm64, linux-arm)
-        run: |
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r linux-x64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/linux-x64
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r linux-arm64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/linux-arm64
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r linux-arm \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/linux-arm
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "11.0.x"
 
-      - name: Publish macOS (osx-x64, osx-arm64)
+      - name: Install Native AOT prerequisites (Linux)
+        if: runner.os == 'Linux' && matrix.aot
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Publish Native AOT
+        if: matrix.aot
+        shell: bash
+        run: dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r ${{ matrix.rid }} -o out
+
+      - name: Publish trimmed single-file (no Native AOT for this target)
+        if: ${{ !matrix.aot }}
+        shell: bash
         run: |
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r osx-x64 \
+          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r ${{ matrix.rid }} \
+            -p:PublishAot=false \
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:PublishTrimmed=true \
-            -o release/osx-x64
-          dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r osx-arm64 \
-            --self-contained true \
-            -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
-            -o release/osx-arm64
+            -o out
 
-      - name: Rename Mac and Linux executables to lowercase zork
+      - name: Collect executable
+        shell: bash
         run: |
-          mv release/linux-x64/Zork release/linux-x64/zork
-          mv release/linux-arm64/Zork release/linux-arm64/zork
-          mv release/linux-arm/Zork release/linux-arm/zork
-          mv release/osx-x64/Zork release/osx-x64/zork
-          mv release/osx-arm64/Zork release/osx-arm64/zork
+          mkdir -p release/${{ matrix.rid }}
+          if [ -f out/Zork.exe ]; then
+            cp out/Zork.exe release/${{ matrix.rid }}/
+          else
+            cp out/Zork release/${{ matrix.rid }}/zork
+          fi
+          ls -la release/${{ matrix.rid }}
 
-      - name: Upload release artifacts
+      - name: Smoke test
+        if: matrix.rid == 'win-x64' || matrix.rid == 'linux-x64' || matrix.rid == 'linux-arm64' || matrix.rid == 'osx-arm64'
+        shell: bash
+        run: |
+          exe=$(ls release/${{ matrix.rid }}/*)
+          printf 'NORTH\nSCORE\n' | "$exe" | tee smoke.txt
+          grep -q "north side of a white house" smoke.txt
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release
+          name: release-${{ matrix.rid }}
           path: release
 
   release:
-    needs: build
+    needs: publish
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
@@ -104,21 +115,21 @@ jobs:
       - name: Download release artifacts
         uses: actions/download-artifact@v4
         with:
-          name: release
+          pattern: release-*
+          merge-multiple: true
+          path: release
 
-      # Artifact may be under release/ or at root
       - name: Create ZorkDotNet-<target>.zip for each platform
         run: |
-          root="."
-          [ -d release ] && root="release"
           for dir in win-x64 win-arm64 linux-x64 linux-arm64 linux-arm osx-x64 osx-arm64; do
             name="ZorkDotNet-${dir}.zip"
-            if [ -f "$root/$dir/Zork.exe" ]; then
-              (cd "$root/$dir" && zip -q "$name" Zork.exe)
+            if [ -f "release/$dir/Zork.exe" ]; then
+              (cd "release/$dir" && zip -q "$name" Zork.exe)
             else
-              (cd "$root/$dir" && zip -q "$name" zork)
+              chmod +x "release/$dir/zork"
+              (cd "release/$dir" && zip -q "$name" zork)
             fi
-            mv "$root/$dir/$name" .
+            mv "release/$dir/$name" .
           done
           ls -la ZorkDotNet-*.zip
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A C#/.NET 8 reimplementation of the 1977 MIT Zork (MDL source: https://github.com/MITDDC/zork). Console app, assembly name `Zork`, plus an xUnit test project. Code comments refer to the original MDL files and routine names (`dung.56`, `act1.37`, `np.92`/`np.93`, `defs.63`; `SPARSE`, `SYN-MATCH`, `GWIM`, `CEVENT`, `FIGHT-DEMON`, ...). Keep that convention when you port more behavior, and treat the MDL source as the reference for how things should behave.
+A C#/.NET 11 (C# 15) reimplementation of the 1977 MIT Zork (MDL source: https://github.com/MITDDC/zork). Console app, assembly name `Zork`, plus an xUnit test project. Code comments refer to the original MDL files and routine names (`dung.56`, `act1.37`, `np.92`/`np.93`, `defs.63`; `SPARSE`, `SYN-MATCH`, `GWIM`, `CEVENT`, `FIGHT-DEMON`, ...). Keep that convention when you port more behavior, and treat the MDL source as the reference for how things should behave.
 
 ## Commands
 
@@ -20,12 +20,12 @@ dotnet format ZorkDotNet.sln --verify-no-changes    # lint check, also run in CI
 
 ### Lint setup
 
-- `Directory.Build.props` turns on the .NET analyzers (`AnalysisLevel` pinned to `8.0-recommended` to match CI's SDK), `EnforceCodeStyleInBuild`, and **`TreatWarningsAsErrors`**. Any analyzer or code-style warning fails the build, so fix it rather than suppressing it.
+- `Directory.Build.props` turns on the .NET analyzers (`AnalysisLevel` pinned to `11.0-recommended` to match CI's SDK), `EnforceCodeStyleInBuild`, and **`TreatWarningsAsErrors`**. Any analyzer or code-style warning fails the build, so fix it rather than suppressing it.
 - `.editorconfig` holds the formatting, naming (`_camelCase` private fields, PascalCase `static readonly` fields and constants) and rule severities. Rules turned off on purpose (CA1861, CA1711, and CA1707 in tests) each have a comment explaining why.
 - `end_of_line` is deliberately not set. Git stores LF, and `core.autocrlf` converts per platform.
 - Object/room action handlers must match a fixed delegate signature. If a parameter is unused, name it `_`, `_1`, `_2` to satisfy IDE0060.
 
-CI (`.github/workflows/dotnet-desktop.yml`) runs the tests and then publishes self-contained, single-file, **trimmed** executables for win/linux/osx (x64/arm64, plus linux-arm). Trimming matters: avoid reflection-based patterns that the trimmer can't see. When you push a `v*` tag or start the workflow manually, it creates a GitHub Release. The Linux and macOS binaries are renamed to `zork`.
+CI (`.github/workflows/dotnet-desktop.yml`) runs lint and tests, then publishes **Native AOT** executables for win/linux/osx (x64/arm64), each on its own OS's runner. linux-arm (32-bit) has no Native AOT and is published trimmed single-file. `PublishAot` is set in `ZorkDotNet.csproj`, so the AOT and trim analyzers run on every build and their warnings fail it: avoid reflection, reflection-based JSON, `Type.GetType` and runtime code generation. A local `dotnet publish ZorkDotNet/ZorkDotNet.csproj -c Release -r win-x64` needs the Visual Studio C++ build tools. When you push a `v*` tag or start the workflow manually, it creates a GitHub Release. The Linux and macOS binaries are renamed to `zork`.
 
 ## Architecture
 
@@ -37,10 +37,9 @@ Everything lives in `ZorkDotNet/Game/` (namespace `ZorkDotNet.Game`). The main l
 - **`Parser`**: `Execute` first handles a few hard-coded special cases (rug, cyclops "SINBAD", exorcism), replies to a pending "Which X?" question, and treats a bare direction as a move. Otherwise it looks the verb up in `VerbTable`, then runs `Sparse` (splits the words into direct object, preposition and indirect object), `SynMatch` (picks a `Syntax`, does an implicit TAKE where the syntax wants a room object, and handles FLIP), and finally `Dispatch`. `Dispatch` is a large switch on the action name that calls the `Do*` helpers or `ObjectActions`. Movement goes through `TryGo` → `MoveToRoom`, which handles conditional/blocked exits, munged rooms and `Room.OnEnter`.
 - **`VerbSyntax.cs`**: `VerbTable` maps each normalized verb word to a `VerbSpec`, which lists one or more `Syntax` patterns (slot `VArg` flags: `VABIT` = inventory, `VRBIT` = room, `VTBIT` = no implicit take). To add a verb, register it here with `AddWords(...)` and add a matching `case` in `Parser.Dispatch`.
 - **Behavior hooks**: object-specific behavior is `GameObject.ObjectAction(state, verb, obj)`, implemented as static methods in `ObjectActions`. Room-specific behavior is `Room.RoomAction(state, verb)` (often dynamic LOOK text) and `Room.OnEnter`, implemented in `RoomActions`. You wire them up by passing the method to `AddObject`/`AddRoom` in `World`.
-- **`Combat`**: weapon and light-source checks, the troll/thief melee, the sword glow, and room robbing. Several features use `Random.Shared`, so tests should not assert on random outcomes.
+- **`Combat`**: several features use `Random.Shared`, so tests should not assert on random outcomes.
 - **`Clocks`**: named clock events (MDL `CEVENT`). Schedule with `state.Schedule(delay, Clocks.X, argument)`, never with a lambda, so pending events can be saved. A new clock needs a constant, a case in `Clocks.Run`, and an entry in `Known`.
 - **`GameSave`**: SAVE/RESTORE of the complete state as JSON (source-generated, so it's safe for trimming): player, flags, clock events, every room (seen, light, exits, contents) and every object (flags, texts, light, contents). Anything new that can change during play must be added to `Capture`/`Apply`. `SaveRestoreTests` checks that a restored game captures back to exactly the saved file. As in the original, SAVE ends the game, and RESTORE validates the whole file before changing anything.
-- **`Scoring`**: `SCORE-MAX` is computed from room and object values plus the light shaft. It also holds the original score report and rank table, and QUIT with its yes/no question.
 - **Turns**: `Parser.PlayTurn` is one `RDCOM` turn (count the move, run the command, run the clocks). `Program` and `GameRunner` both use it, so code that moves the player must not change `Moves`.
 
 ## Goal: a complete, faithful port
@@ -53,10 +52,4 @@ The goal is a complete port of the original game. Behavior should match the MDL 
 
 `ZorkDotNet.Tests/GameRunner` builds a fresh `GameState` + `World`, sends commands with `Run(...)`/`Execute(...)`, and captures the output (`GetOutput()`). A test usually checks substrings of the output and `runner.State.Here?.Id`. Each test also writes a transcript to `ZorkDotNet.Tests/TestLogs/` (the folder is wiped when the test class loads), which helps when debugging a failing scenario. `GameRunner` doesn't run the intro `LOOK`. To test an area far from the start, use `runner.Teleport(roomId)` and `runner.Give(objectId)` instead of walking there and collecting things. `GetOutputSince(mark)` returns only what one command printed. Put tests for one puzzle or feature in their own file (e.g. `GratingTests.cs`).
 
-### Checking against the original (`ZorkDotNet.Tests/Original/`)
-
-- `dung.56` is the original dungeon data, copied verbatim (MIT No Attribution; source and commit are in `Original/README.md`). Don't edit it. `.gitattributes` keeps its bytes unchanged.
-- `MdlReader` parses MDL, and `OriginalDungeon` extracts rooms, exits, objects (`#OBJECT`, `AOBJECT`, `SOBJECT`), verbs and directions. `WorldComparer` compares these with a freshly built `World`. For verbs it runs each original word through `Parser.Execute` and checks the parser doesn't reply "I don't know the word".
-- `OriginalWorldTests.World_matches_original_except_known_differences` checks the result against `Original/KnownDifferences.txt`, which is the remaining to-do list. The test fails on a **new** difference (a regression, or data that doesn't match the original) and on a listed difference that **no longer occurs**.
-- After fixing something, delete its line from `KnownDifferences.txt`. Regenerate the whole file with `ZORK_UPDATE_KNOWN_DIFFERENCES=1 dotnet test ZorkDotNet.sln` and check the git diff: it should only remove lines, unless you meant to add one.
-- The comparer covers world data and vocabulary only. Logic (`act*.37/38`, `act2.27`, `act3.13`, clock events, demons) still needs behavior tests through `GameRunner`.
+Never edit `ZorkDotNet.Tests/Original/dung.56` (the original dungeon data). How the comparison against the original works, and how to update `KnownDifferences.txt` after a fix, is in [ZorkDotNet.Tests/CLAUDE.md](ZorkDotNet.Tests/CLAUDE.md).
