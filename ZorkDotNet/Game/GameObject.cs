@@ -43,6 +43,8 @@ public class GameObject
     public bool Fighting => (Flags & ObjectFlags.Fighting) != 0;
     /// <summary>MDL VILLAIN: troll, thief, cyclops.</summary>
     public bool IsVillain => (Flags & ObjectFlags.Villain) != 0;
+    /// <summary>MDL ACTORBIT: an actor (the robot), which can be told to do things and carries things.</summary>
+    public bool IsActor => (Flags & ObjectFlags.Actor) != 0;
 }
 
 [Flags]
@@ -70,4 +72,18 @@ public enum ObjectFlags
     Fighting = 1 << 17,
     /// <summary>MDL VILLAIN: villain (troll, thief, cyclops).</summary>
     Villain = 1 << 18,
+    /// <summary>MDL VICBIT: something that can be the victim of a verb (attacked, given to, woken).</summary>
+    Victim = 1 << 19,
+    /// <summary>MDL TRYTAKEBIT: its own action decides about TAKE (even TAKE ALL tries it).</summary>
+    TryTake = 1 << 20,
+    /// <summary>MDL SEARCHBIT: something to search (the brick, the balloon's receptacle).</summary>
+    Search = 1 << 21,
+    /// <summary>MDL FINDMEBIT: holds something to be found (the buoy and its emerald).</summary>
+    FindMe = 1 << 22,
+    /// <summary>MDL TIEBIT: can be tied (the rope, the braided wire).</summary>
+    Tie = 1 << 23,
+    /// <summary>MDL ACTORBIT: an actor (the robot).</summary>
+    Actor = 1 << 24,
+    /// <summary>MDL NO-CHECK-BIT: TAKE and PUT hand the whole command to the object's action ("all", "valuables").</summary>
+    NoCheck = 1 << 25,
 }

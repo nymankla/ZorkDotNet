@@ -762,7 +762,7 @@ public static class Parser
                 var desc = LongDescription(o);
                 if (!string.IsNullOrEmpty(desc))
                     state.Output.WriteLine(vehicle != null ? desc + " [in the room]" : desc);
-                if (o.Id == "ROBOT") Robot.DescribeCarrying(state); // ROOM-INFO: INVENT of an actor
+                if (o.IsActor) Robot.DescribeCarrying(state); // ROOM-INFO: INVENT of an actor
             }
             if (SeeInside(o)) PrintContents(state, o, "", showCase);
         }
@@ -1068,10 +1068,10 @@ public static class Parser
     {
         var valuablesOnly = which.Id == "VALUA";
         bool Counts(GameObject o) => !valuablesOnly || o.TrophyScore != 0;
-        bool InRoom(GameObject o) => o.IsVisible && o.Id != "ROBOT" && !o.IsGlobal && (o.Flags & ObjectFlags.NoDescribe) == 0 && Counts(o);
+        bool InRoom(GameObject o) => o.IsVisible && !o.IsActor && !o.IsGlobal && (o.Flags & ObjectFlags.NoDescribe) == 0 && Counts(o);
         List<GameObject> lots = action switch
         {
-            "TAKE" => state.Here.Objects.Where(InRoom).Where(o => o.CanTake || o.ObjectAction != null).ToList(),
+            "TAKE" => state.Here.Objects.Where(InRoom).Where(o => o.CanTake || (o.Flags & ObjectFlags.TryTake) != 0).ToList(), // FROB-LOTS
             "DROP" => state.Winner.Inventory.Where(Counts).ToList(),
             _ => state.Here.Objects.Where(InRoom).Concat(state.Winner.Inventory.Where(Counts)).Where(o => o != into).ToList(),
         };
