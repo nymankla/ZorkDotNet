@@ -29,13 +29,13 @@ Exit not in original: VAIR3 DOWN -> VAIR2
 Exit not in original: VAIR3 UP -> VAIR4
 Exit not in original: VAIR4 DOWN -> VAIR3
 Object action missing: BAT: FLY-ME
-Object action missing: BOOK: BLACK-BOOK
 Object action missing: BUCKE: BUCKET
 Object action missing: RKNIF: RUSTY-KNIFE
 Object action missing: SPHER: SPHERE-FUNCTION
 Object action missing: SWORD: SWORD
 Object action missing: TROLL: TROLL
 Object bit not modelled: BAT: TRYTAKEBIT
+Object bit not modelled: BODIE: TRYTAKEBIT
 Object bit not modelled: BONES: TRYTAKEBIT
 Object bit not modelled: BRICK: SEARCHBIT
 Object bit not modelled: BUOY: FINDMEBIT
@@ -43,6 +43,7 @@ Object bit not modelled: CYCLO: VICBIT
 Object bit not modelled: GHOST: VICBIT
 Object bit not modelled: GNOME: VICBIT
 Object bit not modelled: GUNK: TRYTAKEBIT
+Object bit not modelled: HEADS: TRYTAKEBIT
 Object bit not modelled: ICE: VICBIT
 Object bit not modelled: POOL: VICBIT
 Object bit not modelled: RECEP: SEARCHBIT
@@ -54,35 +55,28 @@ Object bit not modelled: ROPE: TIEBIT
 Object bit not modelled: RUG: TRYTAKEBIT
 Object bit not modelled: SPHER: TRYTAKEBIT
 Object bit not modelled: THIEF: VICBIT
+Object bit not modelled: TOMB: TRYTAKEBIT
 Object bit not modelled: TROLL: VICBIT
-Object description: CANDL: original "There are two candles here.", port "Some candles are here."
 Object flags: BALLO: extra Take Container
 Object flags: BUCKE: missing Vehicle extra Take Container
-Object flags: CANDL: missing OnFire
 Object flags: IRBOX: extra Visible
 Object flags: POT: extra Visible
 Object flags: SPHER: extra Take
-Object light: CANDL: original 1, port 0
 Object missing: ##### (cretin)
 Object missing: ATABL (large oblong table)
 Object missing: BLABE (blue label)
 Object missing: BLBK (blue book)
 Object missing: BLICE (piece of cake with blue icing)
-Object missing: BODIE (pile of bodies)
 Object missing: BROPE (braided wire)
 Object missing: CARD (card)
 Object missing: CBAG (cloth bag)
 Object missing: CHALI (chalice)
-Object missing: COKES (bunch of Coke bottles)
 Object missing: CROWN (crown)
 Object missing: DBALL (broken balloon)
 Object missing: ECAKE (piece of 'Eat Me' cake)
 Object missing: EVERY (everything)
 Object missing: FLASK (glass flask filled with liquid)
 Object missing: GRBK (green book)
-Object missing: HEADS (set of poled heads)
-Object missing: LCASE (large case)
-Object missing: LISTS (stack of listings)
 Object missing: ORICE (piece of cake with orange icing)
 Object missing: PAINT (painting)
 Object missing: PUBK (purple book)
@@ -97,26 +91,21 @@ Object missing: SSLOT (hole)
 Object missing: STAMP (stamp)
 Object missing: STILL (stilletto)
 Object missing: STRAD (fancy violin)
-Object missing: TOMB (tomb)
 Object missing: TRBUT (button)
 Object missing: VALUA (valuables)
 Object missing: WHBK (white book)
-Object not in original: GATES (gate)
 Object start location: BALLO: original room VLBOT, port room LEDG4
 Object start location: BAR: original room ECHO, port nowhere
 Object start location: CAGE: original room CAGED, port nowhere
-Object start location: CANDL: original room TEMP2, port room LROOM
 Object start location: FBASK: original room BSHAF, port nowhere
 Object start location: IRBOX: original room CAROU, port nowhere
 Object start location: MACHI: original room MACHI, port nowhere
 Object start location: MSWIT: original room MACHI, port nowhere
 Object start location: RCAGE: original nowhere, port room CAGED
 Object start location: THIEF: original nowhere, port room TREAS
-Object untouched description: CANDL: original "On the two ends of the altar are burning candles.", port ""
 Room action missing: BLROO: TIME
 Room action missing: BSHAF: NO-OBJS
 Room action missing: CAGED: CAGED-ROOM
-Room action missing: CAVE2: CAVE2-ROOM
 Room action missing: CMACH: CMACH-ROOM
 Room action missing: DOME: DOME-ROOM
 Room action missing: ECHO: ECHO-ROOM

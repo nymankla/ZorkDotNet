@@ -91,6 +91,9 @@ public static class GameSave
             LampStage = state.LampStage,
             HelloCount = state.HelloCount,
             Deaths = state.Deaths,
+            CandleTicks = state.CandleTicks,
+            CandleStage = state.CandleStage,
+            MatchesLeft = state.MatchesLeft,
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
             Rooms = world.Rooms.Select(r => new RoomData
             {
@@ -234,6 +237,9 @@ public static class GameSave
         state.LampStage = data.LampStage;
         state.HelloCount = data.HelloCount;
         state.Deaths = data.Deaths;
+        state.CandleTicks = data.CandleTicks;
+        state.CandleStage = data.CandleStage;
+        state.MatchesLeft = data.MatchesLeft;
         state.ScheduledEvents.Clear();
         state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
 
@@ -266,6 +272,9 @@ internal sealed class SaveData
     public int LampStage { get; set; }
     public int HelloCount { get; set; }
     public int Deaths { get; set; }
+    public int CandleTicks { get; set; }
+    public int CandleStage { get; set; }
+    public int MatchesLeft { get; set; }
     public List<EventData> Events { get; set; } = new();
     public List<RoomData> Rooms { get; set; } = new();
     public List<ObjectData> Objects { get; set; } = new();

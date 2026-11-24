@@ -273,6 +273,71 @@ public static class ObjectActions
             state.Output.WriteLine("There is no grue here, but I'm sure there is at least one lurking in the darkness nearby.  I wouldn't let my light go out if I were you!");
     }
 
+    /// <summary>act1.38 BLACK-BOOK: burning the prayer book is a mistake.</summary>
+    public static void BlackBook(GameState state, string verb, GameObject? _)
+    {
+        if (verb != "BURN") return;
+        var book = state.World?.FindObject("BOOK");
+        if (book != null) RemoveFromWhere(book);
+        state.JigsUp("A booming voice says 'Wrong, cretin!' and you notice that you have turned into a pile of dust.");
+    }
+
+    /// <summary>act1.38 BODY-FUNCTION: the bodies in the Land of the Living Dead are not to be disturbed.</summary>
+    public static void BodyFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "TAKE")
+            state.Output.WriteLine("A force keeps you from taking the bodies.");
+        else if (verb is "MUNG" or "BURN")
+        {
+            if (!state.GetFlag("ON-POLE!-FLAG"))
+            {
+                state.SetFlag("ON-POLE!-FLAG", true);
+                var pole = state.World?.FindObject("HPOLE");
+                var lld2 = state.World?.FindRoom("LLD2");
+                if (pole != null && lld2 != null) { pole.InRoom = lld2; lld2.Objects.Add(pole); }
+            }
+            state.JigsUp("The voice of the guardian of the dungeon booms out from the darkness 'Your disrespect costs you your life!' and places your head on a pole.");
+        }
+    }
+
+    /// <summary>
+    /// act3.13 HEAD-FUNCTION: anything but reading the tomb or the heads costs you your valuables (into the large case
+    /// in the living room) and your life.
+    /// </summary>
+    public static void HeadFunction(GameState state, string verb, GameObject? _)
+    {
+        if (verb == "READ") return;
+        state.Output.WriteLine("Although the implementers are dead, they foresaw that some cretin would tamper with their remains.  Therefore, they took steps to prevent this.");
+        static bool Valuable(GameObject o) => o.TrophyScore > 0 && (o.Flags & ObjectFlags.Sacred) == 0;
+        var taken = state.Winner.Inventory.Where(Valuable).Concat(state.Here.Objects.Where(Valuable)).ToList();
+        var world = state.World!;
+        var lcase = world.FindObject("LCASE")!;
+        if (taken.Count > 0 && lcase.InRoom == null)
+        {
+            var lroom = world.FindRoom("LROOM")!;
+            lcase.InRoom = lroom;
+            lroom.Objects.Add(lcase);
+        }
+        foreach (var o in taken)
+        {
+            RemoveFromWhere(o);
+            o.Container = lcase;
+            lcase.Contents.Add(o);
+        }
+        state.JigsUp("Unfortunately, we've run out of poles.  Therefore, in punishment for your most grievous sin, we shall deprive you of all your valuables, and of your life.");
+    }
+
+    /// <summary>act3.13 COKE-BOTTLES: throw or break them and they vanish.</summary>
+    public static void CokeBottles(GameState state, string verb, GameObject? _)
+    {
+        if (verb is not ("THROW" or "MUNG")) return;
+        var cokes = state.World?.FindObject("COKES");
+        if (cokes == null) return;
+        state.Output.WriteLine("Congratulations!  You've managed to break all those bottles. Fortunately for your feet, they were made of magic glass and disappear immediately.");
+        cokes.Flags &= ~ObjectFlags.Visible;
+        cokes.Size = 0;
+    }
+
     /// <summary>act1.38 BOLT-FUNCTION: TURN BOLT WITH WRENCH opens or closes the sluice gates, once the yellow button is pushed.</summary>
     public static void BoltFunction(GameState state, string verb, GameObject? tool)
     {
@@ -382,51 +447,92 @@ public static class ObjectActions
         }
     }
 
-    /// <summary>MATCH: BURN or TURN ON lights it; burns out after 5 moves (ProcessClocks).</summary>
+    /// <summary>
+    /// act1.38 MATCH-FUNCTION: LIGHT (or STRIKE) uses up one match, which burns for two moves; the matchbook holds
+    /// five, and the last one never lights.
+    /// </summary>
     public static void MatchFunction(GameState state, string verb, GameObject? _)
     {
-        // The third argument is the indirect object; this action is about the MATCH itself.
-        var obj = state.World?.FindObject("MATCH");
-        if (obj == null) return;
-        if (verb == "BURN" || verb == "TURNON" || verb == "TURN ON")
+        var match = state.World?.FindObject("MATCH");
+        if (match == null) return;
+        if (verb == "TURNON")
         {
-            if (obj.LightAmount > 0)
+            if (--state.MatchesLeft <= 0)
             {
-                state.Output.WriteLine("The match is already lit.");
+                state.Output.WriteLine("I'm afraid that you have run out of matches.");
                 return;
             }
-            obj.LightAmount = 1;
-            state.Schedule(5, Clocks.MatchOut, obj.Id);
-            state.Output.WriteLine("The match is now lit.");
+            match.Flags |= ObjectFlags.OnFire;
+            match.LightAmount = 1;
+            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MatchOut);
+            state.Schedule(2, Clocks.MatchOut, match.Id);
+            state.Output.WriteLine("One of the matches starts to burn.");
+        }
+        else if (verb == "TURNOFF" && match.LightAmount > 0)
+        {
+            state.Output.WriteLine("The match is out.");
+            match.Flags &= ~ObjectFlags.OnFire;
+            match.LightAmount = 0;
+            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.MatchOut);
         }
     }
 
-    /// <summary>MATCH-FUNCTION clock: a lit match burns out.</summary>
+    /// <summary>act1.38 MATCH-FUNCTION clock (C-INT): the match goes out.</summary>
     public static void MatchBurnout(GameState state, string? matchId)
     {
         var match = state.World?.FindObject(matchId ?? "MATCH");
-        if (match != null && match.LightAmount > 0)
-        {
-            match.LightAmount = 0;
-            state.Output.WriteLine("The match has burned out.");
-        }
+        if (match == null) return;
+        state.Output.WriteLine("The match has gone out.");
+        match.Flags &= ~ObjectFlags.OnFire;
+        match.LightAmount = 0;
     }
 
-    /// <summary>CANDLES: TURN ON / TURN OFF. In CAVE2, 50% chance each move to blow out (ProcessClocks).</summary>
-    public static void CandlesFunction(GameState state, string verb, GameObject? _)
+    /// <summary>
+    /// act1.38 CANDLES: the first touch starts their 50-move clock; LIGHT them WITH a burning match (the torch
+    /// vaporises them), put them out with TURN OFF.
+    /// </summary>
+    public static void CandlesFunction(GameState state, string verb, GameObject? with)
     {
-        // The third argument is the indirect object; this action is about the CANDL itself.
-        var obj = state.World?.FindObject("CANDL");
-        if (obj == null) return;
-        if (verb == "TURNON" || verb == "TURN ON")
+        var candles = state.World?.FindObject("CANDL");
+        if (candles == null) return;
+        if (state.CandleTicks == 0 && state.CandleStage == 0) state.CandleTicks = 50; // ORAND set on first use
+        if (verb == "TURNON")
         {
-            obj.LightAmount = 1;
-            state.Output.WriteLine("The candles are now lit.");
+            if (candles.LightAmount == 0)
+                state.Output.WriteLine("Alas, there's not much left of the candles.  Certainly not enough to burn.");
+            else if (with == null)
+                state.Output.WriteLine("With what?");
+            else if (with.Id == "MATCH" && with.LightAmount > 0)
+            {
+                if (candles.LightAmount > 0) state.Output.WriteLine("The candles are already lighted.");
+                else
+                {
+                    candles.LightAmount = 1;
+                    state.Output.WriteLine("The candles are lighted.");
+                }
+            }
+            else if (with.Id == "TORCH")
+            {
+                if (candles.LightAmount > 0)
+                    state.Output.WriteLine("You realize, just in time, that the candles are already lighted.");
+                else
+                {
+                    state.Output.WriteLine("The heat from the torch is so intense that the candles are vaporised.");
+                    RemoveFromWhere(candles);
+                }
+            }
+            else
+                state.Output.WriteLine("You have to light them with something that's burning, you know.");
         }
-        else if (verb == "TURNOFF" || verb == "TURN OFF")
+        else if (verb == "TURNOFF")
         {
-            obj.LightAmount = 0;
-            state.Output.WriteLine("The candles are now off.");
+            if (candles.LightAmount > 0)
+            {
+                state.Output.WriteLine("The flame is extinguished.");
+                candles.LightAmount = -1;
+            }
+            else
+                state.Output.WriteLine("The candles are not lighted.");
         }
     }
 
@@ -1112,14 +1218,9 @@ public static class ObjectActions
             state.Output.WriteLine("Very good.");
     }
 
-    /// <summary>Ghost (GHOST) in LLD1: ATTACK/TAKE → can't affect spirits.</summary>
-    public static void GhostFunction(GameState state, string verb, GameObject? _)
-    {
-        if (verb == "ATTACK" || verb == "ATTAC" || verb == "KILL" || verb == "FIGHT")
-            state.Output.WriteLine("How can you attack a spirit with material objects?");
-        else if (verb == "TAKE")
-            state.Output.WriteLine("You seem unable to affect these spirits.");
-    }
+    /// <summary>act1.38 GHOST-FUNCTION: the spirits can't be touched.</summary>
+    public static void GhostFunction(GameState state, string _1, GameObject? _2) =>
+        state.Output.WriteLine("You seem unable to affect these spirits.");
 
     /// <summary>Cyclops (CYCLO): GIVE FOOD → peppers/drink message; GIVE WATER → asleep (CYCLOPS-FLAG); ATTACK/wake; RVARS = state.</summary>
     public static void CyclopsFunction(GameState state, string verb, GameObject? indirect)

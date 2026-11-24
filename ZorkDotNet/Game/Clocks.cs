@@ -7,7 +7,7 @@ namespace ZorkDotNet.Game;
 /// </summary>
 public static class Clocks
 {
-    /// <summary>MATCH-FUNCTION (MATIN): a lit match burns out. Argument: the match's object id.</summary>
+    /// <summary>MATCH-FUNCTION (MATIN): a lit match goes out after two moves. Argument: the match's object id.</summary>
     public const string MatchOut = "MATCH-FUNCTION";
 
     /// <summary>FUSE-FUNCTION (FUSIN): the lit fuse burns down.</summary>

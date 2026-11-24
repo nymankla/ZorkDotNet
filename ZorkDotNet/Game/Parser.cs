@@ -126,43 +126,6 @@ public static class Parser
             state.PendingAmbiguousWord = null;
         }
 
-        // LLD1 exorcism: EXORCISE with bell + book + lit candle removes ghost and sets LLD-FLAG
-        if (state.Here?.Id == "LLD1" && state.World != null && words.Length >= 1)
-        {
-            var w0 = NormWord(words[0]);
-            if (w0 == "EXORC" || w0 == "EXORCI" || w0 == "XORCI")
-            {
-                var ghost = state.World.FindObject("GHOST");
-                var ghostInRoom = ghost != null && ghost.InRoom == state.Here;
-                if (ghostInRoom)
-                {
-                    var inv = state.Winner.Inventory;
-                    var hasBell = inv.Any(o => o.Id == "BELL");
-                    var hasBook = inv.Any(o => o.Id == "BOOK");
-                    var candle = inv.FirstOrDefault(o => o.Id == "CANDL");
-                    var litCandle = candle != null && candle.LightAmount > 0;
-                    if (hasBell && hasBook && litCandle)
-                    {
-                        if (ghost!.InRoom != null)
-                        {
-                            ghost.InRoom.Objects.Remove(ghost);
-                            ghost.InRoom = null;
-                        }
-                        state.SetFlag("LLD-FLAG!-FLAG", true);
-                        state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, fiends!\"  The spirits, sensing the presence of a greater power, flee through the walls.");
-                    }
-                    else
-                        state.Output.WriteLine("You are not equipped for an exorcism.");
-                }
-                else
-                {
-                    state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, chomper!\"  Apparently, the voice thinks you are an evil spirit, and dismisses you from the realm of the living.");
-                    state.JigsUp(null);
-                }
-                return;
-            }
-        }
-
         var first = NormWord(words[0]);
 
         // Direction only -> walk (np.92 SPARSE: direction before verb)
@@ -431,7 +394,7 @@ public static class Parser
                 state.Output.WriteLine("Script file closed.");
                 break;
             case "DIAGNOSE": ObjectActions.Diagnose(state); break;
-            case "EXORCISE": state.Output.WriteLine("Nothing happens."); break;
+            case "EXORCISE": break; // act1.38 EXORCISE: the room (LLD-ROOM) answers, after the verb
             case "WELL": RoomActions.Well(state); break;
             case "BOARD":
                 if (direct != null) DoBoard(state, direct);
@@ -842,6 +805,8 @@ public static class Parser
         obj.Container = null;
         obj.Carrier = state.Winner;
         state.Winner.Inventory.Add(obj);
+        // TAKE calls the object's action (rooms.99 APPLY-OBJECT); for the candles that starts their clock.
+        if (obj.Id == "CANDL") obj.ObjectAction?.Invoke(state, "TAKE", null);
         // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
         if (!obj.Touched) state.Winner.Score += obj.FindScore;
         obj.Touched = true;
