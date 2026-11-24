@@ -1,31 +1,3 @@
 # Differences between the port and the original dung.56 that are not fixed yet.
 # One per line; checked by OriginalWorldTests. Delete a line when you fix it.
 # Regenerate with ZORK_UPDATE_KNOWN_DIFFERENCES=1 (see Original/README.md).
-Object bit not modelled: BAT: TRYTAKEBIT
-Object bit not modelled: BODIE: TRYTAKEBIT
-Object bit not modelled: BONES: TRYTAKEBIT
-Object bit not modelled: BRICK: SEARCHBIT
-Object bit not modelled: BROPE: TIEBIT
-Object bit not modelled: BUOY: FINDMEBIT
-Object bit not modelled: CYCLO: VICBIT
-Object bit not modelled: EVERY: NO-CHECK-BIT
-Object bit not modelled: GHOST: VICBIT
-Object bit not modelled: GNOME: VICBIT
-Object bit not modelled: GUNK: TRYTAKEBIT
-Object bit not modelled: HEADS: TRYTAKEBIT
-Object bit not modelled: ICE: VICBIT
-Object bit not modelled: POOL: VICBIT
-Object bit not modelled: RECEP: SEARCHBIT
-Object bit not modelled: REFL1: TRYTAKEBIT
-Object bit not modelled: REFL1: VICBIT
-Object bit not modelled: REFL2: TRYTAKEBIT
-Object bit not modelled: REFL2: VICBIT
-Object bit not modelled: ROBOT: ACTORBIT
-Object bit not modelled: ROBOT: VICBIT
-Object bit not modelled: ROPE: TIEBIT
-Object bit not modelled: RUG: TRYTAKEBIT
-Object bit not modelled: SPHER: TRYTAKEBIT
-Object bit not modelled: THIEF: VICBIT
-Object bit not modelled: TOMB: TRYTAKEBIT
-Object bit not modelled: TROLL: VICBIT
-Object bit not modelled: VALUA: NO-CHECK-BIT

@@ -30,6 +30,13 @@ internal static partial class WorldComparer
         ["WEAPONBIT"] = ObjectFlags.Weapon,
         ["SACREDBIT"] = ObjectFlags.Sacred,
         ["VILLAIN"] = ObjectFlags.Villain,
+        ["VICBIT"] = ObjectFlags.Victim,
+        ["TRYTAKEBIT"] = ObjectFlags.TryTake,
+        ["SEARCHBIT"] = ObjectFlags.Search,
+        ["FINDMEBIT"] = ObjectFlags.FindMe,
+        ["TIEBIT"] = ObjectFlags.Tie,
+        ["ACTORBIT"] = ObjectFlags.Actor,
+        ["NO-CHECK-BIT"] = ObjectFlags.NoCheck,
     };
 
     /// <summary>Port sizes at or above this count as MDL BIGFIX (can't be carried).</summary>
