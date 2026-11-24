@@ -1342,91 +1342,96 @@ public static class ObjectActions
     public static void GhostFunction(GameState state, string _1, GameObject? _2) =>
         state.Output.WriteLine("You seem unable to affect these spirits.");
 
-    /// <summary>Cyclops (CYCLO): GIVE FOOD → peppers/drink message; GIVE WATER → asleep (CYCLOPS-FLAG); ATTACK/wake; RVARS = state.</summary>
-    public static void CyclopsFunction(GameState state, string verb, GameObject? indirect)
-    {
-        var here = state.Here;
-        if (here?.Id != "CYCLO" || state.World == null) return;
-        var cyclops = state.World.FindObject("CYCLO");
-        if (cyclops == null) return;
-        var food = state.World.FindObject("FOOD");
-        var water = state.World.FindObject("WATER");
-        var count = here.RVars;
+    // act1.38 CYCLOMAD
+    internal static readonly string[] CycloMad =
+    [
+        "The cyclops seems somewhat agitated.",
+        "The cyclops appears to be getting more agitated.",
+        "The cyclops is moving about the room, looking for something.",
+        "The cyclops was looking for salt and pepper.  I think he is gathering condiments for his upcoming snack.",
+        "The cyclops is moving toward you in an unfriendly manner.",
+        "You have two choices: 1. Leave  2. Become dinner.",
+    ];
 
-        if (state.GetFlag("CYCLOPS-FLAG!-FLAG")) // asleep
+    /// <summary>act1.38 AOS-SOS: the cyclops gets one step angrier (thirsty anger counts down), and shows it.</summary>
+    private static int AosSos(GameState state, int count)
+    {
+        count = count < 0 ? count - 1 : count + 1;
+        if (!state.GetFlag("CYCLOPS-FLAG!-FLAG"))
+            state.Output.WriteLine(CycloMad[Math.Min(Math.Abs(count), CycloMad.Length) - 1]);
+        return count;
+    }
+
+    /// <summary>
+    /// act1.38 CYCLOPS. The room's RVARS counts his anger: up from 0 as you annoy him, below 0 once the hot peppers
+    /// have made him thirsty. Past 5 he eats you. Water when he's thirsty puts him to sleep (CYCLOPS-FLAG); waking,
+    /// hitting or burning him wakes him up fighting.
+    /// </summary>
+    public static void CyclopsFunction(GameState state, string verb, GameObject? gift)
+    {
+        var world = state.World!;
+        var room = state.Here;
+        var cyclops = world.FindObject("CYCLO")!;
+        var count = room.RVars;
+        if (state.GetFlag("CYCLOPS-FLAG!-FLAG"))
         {
-            if (verb == "ATTACK" || verb == "ATTAC" || verb == "BURN" || verb == "MUNG" || verb == "BREAK")
+            if (verb is "WAKE" or "MUNG" or "BURN" or "ATTACK")
             {
                 state.Output.WriteLine("The cyclops yawns and stares at the thing that woke him up.");
                 state.SetFlag("CYCLOPS-FLAG!-FLAG", false);
                 cyclops.Flags |= ObjectFlags.Fighting;
-                here.RVars = Math.Abs(count);
-                return;
+                room.RVars = Math.Abs(room.RVars);
             }
-            if (count > 5)
+            return;
+        }
+        if (Math.Abs(count) > 5)
+        {
+            state.JigsUp("The cyclops, tired of all of your games and trickery, eats you.\nThe cyclops says 'Mmm.  Just like mom used to make 'em.'");
+            return;
+        }
+        if (verb == "GIVE" && gift != null)
+        {
+            switch (gift.Id)
             {
-                state.Output.WriteLine("The cyclops, tired of all of your games and trickery, eats you.\nThe cyclops says 'Mmm.  Just like mom used to make 'em.'");
-                state.JigsUp(null);
-                return;
-            }
-            if (verb == "GIVE" && indirect != null)
-            {
-                if (indirect == food)
-                {
+                case "FOOD":
                     if (count >= 0)
                     {
-                        state.Winner.Inventory.Remove(food!);
-                        if (food.InRoom != null) food.InRoom.Objects.Remove(food);
-                        food.InRoom = null;
-                        food.Carrier = null;
+                        RemoveFromWhere(gift);
                         state.Output.WriteLine("The cyclops says 'Mmm Mmm.  I love hot peppers!  But oh, could I use a drink.  Perhaps I could drink the blood of that thing'.  From the gleam in his eye, it could be surmised that you are 'that thing'.");
-                        here.RVars = Math.Max(-1, count - 1);
+                        room.RVars = Math.Min(-1, -count);
                     }
-                    return;
-                }
-                if (indirect == water)
-                {
+                    break;
+                case "WATER":
                     if (count < 0)
                     {
-                        state.Winner.Inventory.Remove(water!);
-                        if (water.InRoom != null) water.InRoom.Objects.Remove(water);
-                        water.InRoom = null;
-                        water.Carrier = null;
+                        RemoveFromWhere(gift);
+                        cyclops.Flags &= ~ObjectFlags.Fighting;
                         state.Output.WriteLine("The cyclops looks tired and quickly falls fast asleep (what did you put in that drink, anyway?).");
                         state.SetFlag("CYCLOPS-FLAG!-FLAG", true);
                     }
                     else
                         state.Output.WriteLine("The cyclops apparently was not thirsty at the time and refuses your generous gesture.");
-                    return;
-                }
-                if (indirect == state.World.FindObject("GARLI"))
-                {
+                    break;
+                case "GARLI":
                     state.Output.WriteLine("The cyclops may be hungry, but there is a limit.");
-                    here.RVars = count >= 0 ? count + 1 : Math.Max(-6, count - 1);
-                    return;
-                }
-                state.Output.WriteLine("The cyclops is not so stupid as to eat THAT!");
-                here.RVars = count >= 0 ? count + 1 : Math.Max(-6, count - 1);
-                return;
+                    room.RVars = AosSos(state, count);
+                    break;
+                default:
+                    state.Output.WriteLine("The cyclops is not so stupid as to eat THAT!");
+                    room.RVars = AosSos(state, count);
+                    break;
             }
-            if (verb == "TAKE")
-                state.Output.WriteLine("The cyclops is rather heavy and doesn't take kindly to being grabbed.");
-            if (verb == "TIE")
-                state.Output.WriteLine("You cannot tie the cyclops, although he is fit to be tied.");
             return;
         }
-
-        // Awake
-        if (verb == "THROW" || verb == "MUNG" || verb == "BREAK")
-        {
-            state.Output.WriteLine(Random.Shared.Next(2) == 0
+        if (verb == "ATTACK") return; // FIGHT: the melee's business
+        room.RVars = AosSos(state, count);
+        if (verb is "THROW" or "MUNG")
+            state.Output.WriteLine(state.Random.Next(100) < 50
                 ? "Your actions don't appear to be doing much harm to the cyclops, but they do not exactly lower your insurance premiums, either."
                 : "The cyclops ignores all injury to his body with a shrug.");
-            return;
-        }
-        if (verb == "TAKE")
+        else if (verb == "TAKE")
             state.Output.WriteLine("The cyclops is rather heavy and doesn't take kindly to being grabbed.");
-        if (verb == "TIE")
+        else if (verb == "TIE")
             state.Output.WriteLine("You cannot tie the cyclops, although he is fit to be tied.");
     }
 }

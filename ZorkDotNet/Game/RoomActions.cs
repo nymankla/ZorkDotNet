@@ -491,28 +491,26 @@ public static class RoomActions
             state.Output.WriteLine("Unfortunately, you have managed to destroy it by your reckless actions.");
     }
 
-    /// <summary>Cyclops room (CYCLO): LOOK text with cyclops state (RVARS, CYCLOPS-FLAG, MAGIC-FLAG).</summary>
+    /// <summary>act1.38 CYCLOPS-ROOM: the room, and the cyclops's state and mood.</summary>
     public static void CyclopsRoom(GameState state, string verb)
     {
         if (verb != "LOOK") return;
+        var vars = state.Here.RVars;
+        var asleep = state.GetFlag("CYCLOPS-FLAG!-FLAG");
+        var gone = state.GetFlag("MAGIC-FLAG!-FLAG");
         state.Output.WriteLine("You are in a room with an exit on the west side, and a staircase leading up.");
-        var here = state.Here;
-        var cyclops = state.World?.FindObject("CYCLO");
-        var inRoom = cyclops != null && here != null && here.Objects.Contains(cyclops);
-        if (state.GetFlag("CYCLOPS-FLAG!-FLAG") && !state.GetFlag("MAGIC-FLAG!-FLAG"))
+        if (asleep && !gone)
             state.Output.WriteLine("The cyclops, perhaps affected by a drug in your drink, is sleeping blissfully at the foot of the stairs.");
-        else if (state.GetFlag("MAGIC-FLAG!-FLAG"))
+        else if (gone)
             state.Output.WriteLine("On the north of the room is a wall which used to be solid, but which now has a cyclops-sized hole in it.");
-        else if (inRoom)
-        {
-            var v = here!.RVars;
-            if (v == 0)
-                state.Output.WriteLine("A cyclops, who looks prepared to eat horses (much less mere adventurers), blocks the staircase.  From his state of health, and the bloodstains on the walls, you gather that he is not very friendly, though he likes people.");
-            else if (v > 0)
-                state.Output.WriteLine("The cyclops is standing in the corner, eyeing you closely.  I don't think he likes you very much.  He looks extremely hungry even for a cyclops.");
-            else
-                state.Output.WriteLine("The cyclops, having eaten the hot peppers, appears to be gasping. His enflamed tongue protrudes from his man-sized mouth.");
-        }
+        else if (vars == 0)
+            state.Output.WriteLine("A cyclops, who looks prepared to eat horses (much less mere adventurers), blocks the staircase.  From his state of health, and the bloodstains on the walls, you gather that he is not very friendly, though he likes people.");
+        else if (vars > 0)
+            state.Output.WriteLine("The cyclops is standing in the corner, eyeing you closely.  I don't think he likes you very much.  He looks extremely hungry even for a cyclops.");
+        else
+            state.Output.WriteLine("The cyclops, having eaten the hot peppers, appears to be gasping. His enflamed tongue protrudes from his man-sized mouth.");
+        if (!asleep && vars != 0)
+            state.Output.WriteLine(ObjectActions.CycloMad[Math.Min(Math.Abs(vars), ObjectActions.CycloMad.Length) - 1]);
     }
 
     /// <summary>FALLS (Aragain Falls): LOOK text; RAINBOW flag shows solid rainbow.</summary>
