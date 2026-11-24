@@ -522,12 +522,11 @@ public static class Parser
                     return rug;
                 }
             }
-            var inInv = state.Winner.Inventory.Where(o => MatchObject(o, w)).ToList();
+            var inInv = WithVisibleContents(state.Winner.Inventory).Where(o => MatchObject(o, w)).ToList();
             IEnumerable<GameObject> inRoomList = Array.Empty<GameObject>();
             if (lit && state.Here != null)
             {
-                var roomList = state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)
-                    .Concat(state.Here.Objects.Where(o => o.IsOpenOrTransparent || o.Open).SelectMany(o => o.Contents.Where(c => c.IsVisible))).ToList();
+                var roomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
                 // Trap door in living room: matchable for OPEN once rug is moved
                 if (state.Here.Id == "LROOM" && state.GetFlag("RUG-MOVED!-FLAG"))
                 {
@@ -563,6 +562,18 @@ public static class Parser
             return null;
         }
         return null;
+    }
+
+    /// <summary>The objects, and whatever can be seen inside them, however deep (open or transparent containers).</summary>
+    private static IEnumerable<GameObject> WithVisibleContents(IEnumerable<GameObject> objects)
+    {
+        foreach (var o in objects)
+        {
+            yield return o;
+            if (o.IsOpenOrTransparent)
+                foreach (var inner in WithVisibleContents(o.Contents.Where(c => c.IsVisible)))
+                    yield return inner;
+        }
     }
 
     private static bool MatchObject(GameObject o, string word)
@@ -830,21 +841,21 @@ public static class Parser
         state.Output.WriteLine("You have left the " + v.DescriptionShort + ".");
     }
 
-    private static void DoTake(GameState state, GameObject obj)
+    private static bool DoTake(GameState state, GameObject obj, bool tell = true)
     {
         if (obj == state.Winner.Vehicle)
         {
             state.Output.WriteLine("You're already in the " + obj.DescriptionShort + ".");
-            return;
+            return false;
         }
-        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have that."); return; }
-        if (!obj.CanTake) { state.Output.WriteLine("You can't take that."); return; }
+        if (obj.Carrier == state.Winner) { state.Output.WriteLine("You already have that."); return false; }
+        if (!obj.CanTake) { state.Output.WriteLine("You can't take that."); return false; }
         if (obj.Container != null && !obj.Container.Open && !obj.Container.IsTransparent)
-        { state.Output.WriteLine("You can't reach that."); return; }
+        { state.Output.WriteLine("You can't reach that."); return false; }
         if (obj.InRoom != null)
         {
             if (state.Winner.CarryingSize + obj.Size > Adventurer.MaxLoad)
-            { state.Output.WriteLine("You're carrying too much."); return; }
+            { state.Output.WriteLine("You're carrying too much."); return false; }
             obj.InRoom.Objects.Remove(obj);
         }
         else if (obj.Container != null)
@@ -859,7 +870,8 @@ public static class Parser
         // rooms.99 TAKE sets OTOUCH? on every take; SCORE-OBJ scores the find only the first time.
         if (!obj.Touched) state.Winner.Score += obj.FindScore;
         obj.Touched = true;
-        state.Output.WriteLine("Taken.");
+        if (tell) state.Output.WriteLine("Taken.");
+        return true;
     }
 
     private static void DoDrop(GameState state, GameObject obj)
@@ -1077,11 +1089,11 @@ public static class Parser
         state.Output.WriteLine("You can't lift that.");
     }
 
+    /// <summary>rooms.99 PUTTER: PUT obj IN container (anything open, or a container or vehicle).</summary>
     private static void DoPut(GameState state, string[] words)
     {
         var obj = state.LastDirectObject ?? ResolveObject(state, words, 1, out _);
         if (obj == null) { state.Output.WriteLine("What do you want to put?"); return; }
-        if (obj.Carrier != state.Winner) { state.Output.WriteLine("You're not carrying that."); return; }
         var inIdx = Array.FindIndex(words, i => IsPrepIn(NormWord(i)));
         var cont = state.LastIndirectObject;
         if (cont == null && inIdx >= 0 && inIdx + 1 < words.Length)
@@ -1089,12 +1101,18 @@ public static class Parser
         if (cont == null) { state.Output.WriteLine("What do you want to put that in?"); return; }
         state.LastDirectObject = obj;
         state.LastIndirectObject = cont;
+        if (obj.IsGlobal || cont.IsGlobal) { state.Output.WriteLine("Nice try."); return; }
+        if (!cont.Open && !cont.IsContainer && (cont.Flags & ObjectFlags.Vehicle) == 0) { state.Output.WriteLine("I can't do that."); return; }
+        if (!cont.Open) { state.Output.WriteLine("I can't reach inside."); return; }
+        if (cont == obj) { state.Output.WriteLine("How can you do that?"); return; }
+        if (cont.Contents.Sum(o => o.Size) + obj.Size > cont.Capacity) { state.Output.WriteLine("It won't fit."); return; }
+        if (obj.Carrier != state.Winner)
+        {
+            // PUTTER takes it first, without saying so.
+            if (!DoTake(state, obj, tell: false)) return;
+        }
         if (ObjectActions.Try(state, obj, "PUT", cont)) return;
-        // OBJECT-ACTION asks the indirect object too (e.g. TUBE-FUNCTION refuses everything).
         if (ObjectActions.Try(state, cont, "PUT", obj)) return;
-        if (!cont.IsContainer && (cont.Flags & ObjectFlags.Container) == 0) { state.Output.WriteLine("You can't put things in that."); return; }
-        if (!cont.Open && !cont.IsTransparent) { state.Output.WriteLine("That's closed."); return; }
-        if (cont.Contents.Sum(o => o.Size) + obj.Size > cont.Capacity) { state.Output.WriteLine("That won't fit."); return; }
         state.Winner.Inventory.Remove(obj);
         obj.Carrier = null;
         obj.Container = cont;

@@ -234,7 +234,7 @@ public class GameTests
         using var runner = new GameRunner(logPath);
         runner.Run(
             "SOUTH", "EAST", "OPEN WINDOW", "ENTER",
-            "WEST", "TAKE LAMP", "TAKE PAPER", "PUT PAPER IN TROPHY CASE"
+            "WEST", "TAKE LAMP", "TAKE PAPER", "OPEN TROPHY CASE", "PUT PAPER IN TROPHY CASE" // the case starts closed (dung.56)
         );
         var output = runner.GetOutput();
         Assert.Contains("Done.", output);

@@ -683,74 +683,88 @@ public static class ObjectActions
         }
     }
 
-    /// <summary>FUSE: BURN lights it; after 2 moves explodes (same room = death; else SAFE-MUNG in 5).</summary>
+    // act2.27 BRICK-BOOM
+    private const string BrickBoom = "Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.";
+
+    /// <summary>act2.27 FUSE-FUNCTION: BURN the wire and it burns for two moves.</summary>
     public static void FuseFunction(GameState state, string verb, GameObject? _)
     {
-        // The third argument is the indirect object; this action is about the FUSE itself.
-        var obj = state.World?.FindObject("FUSE");
-        if (obj == null) return;
         if (verb != "BURN") return;
-        if (obj.LightAmount > 0)
-        {
-            state.Output.WriteLine("The fuse is already lit.");
-            return;
-        }
-        obj.LightAmount = 1;
+        state.Output.WriteLine("The wire starts to burn.");
+        state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Fuse);
         state.Schedule(2, Clocks.Fuse);
-        state.Output.WriteLine("The fuse is lit.");
     }
 
-    /// <summary>FUSE-FUNCTION clock: the lit fuse burns down (explodes the brick if it is in it).</summary>
+    /// <summary>
+    /// act2.27 FUSE-FUNCTION clock: the wire is gone. In the brick it sets the brick off: where you are, that kills
+    /// you; in the slot of the safe it blows the box open; anywhere else it destroys what lies around. The room
+    /// collapses five moves later (SAFE-MUNG).
+    /// </summary>
     public static void FuseBurnedDown(GameState state)
     {
-        var fuse = state.World?.FindObject("FUSE");
-        if (fuse?.Container?.Id != "BRICK")
+        var world = state.World!;
+        var fuse = world.FindObject("FUSE")!;
+        var brick = world.FindObject("BRICK")!;
+        fuse.Flags &= ~ObjectFlags.Visible;
+        if (fuse.Container != brick)
         {
-            state.Output.WriteLine("The fuse has burned to the end.");
-            state.Output.WriteLine("The wire rapidly burns into nothingness.");
-            if (fuse != null) fuse.LightAmount = 0;
+            if (fuse.InRoom == null || fuse.InRoom == state.Here)
+                state.Output.WriteLine("The wire rapidly burns into nothingness.");
             return;
         }
-        state.Output.WriteLine("The fuse has burned to the end.");
-        var brick = state.World?.FindObject("BRICK");
-        string? brickRoomId = null;
-        if (brick != null)
+        brick.Flags &= ~ObjectFlags.Visible;
+        // PUTTER leaves a contained object's OROOM at the room it was put in; the carried brick is wherever you are.
+        var brickRoom = brick.Container?.InRoom ?? brick.InRoom ?? state.Here;
+        if (brickRoom == state.Here)
         {
-            if (brick.InRoom != null) brickRoomId = brick.InRoom.Id;
-            else if (brick.Carrier != null) brickRoomId = brick.Carrier.CurrentRoom?.Id;
-        }
-        brickRoomId ??= state.Here?.Id;
-        if (brickRoomId != null && state.Here?.Id == brickRoomId)
-        {
-            state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
-            state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-            state.JigsUp(null);
+            state.MungRoom(brickRoom.Id, "The way is blocked by debris from an explosion.");
+            state.JigsUp(BrickBoom);
             return;
         }
         state.Output.WriteLine("There is an explosion nearby.");
-        state.Schedule(5, Clocks.SafeMung, brickRoomId);
-    }
-
-    /// <summary>SAFE-MUNG (CEVENT): if player in munged room → death; else tell rumbling; if SAFE, schedule LEDGE-MUNG in 8; mung room.</summary>
-    public static void SafeMung(GameState state, string? mungedRoomId)
-    {
-        var r = state.World?.FindRoom(mungedRoomId ?? "");
-        if (r == null) return;
-        if (state.Here?.Id == mungedRoomId)
+        state.Schedule(5, Clocks.SafeMung, brickRoom.Id);
+        if (brickRoom.Id == "SAFE")
         {
-            state.Output.WriteLine(r.Id == "SAFE"
-                ? "The house shakes, and the ceiling of the room you're in collapses, turning you into a pancake."
-                : "The room trembles and 50,000 pounds of rock fall on you, turning you into a pancake.");
-            state.JigsUp(null);
+            var slot = world.FindObject("SSLOT")!;
+            if (slot.Contents.Contains(brick))
+            {
+                slot.Flags &= ~ObjectFlags.Visible;
+                world.FindObject("SAFE")!.Open = true;
+                state.SetFlag("SAFE-FLAG!-FLAG", true);
+            }
             return;
         }
-        state.Output.WriteLine("You may recall your recent explosion.  Well, probably as a result of that, you hear an ominous rumbling, as if one of the rooms in the dungeon had collapsed.");
-        if (mungedRoomId == "SAFE")
+        foreach (var o in brickRoom.Objects.Where(o => o.CanTake))
+            o.Flags &= ~ObjectFlags.Visible;
+        if (brickRoom.Id == "LROOM")
         {
-            state.SetFlag("SAFE-FLAG!-FLAG", true);
-            state.Schedule(8, Clocks.LedgeMung);
+            var tcase = world.FindObject("TCASE")!;
+            foreach (var o in tcase.Contents) o.Container = null;
+            tcase.Contents.Clear();
         }
-        state.MungRoom(mungedRoomId, "The way is blocked by debris from an explosion.");
+    }
+
+    /// <summary>
+    /// act2.27 SAFE-MUNG: five moves after the explosion its room collapses (on you, if you're in it). After the safe,
+    /// the ledge outside follows eight moves later (LEDGE-MUNG).
+    /// </summary>
+    public static void SafeMung(GameState state, string? mungedRoomId)
+    {
+        var world = state.World!;
+        if (state.Here.Id == mungedRoomId)
+        {
+            state.JigsUp(mungedRoomId is "LROOM" or "KITCH" or "ATTIC" // RHOUSEBIT
+                ? "The house shakes, and the ceiling of the room you're in collapses, turning you into a pancake."
+                : "The room trembles and 50,000 pounds of rock fall on you, turning you into a pancake.");
+        }
+        else
+        {
+            state.Output.WriteLine("You may recall your recent explosion.  Well, probably as a result of that, you hear an ominous rumbling, as if one of the rooms in the dungeon had collapsed.");
+            if (mungedRoomId == "SAFE") state.Schedule(8, Clocks.LedgeMung);
+        }
+        var brick = world.FindObject("BRICK")!;
+        var room = brick.Container?.InRoom ?? brick.InRoom ?? state.Here;
+        state.MungRoom(room.Id, "The way is blocked by debris from an explosion.");
     }
 
     /// <summary>LEDGE-MUNG (CEVENT): if on LEDG4 with balloon tied → death; else message; mung LEDG4.</summary>
@@ -775,13 +789,23 @@ public static class ObjectActions
         state.MungRoom("LEDG4", "The ledge has collapsed and cannot be landed on.");
     }
 
-    /// <summary>BRICK: BURN → game over (blow you to smithereens).</summary>
+    /// <summary>act2.27 BRICK-FUNCTION: burning the brick itself sets it off in your hands.</summary>
     public static void BrickFunction(GameState state, string verb, GameObject? _)
     {
-        if (verb != "BURN") return;
-        state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
-        state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-        state.JigsUp(null);
+        if (verb == "BURN") state.JigsUp(BrickBoom);
+    }
+
+    /// <summary>act2.27 SAFE-FUNCTION: the rusty box in the wall.</summary>
+    public static void SafeFunction(GameState state, string verb, GameObject? _)
+    {
+        var blown = state.GetFlag("SAFE-FLAG!-FLAG");
+        switch (verb)
+        {
+            case "TAKE": state.Output.WriteLine("The box is imbedded in the wall."); break;
+            case "OPEN": state.Output.WriteLine(blown ? "The box has no door!" : "The box is rusted and will not open."); break;
+            case "CLOSE": state.Output.WriteLine(blown ? "The box has no door!" : "The box is not open, chomper!"); break;
+            case "BLAST": state.Output.WriteLine("What do you expect, BOOM?"); break;
+        }
     }
 
     /// <summary>GNOME-FUNCTION (CEVENT): GIVE valuable → door appears; clock tick → gnome leaves.</summary>
