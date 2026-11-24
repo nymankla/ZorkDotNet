@@ -70,7 +70,7 @@ public class SceneryTests
     public void The_rainbow_is_seen_from_both_ends()
     {
         using var runner = new GameRunner();
-        var rainbow = runner.State.World!.FindObject("RAINB")!;
+        var rainbow = runner.State.World.FindObject("RAINB")!;
 
         Assert.Contains(rainbow, runner.State.World.FindRoom("FALLS")!.Objects);
         Assert.Contains(rainbow, runner.State.World.FindRoom("POG")!.Objects);

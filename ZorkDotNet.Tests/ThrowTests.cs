@@ -33,7 +33,7 @@ public class ThrowTests
 
         Assert.Contains("The torch hits the glacier and explodes into a great ball of flame", Do(runner, "THROW TORCH AT GLACIER"));
         Assert.True(runner.State.GetFlag("GLACIER-FLAG!-FLAG"));
-        Assert.Null(runner.State.World!.FindObject("ICE")!.Location);
+        Assert.Null(runner.State.World.FindObject("ICE")!.Location);
         Assert.Equal("STREA", torch.InRoom?.Id);
         Assert.Equal("burned out ivory torch", torch.DescriptionShort);
         Assert.Contains("There is a large passageway leading westward.", Do(runner, "LOOK"));

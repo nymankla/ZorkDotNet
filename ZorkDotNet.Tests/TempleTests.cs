@@ -31,7 +31,7 @@ public class TempleTests
         using var runner = WithLight("TEMP2");
 
         Assert.Contains("On the two ends of the altar are burning candles.", Do(runner, "LOOK"));
-        Assert.True(runner.State.World!.FindObject("CANDL")!.LightAmount > 0);
+        Assert.True(runner.State.World.FindObject("CANDL")!.LightAmount > 0);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class TempleTests
 
         Assert.Contains("Therefore, they took steps to prevent this.", Do(runner, "TAKE HEADS"));
         Assert.True(runner.State.AwaitingPatchAnswer);
-        var lcase = runner.State.World!.FindObject("LCASE")!;
+        var lcase = runner.State.World.FindObject("LCASE")!;
         Assert.Equal("LROOM", lcase.InRoom?.Id);
         Assert.Contains(pearl, lcase.Contents);
     }

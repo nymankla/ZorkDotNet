@@ -80,7 +80,7 @@ public class BalloonTests
         Assert.Equal("VAIR4", runner.State.Here.Id);
 
         Assert.Contains("Your balloon has hit the rim of the volcano", NextTick(runner));
-        Assert.Equal("VLBOT", runner.State.World!.FindObject("DBALL")!.InRoom?.Id);
+        Assert.Equal("VLBOT", runner.State.World.FindObject("DBALL")!.InRoom?.Id);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class BalloonTests
 
         Assert.Contains("You have landed, but the balloon did not survive.", NextTick(runner));
         Assert.Null(runner.State.Winner.Vehicle);
-        Assert.Equal("VLBOT", runner.State.World!.FindObject("DBALL")!.InRoom?.Id);
+        Assert.Equal("VLBOT", runner.State.World.FindObject("DBALL")!.InRoom?.Id);
     }
 
     [Fact]

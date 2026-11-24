@@ -88,7 +88,7 @@ public static class Thief
     /// <summary>act1.38 ROBBER: the thief's demon, run every move.</summary>
     public static void Demon(GameState state)
     {
-        if (!state.Robber.Active || state.World == null) return;
+        if (!state.Robber.Active) return;
         var world = state.World;
         var thief = world.FindObject(Obj.Thief)!;
         var still = world.FindObject(Obj.Still)!;
@@ -258,7 +258,7 @@ public static class Thief
     /// <summary>act1.38 ROBBER-FUNCTION: what is done to the thief himself (his melee hooks are in <see cref="Combat"/>).</summary>
     public static void ThiefFunction(GameState state, string verb, GameObject? other)
     {
-        var world = state.World!;
+        var world = state.World;
         var thief = world.FindObject(Obj.Thief)!;
         if (verb == "THROW" && other?.Id == Obj.Knife && !thief.Fighting)
         {
@@ -304,7 +304,7 @@ public static class Thief
     /// </summary>
     public static void Died(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         var here = state.Here;
         var chalice = world.FindObject(Obj.Chali)!;
         var thief = world.FindObject(Obj.Thief)!;
@@ -337,7 +337,7 @@ public static class Thief
     public static void Chalice(GameState state, string verb, GameObject? _)
     {
         if (verb != "TAKE") return;
-        var world = state.World!;
+        var world = state.World;
         var chalice = world.FindObject(Obj.Chali)!;
         var thief = world.FindObject(Obj.Thief)!;
         if (chalice.Container == null && chalice.InRoom?.Id == RoomId.Treas && thief.InRoom?.Id == RoomId.Treas && thief.Fighting && state.Robber.Active)
@@ -351,7 +351,7 @@ public static class Thief
     public static void TreasureRoom(GameState state, string verb)
     {
         if (verb != "WALK-IN" || !state.Robber.Active) return;
-        var world = state.World!;
+        var world = state.World;
         var here = state.Here;
         var thief = world.FindObject(Obj.Thief)!;
         if (thief.InRoom != here)

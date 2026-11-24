@@ -19,7 +19,7 @@ public sealed class LocationTests : IDisposable
     /// <summary>Every object is listed by its place, and every listing is the object's place or shared scenery.</summary>
     private static void AssertConsistent(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         foreach (var o in world.Objects)
         {
             switch (o.Location)
@@ -51,7 +51,7 @@ public sealed class LocationTests : IDisposable
     public void MoveTo_leaves_the_old_place_and_joins_the_new_one()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         var sword = world.FindObject("SWORD")!;
         var lroom = sword.InRoom!;
         var bottle = world.FindObject("BOTTL")!;
@@ -75,7 +75,7 @@ public sealed class LocationTests : IDisposable
     {
         using var runner = new GameRunner();
         var bottle = runner.Give("BOTTL");
-        var water = runner.State.World!.FindObject("WATER")!;
+        var water = runner.State.World.FindObject("WATER")!;
 
         Assert.Same(bottle, water.Container);
         Assert.Same(runner.State.Winner, water.Holder);
@@ -88,7 +88,7 @@ public sealed class LocationTests : IDisposable
     public void Scenery_stays_listed_in_every_room_it_belongs_to()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         var rainbow = world.FindObject("RAINB")!;
 
         Assert.Contains(rainbow, world.FindRoom("FALLS")!.Objects);
@@ -112,6 +112,6 @@ public sealed class LocationTests : IDisposable
         restored.Execute("RESTORE");
 
         AssertConsistent(restored.State);
-        Assert.Contains(restored.State.World!.FindObject("SWORD")!, restored.State.Winner.Inventory);
+        Assert.Contains(restored.State.World.FindObject("SWORD")!, restored.State.Winner.Inventory);
     }
 }

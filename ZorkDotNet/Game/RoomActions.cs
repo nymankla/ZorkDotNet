@@ -61,8 +61,8 @@ public static class RoomActions
     /// <summary>On entering BOOM room: if carrying lit candle or lit torch, JIGS-UP.</summary>
     public static void OnEnterBoom(GameState state)
     {
-        var torch = state.World?.FindObject(Obj.Torch);
-        var candl = state.World?.FindObject(Obj.Candl);
+        var torch = state.World.FindObject(Obj.Torch);
+        var candl = state.World.FindObject(Obj.Candl);
         var lit = (torch != null && state.Winner.Inventory.Contains(torch) && torch.LightAmount > 0) ||
                   (candl != null && state.Winner.Inventory.Contains(candl) && candl.LightAmount > 0);
         if (!lit) return;
@@ -101,7 +101,7 @@ public static class RoomActions
     public static void OnEnterCellar(GameState state)
     {
         if (!state.GetFlag(Flag.TrapDoor)) return;
-        var door = state.World?.FindObject(Obj.Door);
+        var door = state.World.FindObject(Obj.Door);
         if (door != null && door.Touched) return;
         state.SetFlag(Flag.TrapDoor, false);
         if (door != null) door.Touched = true;
@@ -131,7 +131,7 @@ public static class RoomActions
     {
         if (verb != "LOOK") return;
         state.Output.WriteLine("You are in a large room which seems to be air-conditioned.  In one corner there is a machine (?) which is shaped somewhat like a clothes dryer.  On the 'panel' there is a switch which is labelled in a dialect of Swahili.  Fortunately, I know this dialect and the label translates to START.  The switch does not appear to be manipulable by any human hand (unless the fingers are about 1/16 by 1/4 inch).  On the front of the machine is a large lid.");
-        var mach = state.World?.FindObject(Obj.Machi);
+        var mach = state.World.FindObject(Obj.Machi);
         if (mach != null)
             state.Output.WriteLine(mach.Open ? "The lid on the machine is open." : "The lid on the machine is closed.");
     }
@@ -153,7 +153,7 @@ public static class RoomActions
                 state.Output.WriteLine("There is a grating securely fastened into the ground.");
             return;
         }
-        var leaves = state.World!.FindObject(Obj.Leave)!;
+        var leaves = state.World.FindObject(Obj.Leave)!;
         var burned = verb == "BURN" && state.ObjectState.GetValueOrDefault(Obj.Leave) != 0; // the leaves' ORAND
         if (room.RVars == 0 && (burned || verb is "TAKE" or "MOVE") && state.LastDirectObject == leaves)
         {
@@ -254,7 +254,7 @@ public static class RoomActions
     /// <summary>act1.38 MAINT-ROOM clock (C-INT): the water rises; at 16 the room is flooded for good.</summary>
     public static void MaintRoomRising(GameState state)
     {
-        var maint = state.World?.FindRoom(RoomId.Maint);
+        var maint = state.World.FindRoom(RoomId.Maint);
         if (maint == null || maint.RVars <= 0) return;
         maint.RVars++;
         var here = state.Here == maint;
@@ -292,7 +292,7 @@ public static class RoomActions
         else if (count == 4)
         {
             state.Output.WriteLine("You can see a small statue here in the sand.");
-            var statue = state.World?.FindObject(Obj.Statu);
+            var statue = state.World.FindObject(Obj.Statu);
             if (statue != null) statue.Flags |= ObjectFlags.Visible;
         }
         else if (count > 0)
@@ -356,7 +356,7 @@ public static class RoomActions
     {
         foreach (var id in state.EchoHidden)
         {
-            var o = state.World?.FindObject(id);
+            var o = state.World.FindObject(id);
             if (o != null) o.Flags |= ObjectFlags.Visible;
         }
         state.EchoHidden.Clear();
@@ -421,7 +421,7 @@ public static class RoomActions
         var batDrops = new[] { "MINE1", "MINE2", "MINE3", "MINE4", "MINE5", "MINE6", "MINE7", "TLADD", "BLADD" };
         var pick = batDrops[state.Random.Next(batDrops.Length)];
         state.Output.WriteLine("A deranged giant vampire bat (a reject from WUMPUS) swoops down from his belfry and lifts you away....");
-        var next = state.World?.FindRoom(pick);
+        var next = state.World.FindRoom(pick);
         if (next != null) Parser.MoveToRoom(state, next);
     }
 
@@ -454,7 +454,7 @@ public static class RoomActions
         }
         else if (verb == "EXORCISE")
         {
-            var ghost = state.World?.FindObject(Obj.Ghost);
+            var ghost = state.World.FindObject(Obj.Ghost);
             if (ghost != null && ghost.InRoom == state.Here)
             {
                 var inv = state.Winner.Inventory;

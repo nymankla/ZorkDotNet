@@ -40,7 +40,7 @@ public class DeathTests
     public void Being_patched_up_puts_you_in_the_forest_and_scatters_your_things()
     {
         using var runner = new GameRunner();
-        var world = runner.State.World!;
+        var world = runner.State.World;
         runner.Give("SWORD");
         runner.Give("ROPE");
         runner.Give("PEARL"); // a treasure

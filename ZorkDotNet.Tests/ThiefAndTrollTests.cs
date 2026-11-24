@@ -34,7 +34,7 @@ public class ThiefAndTrollTests
         using var runner = WithThief("MAZE5", 0); // PROB 30 succeeds
 
         Assert.Contains("Someone carrying a large bag is casually leaning against one of the walls here.", Do(runner, "LOOK"));
-        Assert.Equal("MAZE5", runner.State.World!.FindObject("THIEF")!.InRoom?.Id);
+        Assert.Equal("MAZE5", runner.State.World.FindObject("THIEF")!.InRoom?.Id);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class ThiefAndTrollTests
 
         Do(runner, "LOOK");
 
-        Assert.Equal("TREAS", runner.State.World!.FindObject("PEARL")!.InRoom?.Id);
+        Assert.Equal("TREAS", runner.State.World.FindObject("PEARL")!.InRoom?.Id);
         Assert.Empty(runner.State.Robber.Bag);
     }
 
@@ -111,7 +111,7 @@ public class ThiefAndTrollTests
 
         Do(runner, "SWING SWORD AT TROLL");
 
-        Assert.True(runner.State.World!.FindObject("TROLL")!.Fighting);
+        Assert.True(runner.State.World.FindObject("TROLL")!.Fighting);
         Assert.Same(runner.State.World.FindObject("SWORD"), runner.State.LastIndirectObject);
     }
 
@@ -156,7 +156,7 @@ public class ThiefAndTrollTests
         Assert.Contains("The troll, who is not overly proud, graciously accepts the gift", eaten);
         Assert.Contains("and not having the most discriminating tastes, gleefully eats it.", eaten);
         Assert.Contains("and being for the moment sated, throws it back.", Do(runner, "THROW KNIFE AT TROLL"));
-        Assert.True(runner.State.World!.FindObject("TROLL")!.Fighting);
+        Assert.True(runner.State.World.FindObject("TROLL")!.Fighting);
         Assert.Contains("The troll spits in your face, saying \"Better luck next time.\"", Do(runner, "TAKE TROLL"));
     }
 }

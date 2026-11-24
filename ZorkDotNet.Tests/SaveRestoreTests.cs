@@ -77,7 +77,7 @@ public sealed class SaveRestoreTests : IDisposable
         using var restored = NewGame();
         restored.Execute("RESTORE");
 
-        var lamp = restored.State.World!.FindObject("LAMP")!;
+        var lamp = restored.State.World.FindObject("LAMP")!;
         Assert.Equal("KITCH", lamp.InRoom?.Id);
         Assert.DoesNotContain(lamp, restored.State.World.FindRoom("LROOM")!.Objects);
         Assert.Equal("KITCH", restored.State.Here.Id);
@@ -163,7 +163,7 @@ public sealed class SaveRestoreTests : IDisposable
         using var restored = NewGame();
         Assert.Contains("Restore failed.", Do(restored, "RESTORE"));
         Assert.Equal("WHOUS", restored.State.Here.Id);
-        Assert.Equal("WHOUS", restored.State.World!.FindObject("MAILB")!.InRoom?.Id);
+        Assert.Equal("WHOUS", restored.State.World.FindObject("MAILB")!.InRoom?.Id);
     }
 
     [Fact]

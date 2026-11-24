@@ -99,7 +99,7 @@ public class CyclopsTests
         Assert.Contains("The cyclops yawns and stares at the thing that woke him up.", Do(runner, "WAKE CYCLOPS"));
         Assert.False(runner.State.GetFlag("CYCLOPS-FLAG!-FLAG"));
         Assert.Equal(2, runner.State.Here.RVars);
-        Assert.True(runner.State.World!.FindObject("CYCLO")!.Fighting);
+        Assert.True(runner.State.World.FindObject("CYCLO")!.Fighting);
     }
 
     [Fact]

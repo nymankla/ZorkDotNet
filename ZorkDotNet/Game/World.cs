@@ -1146,10 +1146,7 @@ public class World
         // Starting location (BLOC = WHOUS in original)
         var start = FindRoom(RoomId.Whous)!;
         _state.Winner.CurrentRoom = start;
-        _state.Rooms.AddRange(_rooms.Values);
-        _state.AllObjects.AddRange(_objects.Values);
         _state.MaxScore = Scoring.ComputeMaxScore(_rooms.Values, _objects.Values);
-        _state.World = this;
     }
 
     // dung.56 NOFIT

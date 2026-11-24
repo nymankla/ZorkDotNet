@@ -52,7 +52,7 @@ public static class GameSave
         }
 
         // Validate everything before changing anything, so a bad file can't leave a half-restored game.
-        if (data == null || state.World == null || Validate(state.World, data) != null)
+        if (data == null || Validate(state.World, data) != null)
         {
             state.Output.WriteLine("Restore failed.");
             return;
@@ -67,7 +67,7 @@ public static class GameSave
 
     internal static SaveData Capture(GameState state)
     {
-        var world = state.World ?? throw new InvalidOperationException("No world to save.");
+        var world = state.World;
         var w = state.Winner;
         return new SaveData
         {

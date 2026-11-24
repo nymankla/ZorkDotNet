@@ -22,7 +22,6 @@ public static class Combat
     public static int SwordGlow(GameState state, Room here)
     {
         if (Infested(here)) return 2;
-        if (state.World == null) return 0;
         foreach (var target in here.Exits.Values)
         {
             var adj = target.RoomId != null ? state.World.FindRoom(target.RoomId) : null;
@@ -34,7 +33,6 @@ public static class Combat
     /// <summary>SWORD-DEMON: when player has sword, update glow from INFESTED? and print message.</summary>
     public static void SwordDemon(GameState state)
     {
-        if (state.World == null) return;
         var sword = state.World.FindObject(Obj.Sword);
         if (sword == null || !state.Winner.Inventory.Contains(sword)) return;
         var here = state.Here;
@@ -58,7 +56,6 @@ public static class Combat
     /// </summary>
     public static void FightDemon(GameState state)
     {
-        if (state.World == null) return;
         foreach (var villain in state.Here.Objects.Where(o => o.IsVillain && o.Fighting).ToList())
         {
             if (!state.VillainStrength.ContainsKey(villain.Id)) continue;

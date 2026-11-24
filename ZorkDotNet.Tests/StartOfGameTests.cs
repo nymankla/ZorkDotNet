@@ -19,6 +19,16 @@ public class StartOfGameTests
     private static readonly string[] ToLivingRoom = ["NORTH", "EAST", "OPEN WINDOW", "WEST", "WEST"];
 
     [Fact]
+    public void A_new_game_comes_with_its_world()
+    {
+        var state = new ZorkDotNet.Game.GameState { Output = TextWriter.Null };
+
+        Assert.NotNull(state.World.FindRoom("WHOUS"));
+        Assert.Equal("WHOUS", state.Here.Id);
+        Assert.Contains(state.World.FindObject("MAILB")!, state.Here.Objects);
+    }
+
+    [Fact]
     public void The_mailbox_holds_the_leaflet_and_stays_where_it_is()
     {
         using var runner = new GameRunner();
@@ -32,7 +42,7 @@ public class StartOfGameTests
         Assert.Contains("Tim Anderson, Marc Blank,", leaflet);
 
         Do(runner, "TAKE MAILBOX");
-        Assert.DoesNotContain(runner.State.World!.FindObject("MAILB")!, runner.State.Winner.Inventory);
+        Assert.DoesNotContain(runner.State.World.FindObject("MAILB")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -168,7 +178,7 @@ public class StartOfGameTests
         var output = Do(runner, "LOOK");
         Assert.DoesNotContain("swoops down", output); // only WALK-IN, not LOOK, sends the bat
 
-        var room = runner.State.World!.FindRoom("BATS")!;
+        var room = runner.State.World.FindRoom("BATS")!;
         runner.Teleport(room.Exits["EAST"].RoomId!);
         output = Do(runner, "WEST");
 

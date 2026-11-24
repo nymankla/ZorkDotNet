@@ -43,7 +43,7 @@ public class GratingTests
         Assert.Equal("MGRAT", runner.State.Here.Id);
 
         Assert.Contains("The grating opens to reveal trees above you.", Do(runner, "OPEN GRATING"));
-        Assert.True(runner.State.World!.FindObject("GRAT1")!.IsVisible);
+        Assert.True(runner.State.World.FindObject("GRAT1")!.IsVisible);
         runner.Execute("UP");
         Assert.Equal("CLEAR", runner.State.Here.Id);
     }
@@ -139,7 +139,7 @@ public class GratingTests
         using var runner = new GameRunner();
         runner.Give("TORCH"); // the flame for BURN
         runner.Teleport("CLEAR");
-        var grating = runner.State.World!.FindObject("GRAT1")!;
+        var grating = runner.State.World.FindObject("GRAT1")!;
         Assert.False(grating.IsVisible);
 
         var output = Do(runner, command);

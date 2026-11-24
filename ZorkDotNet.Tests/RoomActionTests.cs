@@ -33,7 +33,7 @@ public class RoomActionTests
         Assert.True(runner.State.EchoListening);
 
         Assert.Equal("> take bar" + Environment.NewLine + "take bar" + Environment.NewLine, Do(runner, "take bar"));
-        Assert.DoesNotContain(runner.State.World!.FindObject("BAR")!, runner.State.Winner.Inventory);
+        Assert.DoesNotContain(runner.State.World.FindObject("BAR")!, runner.State.Winner.Inventory);
 
         Assert.Contains("The acoustics of the room change subtly.", Do(runner, "echo"));
         Assert.False(runner.State.EchoListening);
@@ -50,7 +50,7 @@ public class RoomActionTests
 
         Assert.Equal("CHAS3", runner.State.Here.Id);
         Assert.False(runner.State.EchoListening);
-        Assert.True(runner.State.World!.FindObject("BAR")!.IsVisible);
+        Assert.True(runner.State.World.FindObject("BAR")!.IsVisible);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class RoomActionTests
     {
         using var runner = new GameRunner();
         runner.Teleport("BSHAF");
-        var lamp = runner.State.World!.FindObject("LAMP")!;
+        var lamp = runner.State.World.FindObject("LAMP")!;
         lamp.MoveTo(runner.State.Here);
         lamp.LightAmount = 1;
         var score = runner.State.Winner.Score;

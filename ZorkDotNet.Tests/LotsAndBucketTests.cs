@@ -25,7 +25,7 @@ public class LotsAndBucketTests
 
         Assert.Contains("sandwich bag:" + Environment.NewLine + "  Taken.", output);
         Assert.Contains("glass bottle:" + Environment.NewLine + "  Taken.", output);
-        Assert.Contains(runner.State.World!.FindObject("SBAG")!, runner.State.Winner.Inventory);
+        Assert.Contains(runner.State.World.FindObject("SBAG")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class LotsAndBucketTests
     {
         using var runner = new GameRunner();
         runner.Teleport("LROOM");
-        var pearl = runner.State.World!.FindObject("PEARL")!;
+        var pearl = runner.State.World.FindObject("PEARL")!;
         pearl.MoveTo(runner.State.Here);
 
         var output = Do(runner, "TAKE VALUABLES");

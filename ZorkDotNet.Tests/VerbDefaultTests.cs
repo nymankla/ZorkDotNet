@@ -44,7 +44,7 @@ public class VerbDefaultTests
 
         Assert.Contains("your sword gives a single pulse of blinding blue light.", output);
         Assert.Contains("Taken.", output);
-        Assert.Contains(runner.State.World!.FindObject("RKNIF")!, runner.State.Winner.Inventory);
+        Assert.Contains(runner.State.World.FindObject("RKNIF")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class VerbDefaultTests
         runner.Give("ROPE").Size = 95;
 
         Assert.Contains("Your load is too heavy.  You will have to leave something behind.", Do(runner, "TAKE SWORD"));
-        Assert.DoesNotContain(runner.State.World!.FindObject("SWORD")!, runner.State.Winner.Inventory);
+        Assert.DoesNotContain(runner.State.World.FindObject("SWORD")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class VerbDefaultTests
         Assert.Contains("I can't reach that.", Do(runner, "DROP WATER"));
         Do(runner, "OPEN BOTTLE");
         Do(runner, "DROP WATER");
-        Assert.Null(runner.State.World!.FindObject("WATER")!.Container);
+        Assert.Null(runner.State.World.FindObject("WATER")!.Container);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class VerbDefaultTests
         Do(runner, "PUT ROPE IN CASE");
         Do(runner, "PUT KNIFE IN CASE");
 
-        Assert.Equal("KNIFE", runner.State.World!.FindObject("TCASE")!.Contents[0].Id);
+        Assert.Equal("KNIFE", runner.State.World.FindObject("TCASE")!.Contents[0].Id);
     }
 
     [Theory]

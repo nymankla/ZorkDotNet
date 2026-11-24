@@ -59,7 +59,7 @@ public class LightingTests
 
         Assert.Contains("The lamp is now off.", output);
         Assert.Contains("It is now pitch black.", output);
-        Assert.Equal(-1, runner.State.World!.FindObject("LAMP")!.LightAmount);
+        Assert.Equal(-1, runner.State.World.FindObject("LAMP")!.LightAmount);
         Assert.Contains("It is already off.", Do(runner, "TURN OFF LAMP"));
     }
 
@@ -74,7 +74,7 @@ public class LightingTests
 
         Assert.Contains("Taken.", output);
         Assert.Contains("The lamp is now on.", output);
-        Assert.Contains(runner.State.World!.FindObject("LAMP")!, runner.State.Winner.Inventory);
+        Assert.Contains(runner.State.World.FindObject("LAMP")!, runner.State.Winner.Inventory);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class LightingTests
     {
         using var runner = new GameRunner();
         runner.Teleport("CELLA");
-        var bottle = runner.State.World!.FindObject("BOTTL")!;
+        var bottle = runner.State.World.FindObject("BOTTL")!;
         var lamp = runner.State.World.FindObject("LAMP")!;
         bottle.MoveTo(runner.State.Here);
         lamp.MoveTo(bottle);

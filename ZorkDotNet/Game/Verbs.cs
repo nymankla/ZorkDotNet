@@ -305,7 +305,7 @@ public static class Verbs
     /// <summary>act1.38 TREAS: the magic words between the temple and the treasure room.</summary>
     private static void Teleport(GameState state, string from, string to)
     {
-        var target = state.World?.FindRoom(to);
+        var target = state.World.FindRoom(to);
         if (state.Here?.Id == from && target != null) Parser.MoveToRoom(state, target);
         else state.Output.WriteLine("Nothing happens.");
     }
@@ -313,7 +313,7 @@ public static class Verbs
     /// <summary>act1.38 PRAYER: praying at the altar takes you to the forest.</summary>
     private static void Prayer(GameState state)
     {
-        var forest = state.World?.FindRoom(RoomId.Fore1);
+        var forest = state.World.FindRoom(RoomId.Fore1);
         if (state.Here?.Id == RoomId.Temp2 && forest != null) Parser.MoveToRoom(state, forest);
         else state.Output.WriteLine("If you pray enough, your prayers may be answered.");
     }
@@ -347,7 +347,7 @@ public static class Verbs
     /// <summary>act1.38 SINBAD (the words ODYSSEUS and ULYSSES): the cyclops flees through the north wall.</summary>
     private static void Sinbad(GameState state)
     {
-        var cyclops = state.World?.FindObject(Obj.Cyclo);
+        var cyclops = state.World.FindObject(Obj.Cyclo);
         if (state.Here?.Id == RoomId.Cyclo && cyclops != null && cyclops.InRoom == state.Here)
         {
             state.SetFlag(Flag.Cyclops, true);

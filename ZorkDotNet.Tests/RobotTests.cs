@@ -87,7 +87,7 @@ public class RobotTests
         var output = Do(runner, "TELL ROBOT 'TAKE SPHERE'");
 
         Assert.Contains("The robot has died.", output);
-        Assert.Null(runner.State.World!.FindObject("ROBOT")!.InRoom);
+        Assert.Null(runner.State.World.FindObject("ROBOT")!.InRoom);
         Assert.Contains("There is an iron cage in the middle of the room.", Do(runner, "LOOK"));
     }
 
@@ -107,7 +107,7 @@ public class RobotTests
 
         Assert.Contains("A dull thump is heard in the distance.", Do(runner, "TELL ROBOT 'PUSH TRIANGULAR BUTTON'"));
         Assert.True(runner.State.GetFlag("CAROUSEL-FLIP!-FLAG"));
-        Assert.True(runner.State.World!.FindObject("IRBOX")!.IsVisible);
+        Assert.True(runner.State.World.FindObject("IRBOX")!.IsVisible);
         Assert.Contains("The whirring increases in intensity slightly.", Do(runner, "TELL ROBOT 'PUSH SQUARE BUTTON'"));
         Assert.Contains("The whirring decreases in intensity slightly.", Do(runner, "TELL ROBOT 'PUSH ROUND BUTTON'"));
     }

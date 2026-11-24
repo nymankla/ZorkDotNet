@@ -58,7 +58,7 @@ public static class Death
 
     private static void Resurrect(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         var inventory = state.Winner.Inventory;
 
         // The lamp comes back to you wherever it was, at the head of your possessions.
@@ -89,7 +89,7 @@ public static class Death
 
     private static void Drop(GameState state, GameObject obj, string roomId)
     {
-        var room = state.World!.FindRoom(roomId);
+        var room = state.World.FindRoom(roomId);
         if (room == null) return;
         obj.MoveTo(room);
     }

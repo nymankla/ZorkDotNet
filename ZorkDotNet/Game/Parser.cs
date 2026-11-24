@@ -502,7 +502,6 @@ public static class Parser
     {
         ambiguousWord = null;
         state.PendingAmbiguousCandidates = null;
-        if (state.World == null) return null;
         var lit = GameState.IsLit(state);
         var adjectives = new List<string>();
         for (var i = startIndex; i < words.Length; i++)
@@ -516,7 +515,7 @@ public static class Parser
                 inRoomList = WithVisibleContents(state.Here.Objects.Where(o => o.IsVisible || o.IsOpenOrTransparent)).ToList();
             }
             // MDL ADD-STAR objects are within reach everywhere, light or dark.
-            inRoomList = inRoomList.Concat(state.World!.Objects.Where(o => o.IsGlobal));
+            inRoomList = inRoomList.Concat(state.World.Objects.Where(o => o.IsGlobal));
             var inRoom = inRoomList.Where(o => MatchObject(o, w)).ToList();
             var all = inInv.Concat(inRoom).Distinct().ToList();
             // An adjective (MDL OADJS) narrows the noun that follows it: "PUSH YELLOW BUTTON".
@@ -598,7 +597,7 @@ public static class Parser
                 return;
             }
             var open = !dark.IsBlocked && dark.RoomId != null && (!dark.IsConditional || state.GetFlag(dark.ConditionFlag!));
-            var lit = open ? state.World?.FindRoom(dark.RoomId!) : null;
+            var lit = open ? state.World.FindRoom(dark.RoomId!) : null;
             if (lit != null && GameState.IsLit(state, lit))
                 MoveToRoom(state, lit);
             else
@@ -619,9 +618,9 @@ public static class Parser
         }
         if (target.IsConditional && target.ConditionFlag != null)
         {
-            if (state.World != null && state.World.TryGetBeforeExitAction(r.Id, direction, out var beforeAction) && beforeAction != null)
+            if (state.World.TryGetBeforeExitAction(r.Id, direction, out var beforeAction) && beforeAction != null)
                 beforeAction(state);
-            if (state.World != null && state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null
+            if (state.World.TryGetExitAction(r.Id, direction, out var exitAction) && exitAction != null
                 && exitAction(state, direction))
                 return;
             if (!state.GetFlag(target.ConditionFlag))
@@ -631,7 +630,7 @@ public static class Parser
                 return;
             }
         }
-        var nextRoom = state.World!.FindRoom(target.RoomId!);
+        var nextRoom = state.World.FindRoom(target.RoomId!);
         if (nextRoom == null) { state.Output.WriteLine(NoWay); return; }
         if (!CanGo(state, r, nextRoom)) return;
         if (nextRoom.Munged)
@@ -1128,12 +1127,12 @@ public static class Parser
         if (obj == null) { state.Output.WriteLine("What do you want to fill?"); return; }
         var fillableRooms = new[] { "RESES", "STREA" };
         if (!fillableRooms.Contains(state.Here.Id)) { state.Output.WriteLine("I can't find any water here."); return; }
-        var bottle = state.World?.FindObject(Obj.Bottl);
+        var bottle = state.World.FindObject(Obj.Bottl);
         if (obj != bottle) { state.Output.WriteLine("You can only fill the bottle with water."); return; }
         if (bottle == null || !state.Winner.Inventory.Contains(bottle)) { state.Output.WriteLine("You're not carrying the bottle."); return; }
         if (!bottle.Open) { state.Output.WriteLine("The bottle is closed."); return; }
         if (bottle.Contents.Count > 0) { state.Output.WriteLine("The bottle is already full."); return; }
-        var water = state.World?.FindObject(Obj.Water);
+        var water = state.World.FindObject(Obj.Water);
         if (water == null) { state.Output.WriteLine("I can't find any water here."); return; }
         water.MoveTo(bottle);
         state.Output.WriteLine("The bottle is now full of water.");

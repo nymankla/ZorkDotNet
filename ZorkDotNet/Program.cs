@@ -5,7 +5,6 @@ Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
 var state = new GameState();
-var world = new World(state);
 
 // Intro from original Zork
 state.Output.WriteLine();

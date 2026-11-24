@@ -47,7 +47,7 @@ public class SafeTests
         var later = "";
         for (var i = 0; i < 5; i++) later += Do(runner, "LOOK");
         Assert.Contains("you hear an ominous rumbling", later);
-        Assert.True(runner.State.World!.FindRoom("SAFE")!.Munged);
+        Assert.True(runner.State.World.FindRoom("SAFE")!.Munged);
     }
 
     [Fact]

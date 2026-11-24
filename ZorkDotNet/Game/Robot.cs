@@ -15,7 +15,7 @@ public static class Robot
     /// <summary>The robot's body, if it still exists in some room.</summary>
     private static GameObject? Body(GameState state)
     {
-        var robot = state.World?.FindObject(Obj.Robot);
+        var robot = state.World.FindObject(Obj.Robot);
         return robot?.InRoom != null ? robot : null;
     }
 
@@ -162,7 +162,7 @@ public static class Robot
             else if (exit.BlockedMessage.Length > 0) state.Output.WriteLine(exit.BlockedMessage);
             return;
         }
-        var to = state.World!.FindRoom(exit.RoomId!)!;
+        var to = state.World.FindRoom(exit.RoomId!)!;
         if (to.IsWater || to.IsAir)
         {
             state.Output.WriteLine("You can't go there without a vehicle.");
@@ -181,7 +181,7 @@ public static class Robot
 
     private static void MoveTo(GameState state, Room to)
     {
-        var body = state.World!.FindObject(Obj.Robot)!;
+        var body = state.World.FindObject(Obj.Robot)!;
         body.MoveTo(to);
         state.Robot.CurrentRoom = to;
     }
@@ -189,7 +189,7 @@ public static class Robot
     /// <summary>act3.13 ROBOT-ACTOR for RAISE CAGE: the robot frees you.</summary>
     private static void RaiseCage(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         state.Output.WriteLine("The cage shakes and is hurled across the room.");
         state.CancelClock(Clocks.Sphere);
         var closet = world.FindRoom(RoomId.Cager)!;
@@ -207,7 +207,7 @@ public static class Robot
     /// <summary>act3.13 ROBOT-FUNCTION: what is done to the robot. It takes gifts; thrown at or broken, it's destroyed.</summary>
     public static void RobotFunction(GameState state, string verb, GameObject? other)
     {
-        var body = state.World!.FindObject(Obj.Robot)!;
+        var body = state.World.FindObject(Obj.Robot)!;
         if (verb == "GIVE" && other != null)
         {
             other.MoveTo(state.Robot, first: true);
@@ -253,7 +253,7 @@ public static class Robot
                 break;
             case Obj.Trbut:
                 state.SetFlag(Flag.CarouselFlip, !state.GetFlag(Flag.CarouselFlip));
-                var box = state.World!.FindObject(Obj.Irbox)!;
+                var box = state.World.FindObject(Obj.Irbox)!;
                 if (box.InRoom?.Id == RoomId.Carou)
                 {
                     state.Output.WriteLine("A dull thump is heard in the distance.");
@@ -273,7 +273,7 @@ public static class Robot
     public static void SphereFunction(GameState state, string verb, GameObject? _)
     {
         if (verb != "TAKE" || state.GetFlag(Flag.CageSolve)) return;
-        var world = state.World!;
+        var world = state.World;
         var sphere = world.FindObject(Obj.Spher)!;
         var body = world.FindObject(Obj.Robot)!;
         var closet = world.FindRoom(RoomId.Cager)!;
@@ -315,7 +315,7 @@ public static class Robot
     public static void CagedRoom(GameState state, string _)
     {
         if (state.GetFlag(Flag.CageSolve) && state.Here.Id == RoomId.Caged)
-            state.Winner.CurrentRoom = state.World!.FindRoom(RoomId.Cager)!;
+            state.Winner.CurrentRoom = state.World.FindRoom(RoomId.Cager)!;
     }
 
     /// <summary>act3.13 CMACH-ROOM</summary>
@@ -353,13 +353,13 @@ public static class Robot
         {
             state.Output.WriteLine("You cannot get your bearings...");
             var exits = here.Exits.Values.ToList();
-            var to = state.World!.FindRoom(exits[state.Random.Next(exits.Count)].RoomId!)!;
+            var to = state.World.FindRoom(exits[state.Random.Next(exits.Count)].RoomId!)!;
             Parser.MoveToRoom(state, to);
             return true;
         }
         if (direction is "SE" or "EAST" && here.Exits.TryGetValue(direction, out var exit))
         {
-            Parser.MoveToRoom(state, state.World!.FindRoom(exit.RoomId!)!);
+            Parser.MoveToRoom(state, state.World.FindRoom(exit.RoomId!)!);
             return true;
         }
         return false;

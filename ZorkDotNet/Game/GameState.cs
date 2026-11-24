@@ -34,8 +34,6 @@ public class GameState
     public Room Here => Winner.CurrentRoom;
     public int Moves => Winner.Moves;
     public Dictionary<string, bool> Flags { get; } = new();
-    public List<Room> Rooms { get; } = new();
-    public List<GameObject> AllObjects { get; } = new();
     public bool Running { get; set; } = true;
     /// <summary>Real-time clock for TIME (rooms.99 PLAY-TIME); tests can replace it.</summary>
     public TimeProvider Clock { get; set; } = TimeProvider.System;
@@ -147,7 +145,6 @@ public class GameState
     /// <summary>The demons and clocks of one move, after the command (rooms.99 RDCOM).</summary>
     public void ProcessClocks()
     {
-        if (World == null) return;
         RunClocks();
         // Demons (SWORD-DEMON, FIGHT-DEMON, ROBBER-DEMON)
         Combat.SwordDemon(this);
@@ -162,7 +159,7 @@ public class GameState
     /// <summary>act1.38 LIGHT-INT for the candles: the next step of CANDLE-TICKS, told if they are with you or here.</summary>
     internal void CandleLightInt()
     {
-        var candles = World!.FindObject(Obj.Candl)!;
+        var candles = World.FindObject(Obj.Candl)!;
         Lights.CandleStage++;
         var ticks = CandleTickTable[Math.Min(Lights.CandleStage, CandleTickTable.Length) - 1];
         if (ticks > 0) Schedule(ticks, Clocks.Candles);
@@ -180,7 +177,7 @@ public class GameState
     /// rooms.99 CLOCK-DEMON run once more within a turn, as WAIT does. Returns true when a clock event ran (WAIT then
     /// stops waiting).
     /// </summary>
-    public bool ClockTick() => World != null && RunClocks();
+    public bool ClockTick() => RunClocks();
 
     /// <summary>
     /// act1.38 LIGHT-INT for the lamp: take the next step of LAMP-TICKS. Warnings and the burn-out message are
@@ -188,7 +185,7 @@ public class GameState
     /// </summary>
     internal void LampLightInt()
     {
-        var lamp = World!.FindObject(Obj.Lamp)!;
+        var lamp = World.FindObject(Obj.Lamp)!;
         Lights.LampStage++;
         var ticks = LampTickTable[Math.Min(Lights.LampStage, LampTickTable.Length) - 1];
         if (ticks > 0) Schedule(ticks, Clocks.Lantern);
@@ -222,7 +219,11 @@ public class GameState
         if (hero.Strength < Adventurer.FullStrength) state.Schedule(CureInterval, Clocks.Cure);
     }
 
-    public World? World { get; set; }
+    /// <summary>The dungeon, built with the state (see <see cref="Game.World"/>).</summary>
+    public World World { get; }
+
+    /// <summary>A new game: the state and its freshly built world.</summary>
+    public GameState() => World = new World(this);
     internal StreamWriter? ScriptFile { get; set; }
 
     public bool GetFlag(string name) => Flags.TryGetValue(name, out var v) && v;
@@ -231,7 +232,7 @@ public class GameState
     /// <summary>Block a room (explosion debris / collapsed ledge).</summary>
     public void MungRoom(string? roomId, string message)
     {
-        var r = World?.FindRoom(roomId ?? "");
+        var r = World.FindRoom(roomId ?? "");
         if (r != null) { r.Munged = true; r.MungedMessage = message; }
     }
 

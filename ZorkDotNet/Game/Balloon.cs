@@ -12,7 +12,7 @@ public static class Balloon
 
     /// <summary>The object burning in the receptacle (MDL BINF), if any.</summary>
     public static GameObject? Fuel(GameState state) =>
-        state.GetFlag(Flag.Binf) && state.World?.FindObject(Obj.Recep)?.Contents is [var fuel, ..] ? fuel : null;
+        state.GetFlag(Flag.Binf) && state.World.FindObject(Obj.Recep)?.Contents is [var fuel, ..] ? fuel : null;
 
     /// <summary>
     /// BALLOON with READ-IN, before a verb while you're in the basket: walking only chooses where it goes (or is
@@ -31,7 +31,7 @@ public static class Balloon
                     state.Output.WriteLine("You are tied to the ledge.");
                     return true;
                 }
-                var target = exit.RoomId != null ? state.World?.FindRoom(exit.RoomId) : null;
+                var target = exit.RoomId != null ? state.World.FindRoom(exit.RoomId) : null;
                 if (target != null && !target.Munged) state.Progress.BalloonLocation = target.Id;
                 return false;
             }
@@ -73,7 +73,7 @@ public static class Balloon
         state.Output.WriteLine("The cloth bag inflates as it fills with hot air.");
         if (!state.GetFlag(Flag.Blab))
         {
-            var label = state.World!.FindObject(Obj.Blabe)!;
+            var label = state.World.FindObject(Obj.Blabe)!;
             var ball = state.World.FindObject(Obj.Ballo)!;
             label.MoveTo(ball, first: true);
         }
@@ -104,7 +104,7 @@ public static class Balloon
     /// <summary>BALLOON on its clock (C-INT): it rises while the receptacle is open and burning, or from a ledge; else it sinks.</summary>
     public static void Tick(GameState state)
     {
-        var recep = state.World!.FindObject(Obj.Recep)!;
+        var recep = state.World.FindObject(Obj.Recep)!;
         if ((recep.Open && state.GetFlag(Flag.Binf)) || state.Here.Id.StartsWith("LEDG", StringComparison.Ordinal))
             RiseAndShine(state);
         else
@@ -113,7 +113,7 @@ public static class Balloon
 
     private static void RiseAndShine(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         var ball = world.FindObject(Obj.Ballo)!;
         var bl = state.Progress.BalloonLocation;
         var inIt = InIt(state);
@@ -153,7 +153,7 @@ public static class Balloon
 
     private static void DeclineAndFall(GameState state)
     {
-        var world = state.World!;
+        var world = state.World;
         var bl = state.Progress.BalloonLocation;
         var inIt = InIt(state);
         StartClock(state);
@@ -192,7 +192,7 @@ public static class Balloon
     private static void Fly(GameState state, string roomId, string message)
     {
         state.Progress.BalloonLocation = roomId;
-        var room = state.World!.FindRoom(roomId)!;
+        var room = state.World.FindRoom(roomId)!;
         var ball = state.World.FindObject(Obj.Ballo)!;
         Remove(ball);
         Put(ball, room);
@@ -206,7 +206,7 @@ public static class Balloon
     {
         if (state.Here.Id.StartsWith("LEDG", StringComparison.Ordinal))
             state.Output.WriteLine("You watch as the balloon slowly " + how);
-        var ball = state.World!.FindObject(Obj.Ballo)!;
+        var ball = state.World.FindObject(Obj.Ballo)!;
         Remove(ball);
         Put(ball, state.World.FindRoom(roomId)!);
         state.Progress.BalloonLocation = roomId;
@@ -244,7 +244,7 @@ public static class Balloon
     /// <summary>act2.27 BURNUP: the fuel has burned away and the bag collapses.</summary>
     public static void Burnup(GameState state)
     {
-        var recep = state.World!.FindObject(Obj.Recep)!;
+        var recep = state.World.FindObject(Obj.Recep)!;
         state.SetFlag(Flag.Binf, false);
         if (recep.Contents.Count == 0) return;
         var obj = recep.Contents[0];
@@ -266,7 +266,7 @@ public static class Balloon
         else if (verb == "LOOK")
         {
             state.Output.WriteLine("You are on a wide ledge high into the volcano.  The rim of the volcano is about 200 feet above and there is a precipitous drop below to the bottom.");
-            state.Output.WriteLine(state.World?.FindRoom(RoomId.Safe)?.Munged == true
+            state.Output.WriteLine(state.World.FindRoom(RoomId.Safe)?.Munged == true
                 ? " The way to the south is blocked by rubble."
                 : " There is a small door to the south.");
         }
@@ -283,7 +283,7 @@ public static class Balloon
             return;
         }
         state.Output.WriteLine("A volcano gnome seems to walk straight out of the wall and says 'I have a very busy appointment schedule and little time to waste on tresspassers, but for a small fee, I'll show you the way out.'  You notice the gnome nervously glancing at his watch.");
-        var gnome = state.World!.FindObject(Obj.Gnome)!;
+        var gnome = state.World.FindObject(Obj.Gnome)!;
         Put(gnome, state.Here);
     }
 
@@ -315,7 +315,7 @@ public static class Balloon
     /// <summary>GNOME-FUNCTION on its clock: he leaves.</summary>
     public static void GnomeLeave(GameState state)
     {
-        var gnome = state.World!.FindObject(Obj.Gnome)!;
+        var gnome = state.World.FindObject(Obj.Gnome)!;
         if (gnome.InRoom == null) return;
         state.Output.WriteLine("The gnome glances at his watch.  'Oops.  I'm late for an appointment!' He disappears, leaving you alone on the ledge.");
         Remove(gnome);
