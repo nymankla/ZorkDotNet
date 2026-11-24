@@ -25,15 +25,19 @@ public class GameState
     /// <summary>When this game started, for TIME.</summary>
     public DateTimeOffset StartedAt { get; set; } = TimeProvider.System.GetUtcNow();
 
-    /// <summary>
-    /// MDL JIGS-UP: the player dies. The original then offers to patch you up; the port doesn't have that yet, so
-    /// the game ends here, as for every other death.
-    /// </summary>
-    public void JigsUp(string message)
-    {
-        Output.WriteLine(message);
-        Running = false;
-    }
+    /// <summary>MDL DEATHS: how many times the player has died.</summary>
+    public int Deaths { get; set; }
+    /// <summary>JIGS-UP asked "Do you want me to try to patch you?"; the next input line is the answer.</summary>
+    public bool AwaitingPatchAnswer { get; set; }
+    /// <summary>The player died during a command, so that turn's clocks run after being patched up.</summary>
+    public bool ClocksAfterPatch { get; set; }
+    /// <summary>The next input line answers a question rather than being a command (no prompt is shown).</summary>
+    public bool AwaitingAnswer => AwaitingQuitConfirmation || AwaitingPatchAnswer;
+    /// <summary>Random numbers for chance events such as the grue (MDL PROB); tests can replace it.</summary>
+    public Random Random { get; set; } = Random.Shared;
+
+    /// <summary>MDL JIGS-UP: the player dies (see <see cref="Death"/>). The message may already have been told.</summary>
+    public void JigsUp(string? message) => Death.JigsUp(this, message);
     public string? LastVerb { get; set; }
     public GameObject? LastDirectObject { get; set; }
     public GameObject? LastIndirectObject { get; set; }

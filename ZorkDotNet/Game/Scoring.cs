@@ -48,6 +48,13 @@ public static class Scoring
         state.Output.WriteLine("This score gives you the rank of " + Rank(score, state.MaxScore) + ".");
     }
 
+    /// <summary>rooms.99 FINISH with ASK? false: the game is over; show the score ("Your score is") and stop.</summary>
+    public static void Finish(GameState state)
+    {
+        PrintScore(state, ask: false);
+        state.Running = false;
+    }
+
     /// <summary>rooms.99 FINISH for QUIT: show the score and ask; the next input line is the answer.</summary>
     public static void Quit(GameState state)
     {

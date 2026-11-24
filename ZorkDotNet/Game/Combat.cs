@@ -107,7 +107,7 @@ public static class Combat
         if (state.Winner.Strength <= 0)
         {
             state.Output.WriteLine("You have been killed.");
-            state.Running = false;
+            state.JigsUp(null);
         }
     }
 }

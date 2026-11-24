@@ -54,9 +54,33 @@ public static class Parser
             Scoring.AnswerQuit(state, input.Trim());
             return;
         }
+        if (state.AwaitingPatchAnswer)
+        {
+            // JIGS-UP reads the answer inside the turn the player died in; the rest of that turn follows.
+            if (Death.AnswerPatch(state, input.Trim()) && state.ClocksAfterPatch) state.ProcessClocks();
+            state.ClocksAfterPatch = false;
+            return;
+        }
         state.Winner.Moves++;
-        Execute(state, input);
-        state.ProcessClocks();
+        var output = state.Output;
+        var tell = new TellWriter(output);
+        state.Output = tell;
+        try
+        {
+            Execute(state, input);
+        }
+        finally
+        {
+            state.Output = output;
+        }
+        // rooms.99 RDCOM: a command that told nothing gets "Nothing happens."
+        if (!tell.Told) output.WriteLine("Nothing happens.");
+        if (state.AwaitingPatchAnswer)
+        {
+            state.ClocksAfterPatch = true;
+            return;
+        }
+        if (state.Running) state.ProcessClocks();
     }
 
     public static void Execute(GameState state, string input)
@@ -128,7 +152,7 @@ public static class Parser
                 else
                 {
                     state.Output.WriteLine("There is a clap of thunder, and a voice echoes through the cavern: \"Begone, chomper!\"  Apparently, the voice thinks you are an evil spirit, and dismisses you from the realm of the living.");
-                    state.Running = false;
+                    state.JigsUp(null);
                 }
                 return;
             }
@@ -509,6 +533,23 @@ public static class Parser
     private static void TryGo(GameState state, string direction)
     {
         var r = state.Here;
+        // rooms.99 WALK: leaving a dark room, PROB 75 that a grue gets you unless the way leads somewhere lit.
+        // (A closed conditional exit's own action, such as the carousel's, isn't tried in the dark.)
+        if (!GameState.IsLit(state) && state.Random.Next(100) < 75)
+        {
+            if (!r.Exits.TryGetValue(direction, out var dark))
+            {
+                state.JigsUp("Oh, no!  You walked into the slavering fangs of a lurking grue.");
+                return;
+            }
+            var open = !dark.IsBlocked && dark.RoomId != null && (!dark.IsConditional || state.GetFlag(dark.ConditionFlag!));
+            var lit = open ? state.World?.FindRoom(dark.RoomId!) : null;
+            if (lit != null && GameState.IsLit(state, lit))
+                MoveToRoom(state, lit);
+            else
+                state.JigsUp("Oh, no!  A fearsome grue slithered into the room and devoured you.");
+            return;
+        }
         // rooms.99 WALK: no exit -> "There is no way to go in that direction."; #NEXIT -> its message (even "");
         // a closed #CEXIT -> its message, nothing if that is "", or the no-way message if it has none.
         if (!r.Exits.TryGetValue(direction, out var target))

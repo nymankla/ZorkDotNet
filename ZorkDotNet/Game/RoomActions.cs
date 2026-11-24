@@ -55,7 +55,7 @@ public static class RoomActions
     public static void OverFalls(GameState state)
     {
         state.Output.WriteLine("Oh dear, you seem to have gone over Aragain Falls.  Not a very smart thing to do, apparently.");
-        state.Running = false;
+        state.JigsUp(null);
     }
 
     /// <summary>On entering BOOM room: if carrying lit candle or lit torch, JIGS-UP.</summary>
@@ -69,7 +69,7 @@ public static class RoomActions
         var o = torch != null && state.Winner.Inventory.Contains(torch) ? torch : candl;
         state.Output.WriteLine("Oh dear.  It appears that the smell coming from this room was coal gas.  I would have thought twice about carrying a " + (o?.DescriptionShort ?? "light") + " in here.");
         state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-        state.Running = false;
+        state.JigsUp(null);
     }
 
     /// <summary>On entering BATS room without garlic: bat flies player to random room.</summary>

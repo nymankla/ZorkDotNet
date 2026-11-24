@@ -124,7 +124,7 @@ public class VocabularyTests
 
         var output = Do(runner, "JUMP");
 
-        Assert.False(runner.State.Running);
+        Assert.True(runner.State.AwaitingPatchAnswer); // JIGS-UP asks to patch you up
         Assert.Contains(new[] { "You should have looked before you leaped.", "I'm afraid that leap was a bit much for your weak frame.", "In the movies, your life would be passing in front of your eyes.", "Geronimo....." },
             r => output.Contains(r, StringComparison.Ordinal));
     }
@@ -136,7 +136,7 @@ public class VocabularyTests
         runner.Teleport("BARRE");
 
         Assert.Contains("Is this what 'over a barrel' means?", Do(runner, "GERONIMO"));
-        Assert.False(runner.State.Running);
+        Assert.True(runner.State.AwaitingPatchAnswer); // JIGS-UP asks to patch you up
     }
 
     [Fact]

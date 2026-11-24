@@ -20,10 +20,11 @@ Parser.Execute(state, "LOOK");
 while (state.Running)
 {
     // FINISH reads the answer to "Do you wish to leave the game?" without the command prompt.
-    if (!state.AwaitingQuitConfirmation) state.Output.Write("> ");
+    // JIGS-UP likewise reads "Do you want me to try to patch you?", where an empty answer means yes.
+    if (!state.AwaitingAnswer) state.Output.Write("> ");
     var line = Console.ReadLine();
     if (line == null) break;
     line = line.Trim();
-    if (string.IsNullOrEmpty(line)) continue;
+    if (string.IsNullOrEmpty(line) && !state.AwaitingAnswer) continue;
     Parser.PlayTurn(state, line);
 }

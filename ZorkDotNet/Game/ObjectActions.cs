@@ -284,7 +284,7 @@ public static class ObjectActions
         {
             state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
             state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-            state.Running = false;
+            state.JigsUp(null);
             return;
         }
         state.Output.WriteLine("There is an explosion nearby.");
@@ -301,7 +301,7 @@ public static class ObjectActions
             state.Output.WriteLine(r.Id == "SAFE"
                 ? "The house shakes, and the ceiling of the room you're in collapses, turning you into a pancake."
                 : "The room trembles and 50,000 pounds of rock fall on you, turning you into a pancake.");
-            state.Running = false;
+            state.JigsUp(null);
             return;
         }
         state.Output.WriteLine("You may recall your recent explosion.  Well, probably as a result of that, you hear an ominous rumbling, as if one of the rooms in the dungeon had collapsed.");
@@ -322,7 +322,7 @@ public static class ObjectActions
             if (inBalloon && state.GetFlag("BTIE!-FLAG"))
             {
                 state.Output.WriteLine("The ledge collapses, probably as a result of the explosion.  A large chunk of it, which is attached to the hook, drags you down to the ground.  Fatally.");
-                state.Running = false;
+                state.JigsUp(null);
                 return;
             }
             if (inBalloon)
@@ -341,7 +341,7 @@ public static class ObjectActions
         if (verb != "BURN") return;
         state.Output.WriteLine("Now you've done it.  It seems that the brick has other properties than weight, namely the ability to blow you to smithereens.");
         state.Output.WriteLine("   BOOOOOOOOOOOM      ");
-        state.Running = false;
+        state.JigsUp(null);
     }
 
     /// <summary>GNOME-FUNCTION (CEVENT): GIVE valuable → door appears; clock tick → gnome leaves.</summary>
@@ -601,7 +601,7 @@ public static class ObjectActions
             else
             {
                 state.Output.WriteLine("The sight of someone carrying a pile of burning leaves so offends the neighbors that they come over and put you out.");
-                state.Running = false;
+                state.JigsUp(null);
             }
         }
         else if (verb == "MOVE")
@@ -911,7 +911,7 @@ public static class ObjectActions
         {
             state.SetFlag("RAINBOW!-FLAG", false);
             state.Output.WriteLine("The structural integrity of the rainbow seems to have left it, leaving you about 450 feet in the air, supported by water vapor.");
-            state.Running = false;
+            state.JigsUp(null);
         }
         else
             state.Output.WriteLine("Very good.");
@@ -950,7 +950,7 @@ public static class ObjectActions
             if (count > 5)
             {
                 state.Output.WriteLine("The cyclops, tired of all of your games and trickery, eats you.\nThe cyclops says 'Mmm.  Just like mom used to make 'em.'");
-                state.Running = false;
+                state.JigsUp(null);
                 return;
             }
             if (verb == "GIVE" && indirect != null)
