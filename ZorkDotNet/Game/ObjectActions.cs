@@ -821,27 +821,59 @@ public static class ObjectActions
         }
     }
 
-    /// <summary>BUCKET (CEVENT): scheduled tick toggles bucket between TWELL and BWELL. Schedule when water put in bucket in BWELL.</summary>
+    /// <summary>act3.13 BUCKET on its clock (BCKIN, 100 moves after it rose): the water in it evaporates.</summary>
     public static void BucketTick(GameState state)
     {
-        var bucket = state.World?.FindObject("BUCKE");
-        if (bucket == null) return;
-        if (state.GetFlag("BUCKET-TOP!-FLAG"))
-        {
-            state.Output.WriteLine("The bucket descends and comes to a stop.");
-            state.SetFlag("BUCKET-TOP!-FLAG", false);
-            var bwell = state.World?.FindRoom("BWELL");
-            if (bwell != null && bucket.InRoom != null) { bucket.InRoom.Objects.Remove(bucket); bucket.InRoom = bwell; bwell.Objects.Add(bucket); }
-        }
-        else
+        var water = state.World!.FindObject("WATER")!;
+        if (water.Container?.Id == "BUCKE") RemoveFromWhere(water);
+    }
+
+    /// <summary>
+    /// act3.13 BUCKET with READ-OUT, after every command you spend in the bucket: with water in it, it rises to the
+    /// top of the well; at the top without water, it sinks back (PASS-THE-BUCKET).
+    /// </summary>
+    public static void BucketReadOut(GameState state)
+    {
+        var world = state.World!;
+        var bucket = world.FindObject("BUCKE")!;
+        if (state.Winner.Vehicle != bucket) return;
+        var full = world.FindObject("WATER")!.Container == bucket;
+        var top = state.GetFlag("BUCKET-TOP!-FLAG");
+        if (full && !top)
         {
             state.Output.WriteLine("The bucket rises and comes to a stop.");
             state.SetFlag("BUCKET-TOP!-FLAG", true);
-            var twell = state.World?.FindRoom("TWELL");
-            if (twell != null && bucket.InRoom != null) { bucket.InRoom.Objects.Remove(bucket); bucket.InRoom = twell; twell.Objects.Add(bucket); }
+            PassTheBucket(state, world.FindRoom("TWELL")!, bucket);
+            state.ScheduledEvents.RemoveAll(e => e.Name == Clocks.Bucket);
             state.Schedule(100, Clocks.Bucket);
         }
+        else if (top && !full)
+        {
+            state.Output.WriteLine("The bucket descends and comes to a stop.");
+            state.SetFlag("BUCKET-TOP!-FLAG", false);
+            PassTheBucket(state, world.FindRoom("BWELL")!, bucket);
+        }
     }
+
+    /// <summary>act3.13 PASS-THE-BUCKET: the bucket moves, and you in it see where you are.</summary>
+    private static void PassTheBucket(GameState state, Room to, GameObject bucket)
+    {
+        bucket.InRoom?.Objects.Remove(bucket);
+        bucket.InRoom = to;
+        to.Objects.Add(bucket);
+        if (state.Winner.Vehicle != bucket) return;
+        Parser.Goto(state, to);
+        Parser.Describe(state);
+    }
+
+    /// <summary>act3.13 BUCKET as the bucket's own action: nothing to say for ordinary verbs.</summary>
+    public static void BucketFunction(GameState _1, string _2, GameObject? _3) { }
+
+    /// <summary>
+    /// rooms.99 EVERYTHING and VALUABLES (the global "all" and "valuables" objects). The parser hands TAKE, DROP and PUT
+    /// of them to <c>Parser.DoLots</c>; as an object action there is nothing more to do.
+    /// </summary>
+    public static void Lots(GameState _1, string _2, GameObject? _3) { }
 
     public static void BottleFunction(GameState state, string verb, GameObject? _)
     {
@@ -899,17 +931,16 @@ public static class ObjectActions
                     state.Output.WriteLine("The bottle is now full of water.");
                 }
             }
-            else if (cont == (state.World?.FindObject("BUCKE")) && cont != null)
+            else if (cont != null && cont == state.Winner.Vehicle)
             {
+                // act1.38 WATER-FUNCTION: water put into the vehicle you're in stays there.
+                state.Output.WriteLine("There is now a puddle in the bottom of the " + cont.DescriptionShort + ".");
                 obj.Container?.Contents.Remove(obj);
                 if (obj.InRoom != null) { obj.InRoom.Objects.Remove(obj); obj.InRoom = null; }
                 obj.Carrier?.Inventory.Remove(obj);
-                obj.Container = cont;
                 obj.Carrier = null;
-                cont.Contents.Add(obj);
-                state.Output.WriteLine("The bucket is now full of water.");
-                if (state.Here?.Id == "BWELL")
-                    state.Schedule(100, Clocks.Bucket);
+                obj.Container = cont;
+                if (!cont.Contents.Contains(obj)) cont.Contents.Add(obj);
             }
             else if (cont != null && cont != bottle)
             {
@@ -1123,6 +1154,7 @@ public static class ObjectActions
     {
         if (obj.InRoom != null) { obj.InRoom.Objects.Remove(obj); obj.InRoom = null; }
         if (obj.Carrier != null) { obj.Carrier.Inventory.Remove(obj); obj.Carrier = null; }
+        if (obj.Container != null) { obj.Container.Contents.Remove(obj); obj.Container = null; }
     }
 
     public static void TrapDoor(GameState state, string verb, GameObject? _)
@@ -1275,29 +1307,33 @@ public static class ObjectActions
             state.Output.WriteLine(state.GetFlag("MIRROR-MUNG!-FLAG") ? "The mirror is broken into many pieces." : "There is an ugly person staring at you.");
     }
 
-    /// <summary>STICK (magic): WAVE in FALLS toggles RAINBOW; WAVE in RAINB → rainbow collapses, death.</summary>
+    /// <summary>
+    /// act2.27 STICK-FUNCTION: waved at either end of the rainbow it turns solid (and the pot of gold appears) or
+    /// ordinary again; waved on the rainbow itself, it drops you.
+    /// </summary>
     public static void StickFunction(GameState state, string verb, GameObject? _)
     {
         if (verb != "WAVE") return;
-        var here = state.Here?.Id;
-        if (here == "FALLS")
+        var here = state.Here.Id;
+        if (here is "FALLS" or "POG")
         {
             if (!state.GetFlag("RAINBOW!-FLAG"))
             {
-                state.SetFlag("RAINBOW!-FLAG", true);
+                var pot = state.World?.FindObject("POT");
+                if (pot != null) pot.Flags |= ObjectFlags.Visible;
                 state.Output.WriteLine("Suddenly, the rainbow appears to become solid and, I venture, walkable (I think the giveaway was the stairs and bannister).");
+                state.SetFlag("RAINBOW!-FLAG", true);
             }
             else
             {
-                state.SetFlag("RAINBOW!-FLAG", false);
                 state.Output.WriteLine("The rainbow seems to have become somewhat run-of-the-mill.");
+                state.SetFlag("RAINBOW!-FLAG", false);
             }
         }
         else if (here == "RAINB")
         {
             state.SetFlag("RAINBOW!-FLAG", false);
-            state.Output.WriteLine("The structural integrity of the rainbow seems to have left it, leaving you about 450 feet in the air, supported by water vapor.");
-            state.JigsUp(null);
+            state.JigsUp("The structural integrity of the rainbow seems to have left it, leaving you about 450 feet in the air, supported by water vapor.");
         }
         else
             state.Output.WriteLine("Very good.");

@@ -1,7 +1,6 @@
 # Differences between the port and the original dung.56 that are not fixed yet.
 # One per line; checked by OriginalWorldTests. Delete a line when you fix it.
 # Regenerate with ZORK_UPDATE_KNOWN_DIFFERENCES=1 (see Original/README.md).
-Object action missing: BUCKE: BUCKET
 Object action missing: TROLL: TROLL
 Object bit not modelled: BAT: TRYTAKEBIT
 Object bit not modelled: BODIE: TRYTAKEBIT
@@ -10,6 +9,7 @@ Object bit not modelled: BRICK: SEARCHBIT
 Object bit not modelled: BROPE: TIEBIT
 Object bit not modelled: BUOY: FINDMEBIT
 Object bit not modelled: CYCLO: VICBIT
+Object bit not modelled: EVERY: NO-CHECK-BIT
 Object bit not modelled: GHOST: VICBIT
 Object bit not modelled: GNOME: VICBIT
 Object bit not modelled: GUNK: TRYTAKEBIT
@@ -29,12 +29,8 @@ Object bit not modelled: SPHER: TRYTAKEBIT
 Object bit not modelled: THIEF: VICBIT
 Object bit not modelled: TOMB: TRYTAKEBIT
 Object bit not modelled: TROLL: VICBIT
-Object flags: BUCKE: missing Vehicle extra Take Container
-Object flags: POT: extra Visible
-Object missing: ##### (cretin)
+Object bit not modelled: VALUA: NO-CHECK-BIT
 Object missing: CHALI (chalice)
-Object missing: EVERY (everything)
 Object missing: STILL (stilletto)
-Object missing: VALUA (valuables)
 Object start location: THIEF: original nowhere, port room TREAS
 Room action missing: TREAS: TREASURE-ROOM

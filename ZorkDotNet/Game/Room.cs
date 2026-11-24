@@ -30,6 +30,8 @@ public class Room
     public bool IsWater { get; set; }
     /// <summary>MDL RAIRBIT (inside the volcano): only the balloon can go here.</summary>
     public bool IsAir { get; set; }
+    /// <summary>MDL RBUCKBIT (the two ends of the well): where the bucket can take you.</summary>
+    public bool IsBucket { get; set; }
 }
 
 public readonly struct ExitTarget

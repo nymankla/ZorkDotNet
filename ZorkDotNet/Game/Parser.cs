@@ -86,6 +86,7 @@ public static class Parser
             return;
         }
         if (state.Running) state.ProcessClocks();
+        if (state.Running && !state.AwaitingPatchAnswer) ObjectActions.BucketReadOut(state); // RDCOM: the vehicle's READ-OUT
     }
 
     /// <summary>
@@ -309,6 +310,7 @@ public static class Parser
                 break;
             case "TAKE":
                 if (Balloon.ReadIn(state, "TAKE", direct, null, null)) break;
+                if (direct?.Id is "EVERY" or "VALUA") { DoLots(state, "TAKE", direct, null, words); break; }
                 if (direct != null)
                 {
                     // Objects with custom TAKE message (e.g. skeleton, trophy case, thief) are not takeable
@@ -322,7 +324,8 @@ public static class Parser
                 else state.Output.WriteLine("What do you want to take?");
                 break;
             case "DROP":
-                if (direct != null) DoDrop(state, direct);
+                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "DROP", direct, null, words);
+                else if (direct != null) DoDrop(state, direct);
                 else state.Output.WriteLine("What do you want to drop?");
                 break;
             case "INVENTORY": DoInventory(state); break;
@@ -369,7 +372,10 @@ public static class Parser
                 if (direct != null) DoLift(state, direct);
                 else state.Output.WriteLine("What do you want to lift?");
                 break;
-            case "PUT": DoPut(state, words); break;
+            case "PUT":
+                if (direct?.Id is "EVERY" or "VALUA") DoLots(state, "PUT", direct, indirect, words);
+                else DoPut(state, words);
+                break;
             case "GIVE": DoGive(state, words); break;
             case "RAISE":
                 if (direct == null || !ObjectActions.Try(state, direct, "RAISE", null))
@@ -613,8 +619,9 @@ public static class Parser
         var boat = vehicle?.Id == "RBOAT";
         var balloon = vehicle?.Id == "BALLO";
         static bool Land(Room r) => !r.IsWater && !r.IsAir;
+        var bucket = vehicle?.Id == "BUCKE"; // RBUCKBIT: up and down the well only
         var fits = to.IsWater ? boat : !to.IsAir || balloon;
-        if (!fits || (Land(from) && Land(to) && (boat || balloon)))
+        if (!fits || (Land(from) && Land(to) && (boat || balloon || (bucket && !to.IsBucket))))
         {
             state.Output.WriteLine(vehicle != null ? "You can't go there in a " + vehicle.DescriptionShort + "." : "You can't go there without a vehicle.");
             return false;
@@ -1083,6 +1090,45 @@ public static class Parser
         state.LastDirectObject = obj;
         if (ObjectActions.Try(state, obj, "LIFT", null)) return;
         state.Output.WriteLine("You can't lift that.");
+    }
+
+    /// <summary>
+    /// rooms.99 EVERYTHING / VALUABLES and FROB-LOTS: TAKE, DROP or PUT each object in turn ("lamp:" and then what
+    /// happened), stopping if one of them moves you.
+    /// </summary>
+    private static void DoLots(GameState state, string action, GameObject which, GameObject? into, string[] words)
+    {
+        var valuablesOnly = which.Id == "VALUA";
+        bool Counts(GameObject o) => !valuablesOnly || o.TrophyScore != 0;
+        bool InRoom(GameObject o) => o.IsVisible && o.Id != "ROBOT" && !o.IsGlobal && (o.Flags & ObjectFlags.NoDescribe) == 0 && Counts(o);
+        List<GameObject> lots = action switch
+        {
+            "TAKE" => state.Here.Objects.Where(InRoom).Where(o => o.CanTake || o.ObjectAction != null).ToList(),
+            "DROP" => state.Winner.Inventory.Where(Counts).ToList(),
+            _ => state.Here.Objects.Where(InRoom).Concat(state.Winner.Inventory.Where(Counts)).Where(o => o != into).ToList(),
+        };
+        if (lots.Count == 0)
+        {
+            state.Output.WriteLine("I couldn't find anything.");
+            return;
+        }
+        var here = state.Here;
+        foreach (var o in lots)
+        {
+            state.Output.Write(o.DescriptionShort + ":" + Environment.NewLine + "  ");
+            state.LastDirectObject = o;
+            state.LastIndirectObject = into;
+            switch (action)
+            {
+                case "TAKE":
+                    if (!o.CanTake) { if (!ObjectActions.Try(state, o, "TAKE", null)) state.Output.WriteLine("You can't take that."); }
+                    else DoTake(state, o);
+                    break;
+                case "DROP": DoDrop(state, o); break;
+                default: DoPut(state, words); break;
+            }
+            if (state.Here != here) break;
+        }
     }
 
     /// <summary>rooms.99 PUTTER: PUT obj IN container (anything open, or a container or vehicle).</summary>
