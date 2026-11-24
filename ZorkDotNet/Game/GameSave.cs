@@ -87,7 +87,8 @@ public static class GameSave
             Flags = new Dictionary<string, bool>(state.Flags),
             ObjectState = new Dictionary<string, int>(state.ObjectState),
             VillainStrength = new Dictionary<string, int>(state.VillainStrength),
-            LampTicksRemaining = state.LampTicksRemaining,
+            LampTicks = state.LampTicks,
+            LampStage = state.LampStage,
             MaintLeakAtMove = state.MaintLeakAtMove,
             Events = state.ScheduledEvents.Select(e => new EventData { TriggerMove = e.TriggerMove, Name = e.Name, Argument = e.Argument }).ToList(),
             Rooms = world.Rooms.Select(r => new RoomData
@@ -228,7 +229,8 @@ public static class GameSave
         foreach (var (k, v) in data.ObjectState) state.ObjectState[k] = v;
         state.VillainStrength.Clear();
         foreach (var (k, v) in data.VillainStrength) state.VillainStrength[k] = v;
-        state.LampTicksRemaining = data.LampTicksRemaining;
+        state.LampTicks = data.LampTicks;
+        state.LampStage = data.LampStage;
         state.MaintLeakAtMove = data.MaintLeakAtMove;
         state.ScheduledEvents.Clear();
         state.ScheduledEvents.AddRange(data.Events.Select(e => new ScheduledEvent(e.TriggerMove, e.Name, e.Argument)));
@@ -258,7 +260,8 @@ internal sealed class SaveData
     public Dictionary<string, bool> Flags { get; set; } = new();
     public Dictionary<string, int> ObjectState { get; set; } = new();
     public Dictionary<string, int> VillainStrength { get; set; } = new();
-    public int LampTicksRemaining { get; set; }
+    public int LampTicks { get; set; }
+    public int LampStage { get; set; }
     public int MaintLeakAtMove { get; set; }
     public List<EventData> Events { get; set; } = new();
     public List<RoomData> Rooms { get; set; } = new();

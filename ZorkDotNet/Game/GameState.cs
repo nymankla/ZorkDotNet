@@ -29,8 +29,18 @@ public class GameState
     /// <summary>When ResolveObject finds multiple matches (GWIM-style), list of candidates for "Which X - the A, the B, or the C?".</summary>
     public List<GameObject>? PendingAmbiguousCandidates { get; set; }
     public string[]? PendingWords { get; set; }
-    /// <summary>Lamp burn: ticks remaining when lamp is on (original LAMP-TICKS 50). Decremented each move; at 0 lamp goes out.</summary>
-    public int LampTicksRemaining { get; set; }
+    /// <summary>Lamp clock (LNTIN): moves while lit until the next LIGHT-INT step. Starts at 350 (dung.56).</summary>
+    public int LampTicks { get; set; } = LampFirstInterval;
+    /// <summary>Lamp clock: LIGHT-INT steps taken so far (MDL ORAND count), indexes LAMP-TICKS / LAMP-TELLS.</summary>
+    public int LampStage { get; set; }
+
+    /// <summary>dung.56: &lt;CLOCK-INT ,LNTIN 350&gt;.</summary>
+    public const int LampFirstInterval = 350;
+    /// <summary>act1.38 LAMP-TICKS: interval after each step; 0 = burned out.</summary>
+    private static readonly int[] LampTickTable = [50, 30, 20, 10, 4, 0];
+    private const string Dimmer = "The lamp appears to be getting dimmer.";
+    /// <summary>act1.38 LAMP-TELLS.</summary>
+    private static readonly string[] LampTells = [Dimmer, Dimmer, Dimmer, Dimmer, "The lamp is dying."];
     /// <summary>Scheduled events (MATCH burnout, FUSE explode, etc.) fired when Moves >= TriggerMove.</summary>
     public List<ScheduledEvent> ScheduledEvents { get; } = new();
     /// <summary>MAINT room: move count when leak message fires (0 = not set).</summary>
@@ -56,17 +66,10 @@ public class GameState
     public void ProcessClocks()
     {
         if (World == null) return;
+        // Lamp clock: enabled while the lamp is on (LANTERN CLOCK-ENABLE / CLOCK-DISABLE), wherever the lamp is.
         var lamp = World.FindObject("LAMP");
-        // Only burn lamp when it has been turned on (LampTicksRemaining set by TURN ON); initial state has LightAmount=-1 but ticks=0
-        if (lamp != null && Winner.Inventory.Contains(lamp) && lamp.LightAmount != 0 && LampTicksRemaining > 0)
-        {
-            LampTicksRemaining--;
-            if (LampTicksRemaining <= 0)
-            {
-                lamp.LightAmount = 0;
-                Output.WriteLine("The lamp has run out of power.");
-            }
-        }
+        if (lamp != null && lamp.LightAmount > 0 && --LampTicks <= 0)
+            LampLightInt(lamp);
         var toRun = ScheduledEvents.Where(e => Moves >= e.TriggerMove).ToList();
         foreach (var e in toRun) ScheduledEvents.Remove(e);
         foreach (var e in toRun) Clocks.Run(this, e);
@@ -100,6 +103,26 @@ public class GameState
         // CEVENTs with no effect in original MDL (dung.56 CURIN, SPHIN)
         CureClock(this);
         SphereFunction(this);
+    }
+
+    /// <summary>
+    /// act1.38 LIGHT-INT for the lamp: take the next step of LAMP-TICKS. Warnings and the burn-out message are
+    /// only told when the lamp is carried or in this room.
+    /// </summary>
+    private void LampLightInt(GameObject lamp)
+    {
+        LampStage++;
+        LampTicks = LampTickTable[Math.Min(LampStage, LampTickTable.Length) - 1];
+        var nearby = lamp.InRoom == null || lamp.InRoom == Here;
+        if (LampTicks == 0)
+        {
+            if (nearby) Output.WriteLine("I hope you have more light than from a " + lamp.DescriptionShort + ".");
+            lamp.LightAmount = 0;
+        }
+        else if (nearby)
+        {
+            Output.WriteLine(LampTells[LampStage - 1]);
+        }
     }
 
     /// <summary>CURE-CLOCK (CURIN). CEVENT in dung.56; no-op in original MDL — implemented as explicit no-op.</summary>
@@ -161,12 +184,20 @@ public class GameState
         if (r != null) { r.Munged = true; r.MungedMessage = message; }
     }
 
-    /// <summary>True if room has endogenous light or player/room has a light source (LIGHT-SOURCE).</summary>
+    /// <summary>
+    /// rooms.99 LIT?: the room has its own light, or something in the room or carried is burning (OLIGHT? &gt; 0),
+    /// also inside a visible open or transparent container (LFCN). An unlit lamp (-1) gives no light.
+    /// (LFCN also looks at what other actors carry; there are no actors in the port yet.)
+    /// </summary>
     public static bool IsLit(GameState state, Room? room = null)
     {
         var r = room ?? state.Here;
         if (r == null) return false;
-        if (r.HasLight) return true;
-        return Combat.GetLightSource(state, r) != null;
+        return r.HasLight || GivesLight(r.Objects) || GivesLight(state.Winner.Inventory);
     }
+
+    /// <summary>rooms.99 LFCN.</summary>
+    private static bool GivesLight(IEnumerable<GameObject> objects) =>
+        objects.Any(o => o.LightAmount > 0
+            || (o.IsVisible && o.IsOpenOrTransparent && o.Contents.Any(c => c.LightAmount > 0)));
 }

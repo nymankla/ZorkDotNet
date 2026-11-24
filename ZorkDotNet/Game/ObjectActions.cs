@@ -188,18 +188,15 @@ public static class ObjectActions
                 state.Here.Objects.Add(blamp);
             }
         }
-        else if (verb == "TURNON" || verb == "TURN ON")
+        // TURN ON / OFF: the original LANTERN only enables or disables the lamp's clock and lets LAMP-ON /
+        // LAMP-OFF do the rest. Here the lamp clock runs whenever the lamp is on (GameState.ProcessClocks).
+        else if ((verb == "TURNON" || verb == "TURN ON") && lamp != null)
         {
-            if (lamp != null)
-            {
-                lamp.LightAmount = -1;
-                state.LampTicksRemaining = 100; // LAMP-TICKS: burn timer (100 so cellar→troll→carousel path stays lit for take/wave iron box)
-                state.Output.WriteLine("The lamp is now on.");
-            }
+            Parser.LampOn(state, lamp);
         }
-        else if (verb == "TURNOFF" || verb == "TURN OFF")
+        else if ((verb == "TURNOFF" || verb == "TURN OFF") && lamp != null)
         {
-            if (lamp != null) { lamp.LightAmount = 0; state.Output.WriteLine("The lamp is now off."); }
+            Parser.LampOff(state, lamp);
         }
     }
 

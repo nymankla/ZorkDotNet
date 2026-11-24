@@ -380,6 +380,8 @@ public static class Parser
                 {
                     state.LastDirectObject = turnObj;
                     if (turnObj.ObjectAction != null) turnObj.ObjectAction(state, subVerb, null);
+                    else if (subVerb == "TURNON") LampOn(state, turnObj);
+                    else if (subVerb == "TURNOFF") LampOff(state, turnObj);
                     else state.Output.WriteLine("Nothing happens.");
                 }
                 else state.Output.WriteLine("What do you want to turn?");
@@ -715,6 +717,46 @@ public static class Parser
         }
         if (!obj.Open) state.Output.WriteLine("It is already closed.");
         else { obj.Open = false; state.Output.WriteLine("Closed."); }
+    }
+
+    /// <summary>
+    /// rooms.99 LAMP-ON: light a carried light source (OLIGHT? -1 = off, 1 = on, 0 = can't be lit). If that lights
+    /// a dark room, the room is described.
+    /// </summary>
+    internal static void LampOn(GameState state, GameObject obj)
+    {
+        if (obj.LightAmount == 0 || !state.Winner.Inventory.Contains(obj))
+        {
+            state.Output.WriteLine("You can't turn that on.");
+            return;
+        }
+        if (obj.LightAmount > 0)
+        {
+            state.Output.WriteLine("It is already on.");
+            return;
+        }
+        var wasLit = GameState.IsLit(state);
+        obj.LightAmount = 1;
+        state.Output.WriteLine("The " + obj.DescriptionShort + " is now on.");
+        if (!wasLit) DoLook(state);
+    }
+
+    /// <summary>rooms.99 LAMP-OFF: put out a carried light source.</summary>
+    internal static void LampOff(GameState state, GameObject obj)
+    {
+        if (obj.LightAmount == 0 || !state.Winner.Inventory.Contains(obj))
+        {
+            state.Output.WriteLine("You can't turn that off.");
+            return;
+        }
+        if (obj.LightAmount < 0)
+        {
+            state.Output.WriteLine("It is already off.");
+            return;
+        }
+        obj.LightAmount = -1;
+        state.Output.WriteLine("The " + obj.DescriptionShort + " is now off.");
+        if (!GameState.IsLit(state)) state.Output.WriteLine("It is now pitch black.");
     }
 
     private static void DoInventory(GameState state)
