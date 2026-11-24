@@ -420,6 +420,40 @@ public static class ObjectActions
         state.Output.WriteLine("Congratulations!  Unlike the other vandals, who merely stole the artist's masterpieces, you have destroyed one.");
     }
 
+    /// <summary>
+    /// act1.38 TROLL: gifts and things thrown at him he catches and eats (a knife he throws back, angrily); he won't be
+    /// taken or moved. His melee hooks (FIGHT, DEAD!, OUT!, IN!) belong to the melee, which isn't in the MIT archive;
+    /// <see cref="Combat"/> stands in for it.
+    /// </summary>
+    public static void TrollFunction(GameState state, string verb, GameObject? other)
+    {
+        var troll = state.World!.FindObject("TROLL")!;
+        if (verb is "THROW" or "GIVE" && other != null)
+        {
+            state.Output.WriteLine(verb == "THROW"
+                ? "The troll, who is remarkably coordinated, catches the " + other.DescriptionShort
+                : "The troll, who is not overly proud, graciously accepts the gift");
+            if (other.Id == "KNIFE")
+            {
+                state.Output.WriteLine("and being for the moment sated, throws it back.  Fortunately, the troll has poor control, and the knife falls to the floor.  He does not look pleased.");
+                RemoveFromWhere(other);
+                other.InRoom = state.Here;
+                state.Here.Objects.Add(other);
+                troll.Flags |= ObjectFlags.Fighting;
+                state.VillainStrength.TryAdd("TROLL", Combat.TrollStrength);
+            }
+            else
+            {
+                state.Output.WriteLine("and not having the most discriminating tastes, gleefully eats it.");
+                RemoveFromWhere(other);
+            }
+        }
+        else if (verb is "TAKE" or "MOVE")
+            state.Output.WriteLine("The troll spits in your face, saying \"Better luck next time.\"");
+        else if (verb == "MUNG")
+            state.Output.WriteLine("The troll laughs at your puny gesture.");
+    }
+
     /// <summary>act1.38 BLACK-BOOK: burning the prayer book is a mistake.</summary>
     public static void BlackBook(GameState state, string verb, GameObject? _)
     {
@@ -1227,41 +1261,6 @@ public static class ObjectActions
     public static void Diagnose(GameState state)
     {
         state.Output.WriteLine("You are in fine health.  Your strength is " + state.Winner.Strength + ".");
-    }
-
-    /// <summary>Thief (CHALI): ATTACK/TAKE messages; ROB-ADV steals from player.</summary>
-    public static void ThiefFunction(GameState state, string verb, GameObject? _)
-    {
-        if (verb == "ATTACK" || verb == "ATTAC")
-        {
-            state.Output.WriteLine("You missed.  The thief makes no attempt to take the knife, though it would be a fine addition to the collection in his bag.  He does seem angered by your attempt.");
-            return;
-        }
-        if (verb == "TAKE")
-        {
-            state.Output.WriteLine("Once you got him, what would you do with him?");
-            return;
-        }
-    }
-
-    /// <summary>ROB-ADV: remove a random valuable from player and put in thief room (TREAS). Returns true if something was stolen.</summary>
-    public static bool RobAdventurer(GameState state, bool printMessage = true)
-    {
-        var inv = state.Winner.Inventory.Where(o => (o.Flags & ObjectFlags.Take) != 0 && o.FindScore > 0).ToList();
-        if (inv.Count == 0) return false;
-        var stolen = inv[Random.Shared.Next(inv.Count)];
-        state.Winner.Inventory.Remove(stolen);
-        stolen.Carrier = null;
-        stolen.Container = null;
-        var treas = state.World?.FindRoom("TREAS");
-        if (treas != null)
-        {
-            stolen.InRoom = treas;
-            treas.Objects.Add(stolen);
-        }
-        if (printMessage)
-            state.Output.WriteLine("A seedy-looking individual with a large bag just wandered through the room.  On the way through, he quietly abstracted all valuables from the room and from your possession, mumbling something about \"Doing unto others before..\"");
-        return true;
     }
 
     /// <summary>Mirror (REFL1/REFL2): RUB swaps MIRR1/MIRR2 contents and moves player; BREAK/THROW sets MIRROR-MUNG!-FLAG.</summary>

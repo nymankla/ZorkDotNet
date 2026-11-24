@@ -12,23 +12,6 @@ public static class Combat
         return state.Winner.Inventory.Exists(o => (o.Flags & ObjectFlags.Weapon) != 0);
     }
 
-    /// <summary>ROB-ROOM: pick valuables from room with probability (thief demon). Returns list to steal.</summary>
-    public static List<GameObject> RobRoom(GameState state, Room room, int probabilityPercent)
-    {
-        var list = new List<GameObject>();
-        if (state.World == null) return list;
-        var lit = GameState.IsLit(state, room);
-        var candidates = room.Objects.Where(o =>
-            o.IsVisible && o.CanTake && o.FindScore > 0 &&
-            (o.Flags & ObjectFlags.Sacred) == 0).ToList();
-        foreach (var o in candidates)
-        {
-            if (Random.Shared.Next(100) < probabilityPercent)
-                list.Add(o);
-        }
-        return list;
-    }
-
     /// <summary>act1.38 INFESTED?: a villain is in this room.</summary>
     public static bool Infested(Room room) => room.Objects.Any(o => o.IsVillain);
 
@@ -64,50 +47,75 @@ public static class Combat
         else state.Output.WriteLine("Your sword is no longer glowing.");
     }
 
-    /// <summary>FIGHT-DEMON / TROLL-MELEE: one round if troll in room has Fighting.</summary>
+    /// <summary>How many blows the troll takes (the port's stand-in for the melee's strengths).</summary>
+    public const int TrollStrength = 2;
+    /// <summary>How many blows the thief takes.</summary>
+    public const int ThiefStrength = 3;
+
+    /// <summary>
+    /// FIGHT-DEMON: each move, every villain here who is fighting you strikes. The original's melee (BLOW, the hero and
+    /// villain blow tables, CURE-CLOCK) is not in the MIT archive, so this is the port's own simple melee.
+    /// </summary>
     public static void FightDemon(GameState state)
     {
-        if (state.World == null || state.Here == null) return;
-        var troll = state.World.FindObject("TROLL");
-        if (troll == null || !troll.Fighting || troll.InRoom != state.Here) return;
-        if (!state.VillainStrength.TryGetValue(troll.Id, out var trollStr)) return;
-
-        // Staggered: skip attack this turn
-        if (state.Winner.Staggered)
+        if (state.World == null) return;
+        foreach (var villain in state.Here.Objects.Where(o => o.IsVillain && o.Fighting).ToList())
         {
-            state.Winner.Staggered = false;
+            if (!state.VillainStrength.ContainsKey(villain.Id)) continue;
+            if (state.Winner.Staggered)
+            {
+                state.Winner.Staggered = false;
+                continue;
+            }
+            state.Winner.Strength = Math.Max(0, state.Winner.Strength - 20);
+            if (state.Random.Next(100) < 30) state.Winner.Staggered = true;
+            state.Output.WriteLine(state.Winner.Staggered
+                ? "The " + villain.DescriptionShort + "'s blow staggers you."
+                : "The " + villain.DescriptionShort + " hits you with a glancing blow.");
+            if (state.Winner.Strength <= 0)
+            {
+                state.Output.WriteLine("You have been killed.");
+                state.JigsUp(null);
+                return;
+            }
+        }
+    }
+
+    /// <summary>You strike a villain (ATTACK villain WITH weapon); the first blow starts the fight.</summary>
+    public static void Attack(GameState state, GameObject villain, GameObject? weapon)
+    {
+        if (weapon == null || weapon.Carrier != state.Winner)
+        {
+            state.Output.WriteLine("You need a weapon to attack the " + villain.DescriptionShort + ".");
             return;
         }
-
-        // Player hits troll (with weapon if armed)
-        var damageToTroll = Armed(state) ? 1 : 0;
-        if (damageToTroll > 0) trollStr -= damageToTroll;
-        state.VillainStrength[troll.Id] = trollStr;
-
-        if (trollStr <= 0)
+        if ((weapon.Flags & ObjectFlags.Weapon) == 0)
         {
-            state.VillainStrength.Remove(troll.Id);
-            troll.Flags &= ~ObjectFlags.Fighting;
-            state.Here.Objects.Remove(troll);
-            troll.InRoom = null;
-            state.SetFlag("TROLL-FLAG!-FLAG", true);
-            state.Output.WriteLine("The troll is killed by the force of your attack.  The body has vanished.");
+            state.Output.WriteLine("You can't attack with that.");
             return;
         }
-
-        // Troll hits player (strength damage)
-        var damageToPlayer = 20;
-        state.Winner.Strength = Math.Max(0, state.Winner.Strength - damageToPlayer);
-        if (Random.Shared.Next(100) < 30)
-            state.Winner.Staggered = true;
-        if (state.Winner.Staggered)
-            state.Output.WriteLine("The troll's blow staggers you.");
-        else
-            state.Output.WriteLine("The troll hits you with a glancing blow.");
-        if (state.Winner.Strength <= 0)
+        if (!villain.Fighting)
         {
-            state.Output.WriteLine("You have been killed.");
-            state.JigsUp(null);
+            villain.Flags |= ObjectFlags.Fighting;
+            state.VillainStrength[villain.Id] = villain.Id == "THIEF" ? ThiefStrength : TrollStrength;
+            state.Output.WriteLine(villain.Id == "TROLL"
+                ? "The troll blocks your blow with his axe, and you are thrown back."
+                : "The " + villain.DescriptionShort + " parries your blow.");
+            return;
         }
+        var strength = state.VillainStrength.TryGetValue(villain.Id, out var s) ? s - 1 : 0;
+        if (strength > 0)
+        {
+            state.VillainStrength[villain.Id] = strength;
+            state.Output.WriteLine("You hit the " + villain.DescriptionShort + ".");
+            return;
+        }
+        state.VillainStrength.Remove(villain.Id);
+        villain.Flags &= ~ObjectFlags.Fighting;
+        state.Here.Objects.Remove(villain);
+        villain.InRoom = null;
+        state.Output.WriteLine("The " + villain.DescriptionShort + " is killed by the force of your attack.  The body has vanished.");
+        if (villain.Id == "TROLL") state.SetFlag("TROLL-FLAG!-FLAG", true); // TROLL with DEAD!
+        else if (villain.Id == "THIEF") Thief.Died(state); // ROBBER-FUNCTION with DEAD!
     }
 }
