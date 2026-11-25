@@ -9,7 +9,7 @@ namespace ZorkDotNet.Ui;
 /// </summary>
 public sealed record Layout(int Width, int Height)
 {
-    public const int MinWidth = 60;
+    public const int MinWidth = 70;
     public const int MinHeight = 16;
 
     public bool Fits => Width >= MinWidth && Height >= MinHeight;
@@ -40,7 +40,7 @@ public sealed record Layout(int Width, int Height)
 /// <summary>Draws a <see cref="FancySession"/> into a <see cref="CellBuffer"/>.</summary>
 public static class FancyView
 {
-    private const string KeyHelp = " Enter send   ↑↓ earlier commands   Tab command list   PgUp/PgDn scroll   F8 theme   Ctrl+Q leave";
+    private const string KeyHelp = " Enter send   ↑↓ earlier commands   Tab list and buttons   PgUp/PgDn scroll   Ctrl+C leave";
 
     /// <summary>Draws the session; returns where the text cursor belongs, or null when it should be hidden.</summary>
     public static (int X, int Y)? Draw(FancySession session, CellBuffer buffer)
@@ -54,7 +54,7 @@ public static class FancyView
             return null;
         }
         DrawTitle(session, buffer, layout);
-        DrawButtons(buffer, layout);
+        DrawButtons(session, buffer, layout);
         DrawFrame(session, buffer, layout);
         DrawStory(session, buffer, layout);
         DrawCommands(session, buffer, layout);
@@ -80,15 +80,23 @@ public static class FancyView
         buffer.Put(Math.Max(13, layout.Width - status.Length), Layout.TitleRow, status, Style.TitleDim);
     }
 
-    private static void DrawButtons(CellBuffer buffer, Layout layout)
+    /// <summary>
+    /// The buttons, each " F1  Look ", or just " Look " when the full row doesn't fit; the one chosen with Tab and the
+    /// arrows is highlighted.
+    /// </summary>
+    private static void DrawButtons(FancySession session, CellBuffer buffer, Layout layout)
     {
+        var buttons = FancySession.Buttons;
+        var full = 1 + buttons.Sum(b => b.KeyName.Length + b.Label.Length + 4);
+        var withKeys = full <= layout.Width;
         var x = 1;
-        foreach (var button in FancySession.Buttons)
+        for (var i = 0; i < buttons.Count; i++)
         {
-            var width = button.KeyName.Length + button.Label.Length + 4;
-            if (x + width > layout.Width) break;
-            x = buffer.Put(x, Layout.ButtonRow, " " + button.KeyName + " ", Style.ButtonKey);
-            x = buffer.Put(x, Layout.ButtonRow, button.Label + " ", Style.Button) + 1;
+            var button = buttons[i];
+            var selected = session.Focus == Focus.Buttons && i == session.SelectedButton;
+            if (withKeys)
+                x = buffer.Put(x, Layout.ButtonRow, " " + button.KeyName, selected ? Style.ListSelected : Style.ButtonKey);
+            x = buffer.Put(x, Layout.ButtonRow, " " + button.Label + " ", selected ? Style.ListSelected : Style.Button) + 1;
         }
     }
 

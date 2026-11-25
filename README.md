@@ -52,13 +52,13 @@ zork --fancy                 (Zork.exe --fancy on Windows)
 zork --fancy --theme light   for dark text on a light background
 ```
 
-You get the room, score and moves at the top, buttons for the common commands (F1 Look, F2 Inventory, F3 Score, F4 Save, F5 Restore, F6 Help, F7 Quit), the story in a scrolling pane, the commands you've typed in a list beside it, and a box to type in at the bottom.
+You get the room, score and moves at the top, buttons for the common commands (F1 Look, F2 Inventory, F3 Score, F4 Save, F5 Restore, F6 Help, F7 Quit, F8 Theme), the story in a scrolling pane, the commands you've typed in a list beside it, and a box to type in at the bottom.
 
 - **Enter** sends what you typed; **↑/↓** bring back earlier commands.
-- **Tab** moves to the command list; pick a command with ↑/↓ and press Enter to put it back in the box.
-- **PgUp/PgDn** scroll the story; **F8** switches between the dark and light themes; **Ctrl+Q** leaves.
+- **Tab** moves to the command list (pick a command with ↑/↓ and press Enter to put it back in the box) and then to the buttons (pick one with ←/→ and press Enter). This works in every terminal, including VS Code's, which keeps F1, F5 and F8 for itself.
+- **PgUp/PgDn** scroll the story; the **Theme** button (or F8) switches between dark and light; **Ctrl+C** leaves.
 
-It needs a terminal window of at least 60×16; if the window is too small, it starts the classic interface instead. Set `NO_COLOR` for a version without colours. `zork --help` lists the options.
+It needs a terminal window of at least 70×16; if the window is too small, it starts the classic interface instead. Set `NO_COLOR` for a version without colours. `zork --help` lists the options.
 
 ### How to play
 

@@ -5,14 +5,18 @@ namespace ZorkDotNet.Ui;
 /// <summary>A line of the story pane; <see cref="IsCommand"/> marks what the player typed.</summary>
 public sealed record StoryLine(string Text, bool IsCommand);
 
-/// <summary>A button in the full-screen interface's command row: its key, its label and the command it sends.</summary>
-public sealed record Button(ConsoleKey Key, string KeyName, string Label, string Command);
+/// <summary>
+/// A button in the full-screen interface's button row: its shortcut key, its label and the command it sends (null:
+/// it switches the theme).
+/// </summary>
+public sealed record Button(ConsoleKey Key, string KeyName, string Label, string? Command);
 
-/// <summary>Where the keys go: the input box or the list of commands entered.</summary>
+/// <summary>Where the keys go: the input box, the list of commands entered, or the button row.</summary>
 public enum Focus
 {
     Input,
     Commands,
+    Buttons,
 }
 
 /// <summary>
@@ -22,7 +26,11 @@ public enum Focus
 /// </summary>
 public sealed class FancySession : IDisposable
 {
-    /// <summary>The command row (F1-F7). Each sends its command as if it were typed.</summary>
+    /// <summary>
+    /// The button row. Each game button sends its command as if it were typed; the last switches the theme. They are
+    /// pressed with their function key, or with Tab to the row, the arrows and Enter (some terminals, VS Code's among
+    /// them, keep function keys such as F1, F5 and F8 for themselves).
+    /// </summary>
     public static readonly IReadOnlyList<Button> Buttons =
     [
         new(ConsoleKey.F1, "F1", "Look", "look"),
@@ -32,6 +40,7 @@ public sealed class FancySession : IDisposable
         new(ConsoleKey.F5, "F5", "Restore", "restore"),
         new(ConsoleKey.F6, "F6", "Help", "help"),
         new(ConsoleKey.F7, "F7", "Quit", "quit"),
+        new(ConsoleKey.F8, "F8", "Theme", null),
     ];
 
     private readonly StringWriter _capture = new();
@@ -55,6 +64,7 @@ public sealed class FancySession : IDisposable
     public int Cursor { get; private set; }
     public Focus Focus { get; private set; } = Focus.Input;
     public int SelectedCommand { get; private set; } = -1;
+    public int SelectedButton { get; private set; }
 
     /// <summary>How many lines the story pane is scrolled back from the end (0 follows the story).</summary>
     public int ScrollBack { get; set; }
@@ -93,14 +103,11 @@ public sealed class FancySession : IDisposable
         if (ctrl && key.Key is ConsoleKey.Q or ConsoleKey.C) return false;
         if (Buttons.FirstOrDefault(b => b.Key == key.Key) is { } button)
         {
-            Send(button.Command);
+            Press(button);
             return true;
         }
         switch (key.Key)
         {
-            case ConsoleKey.F8:
-                Theme = Theme.Other;
-                return true;
             case ConsoleKey.PageUp:
                 ScrollBack += Math.Max(1, pageHeight - 1);
                 return true;
@@ -108,23 +115,58 @@ public sealed class FancySession : IDisposable
                 ScrollBack = Math.Max(0, ScrollBack - Math.Max(1, pageHeight - 1));
                 return true;
             case ConsoleKey.Tab:
-                SwitchFocus();
+                SwitchFocus(backwards: (key.Modifiers & ConsoleModifiers.Shift) != 0);
                 return true;
         }
-        if (Focus == Focus.Commands) CommandsKey(key);
-        else InputKey(key);
+        switch (Focus)
+        {
+            case Focus.Commands: CommandsKey(key); break;
+            case Focus.Buttons: ButtonsKey(key); break;
+            default: InputKey(key); break;
+        }
         return true;
     }
 
-    private void SwitchFocus()
+    /// <summary>A button sends its command, or switches the theme.</summary>
+    public void Press(Button button)
     {
-        if (Focus == Focus.Input && Commands.Count > 0)
+        if (button.Command == null) Theme = Theme.Other;
+        else Send(button.Command);
+    }
+
+    /// <summary>Tab goes input, command list (once there is one), buttons, and round again; Shift+Tab goes back.</summary>
+    private void SwitchFocus(bool backwards)
+    {
+        Focus[] order = Commands.Count > 0 ? [Focus.Input, Focus.Commands, Focus.Buttons] : [Focus.Input, Focus.Buttons];
+        var next = order[(Array.IndexOf(order, Focus) + (backwards ? order.Length - 1 : 1)) % order.Length];
+        if (next == Focus.Commands) SelectedCommand = Commands.Count - 1;
+        Focus = next;
+    }
+
+    private void ButtonsKey(ConsoleKeyInfo key)
+    {
+        switch (key.Key)
         {
-            Focus = Focus.Commands;
-            SelectedCommand = Commands.Count - 1;
+            case ConsoleKey.LeftArrow:
+                SelectedButton = (SelectedButton + Buttons.Count - 1) % Buttons.Count;
+                break;
+            case ConsoleKey.RightArrow:
+                SelectedButton = (SelectedButton + 1) % Buttons.Count;
+                break;
+            case ConsoleKey.Enter or ConsoleKey.Spacebar:
+                Press(Buttons[SelectedButton]);
+                break;
+            case ConsoleKey.Escape:
+                Focus = Focus.Input;
+                break;
+            default:
+                if (!char.IsControl(key.KeyChar))
+                {
+                    Focus = Focus.Input;
+                    InputKey(key);
+                }
+                break;
         }
-        else
-            Focus = Focus.Input;
     }
 
     private void CommandsKey(ConsoleKeyInfo key)

@@ -201,6 +201,46 @@ public class FancyUiTests
     }
 
     [Fact]
+    public void Tab_reaches_the_buttons_and_enter_presses_one()
+    {
+        // Some terminals (VS Code's) keep F1, F5 and F8 for themselves, so every button also works from the keyboard.
+        using var session = NewSession();
+
+        session.HandleKey(Key(ConsoleKey.Tab), 10); // no commands yet: straight to the buttons
+        Assert.Equal(Focus.Buttons, session.Focus);
+        session.HandleKey(Key(ConsoleKey.RightArrow), 10);
+        session.HandleKey(Key(ConsoleKey.Enter), 10);
+        Assert.Equal("inventory", session.Commands[^1]);
+
+        session.HandleKey(Key(ConsoleKey.LeftArrow), 10);
+        session.HandleKey(Key(ConsoleKey.LeftArrow), 10); // wraps round to the last button
+        Assert.Equal("Theme", FancySession.Buttons[session.SelectedButton].Label);
+        session.HandleKey(Key(ConsoleKey.Enter), 10);
+        Assert.Same(Theme.Light, session.Theme);
+
+        Type(session, "n"); // typing goes back to the input box
+        Assert.Equal(Focus.Input, session.Focus);
+        Assert.Equal("n", session.Input);
+    }
+
+    [Fact]
+    public void Tab_and_shift_tab_go_round_input_list_and_buttons()
+    {
+        using var session = NewSession();
+        session.Send("north");
+        var shiftTab = new ConsoleKeyInfo('	', ConsoleKey.Tab, shift: true, alt: false, control: false);
+
+        session.HandleKey(Key(ConsoleKey.Tab), 10);
+        Assert.Equal(Focus.Commands, session.Focus);
+        session.HandleKey(Key(ConsoleKey.Tab), 10);
+        Assert.Equal(Focus.Buttons, session.Focus);
+        session.HandleKey(Key(ConsoleKey.Tab), 10);
+        Assert.Equal(Focus.Input, session.Focus);
+        session.HandleKey(shiftTab, 10);
+        Assert.Equal(Focus.Buttons, session.Focus);
+    }
+
+    [Fact]
     public void Script_keeps_writing_to_the_interface()
     {
         using var session = NewSession();
@@ -233,6 +273,30 @@ public class FancyUiTests
         Assert.Contains("│ > op", buffer.RowText(27), StringComparison.Ordinal);
         Assert.Equal((6, 27), cursor);
         Assert.Equal(Style.Title, buffer.StyleAt(0, 0));
+    }
+
+    [Fact]
+    public void A_narrow_window_shows_every_button_without_its_key()
+    {
+        using var session = NewSession();
+        var buffer = new CellBuffer(80, 24);
+
+        FancyView.Draw(session, buffer);
+
+        Assert.StartsWith("  Look   Inventory   Score   Save   Restore   Help   Quit   Theme ", buffer.RowText(1), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_chosen_button_is_highlighted()
+    {
+        using var session = NewSession();
+        session.HandleKey(Key(ConsoleKey.Tab), 10);
+        var buffer = new CellBuffer(100, 30);
+
+        FancyView.Draw(session, buffer);
+
+        Assert.Equal(Style.ListSelected, buffer.StyleAt(2, Layout.ButtonRow));
+        Assert.Equal(Style.ButtonKey, buffer.StyleAt(12, Layout.ButtonRow));
     }
 
     [Fact]
@@ -276,8 +340,8 @@ public class FancyUiTests
 
         Assert.Null(FancyView.Draw(session, buffer));
         Assert.Contains("Make the window bigger", Screen(buffer), StringComparison.Ordinal);
-        Assert.False(new Layout(59, 30).Fits);
-        Assert.True(new Layout(60, 16).Fits);
+        Assert.False(new Layout(69, 30).Fits);
+        Assert.True(new Layout(70, 16).Fits);
     }
 
     [Theory]
