@@ -10,6 +10,9 @@ public sealed class TeeWriter : TextWriter
 
     public override System.Text.Encoding Encoding => _first.Encoding;
 
+    /// <summary>The writer that shows the game (the second is the script file).</summary>
+    public TextWriter First => _first;
+
     public TeeWriter(TextWriter first, TextWriter second)
     {
         _first = first;

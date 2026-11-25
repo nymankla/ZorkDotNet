@@ -1,21 +1,32 @@
 using System.Text;
 using ZorkDotNet.Game;
+using ZorkDotNet.Ui;
 
 Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
-var state = new GameState();
-
-Parser.Start(state);
-
-while (state.Running)
+var options = Options.Parse(args);
+if (options.Error != null)
 {
-    // FINISH reads the answer to "Do you wish to leave the game?" without the command prompt.
-    // JIGS-UP likewise reads "Do you want me to try to patch you?", where an empty answer means yes.
-    if (!state.AwaitingAnswer) state.Output.Write("> ");
-    var line = Console.ReadLine();
-    if (line == null) break;
-    line = line.Trim();
-    if (string.IsNullOrEmpty(line) && !state.AwaitingAnswer) continue;
-    Parser.PlayTurn(state, line);
+    Console.Error.WriteLine(options.Error);
+    Console.Error.WriteLine(Options.Usage);
+    return 2;
 }
+if (options.ShowHelp)
+{
+    Console.WriteLine(Options.Usage);
+    return 0;
+}
+
+var state = new GameState();
+if (options.FrontEnd == FrontEnd.Fancy)
+{
+    if (FancyUi.CanRun(out var reason))
+    {
+        FancyUi.Run(state, options.Theme);
+        return 0;
+    }
+    Console.Error.WriteLine(reason + " Starting the classic one.");
+}
+ClassicUi.Run(state, Console.In);
+return 0;
