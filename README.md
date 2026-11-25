@@ -101,6 +101,20 @@ This fork set out to do two things, and both are done:
 
 All known bugs are fixed and all the gaps are closed: every item in the tracking issue, [issue #1](https://github.com/nymankla/ZorkDotNet/issues/1), is done. The original dungeon data is still checked automatically against the port on every build, so any new difference is caught. The one part that can't be ported line by line is fighting, whose original code isn't in MIT's archive.
 
+### An experiment with Claude AI
+
+This fork is also a test of how well an AI, [Claude](https://claude.com/claude-code), can port an old system from a dead language. The original is written in MDL (also called Muddle), a Lisp dialect from MIT in the 1970s that hardly anyone has run in decades.
+
+The starting point was Team-Resurgent's .NET port, which had bugs and was far from complete: [issue #1](https://github.com/nymankla/ZorkDotNet/issues/1) lists everything that was missing or wrong compared with the original.
+
+It worked very well, and took about one day of work. The method:
+
+1. **Tests against the original first.** I specified tests that compare the port with the 1977 MDL source, and Claude wrote them, together with a reader for the original MDL data file. Every room, exit, object and word in that file is checked against the C# world.
+2. **Then Claude iterated.** Claude read the MDL routines, wrote the C# code, wrote tests for each feature and puzzle, and checked that everything passed, over and over until the port was done.
+3. **Me in the loop when needed.** Sometimes Claude worked through several features on its own. Other times I reviewed and validated the result between runs before letting it continue.
+
+The tests are what made this work: with the original as the reference and a test for every change, each step could be checked, whoever wrote it.
+
 ## Original source
 
 The game originates from the 1977 version of Zork created at MIT by Tim Anderson, Marc Blank, Bruce Daniels, and Dave Lebling. The **1977 source code** is preserved and published by MIT’s Department of Distinctive Collections (DDC):
