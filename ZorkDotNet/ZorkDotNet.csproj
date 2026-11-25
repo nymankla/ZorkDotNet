@@ -16,6 +16,8 @@
     <!-- Native AOT: release builds are native executables (no JIT, no runtime to ship). linux-arm (32-bit) is the
          exception, since AOT does not support it; CI publishes it trimmed single-file instead. -->
     <PublishAot>true</PublishAot>
+    <!-- The full-screen interface turns on ANSI output in the Windows console with LibraryImport (source-generated P/Invoke). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

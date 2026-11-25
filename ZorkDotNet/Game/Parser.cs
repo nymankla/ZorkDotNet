@@ -443,17 +443,19 @@ public static class Parser
             case "SCRIPT":
                 try
                 {
+                    // Tee whatever shows the game (the console, or the full-screen interface), not Console.Out.
+                    if (state.Output is TeeWriter scripting) state.Output = scripting.First;
                     state.ScriptFile?.Close();
                     state.ScriptFile = new StreamWriter(GameSave.DefaultScriptPath, append: true);
-                    state.Output = new TeeWriter(Console.Out, state.ScriptFile);
+                    state.Output = new TeeWriter(state.Output, state.ScriptFile);
                     state.Output.WriteLine("Scripting to " + GameSave.DefaultScriptPath + ".");
                 }
                 catch (Exception ex) { state.Output.WriteLine("Script failed: " + ex.Message); }
                 break;
             case "UNSCRIPT":
+                if (state.Output is TeeWriter tee) state.Output = tee.First;
                 state.ScriptFile?.Close();
                 state.ScriptFile = null;
-                state.Output = Console.Out;
                 state.Output.WriteLine("Script file closed.");
                 break;
             case "DIAGNOSE": ObjectActions.Diagnose(state); break;
