@@ -6,14 +6,24 @@
 [![Build and test](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml/badge.svg)](https://github.com/nymankla/ZorkDotNet/actions/workflows/dotnet-desktop.yml)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen.svg?style=for-the-badge&logo=github)](https://github.com/nymankla/ZorkDotNet/releases/latest)
+</div>
 
-<img src="Images/Cover.png" alt="Zork cover art" width="400" height="400" />
+#### *You are standing in an open field west of a white house.* The Great Underground Empire, with its treasures, grues, and twisty little passages, rebuilt in .NET. One executable, any platform. No pictures. Just words and your imagination.
 
 A .NET port of [Zork](https://en.wikipedia.org/wiki/Zork), the classic interactive fiction game. ZorkDotNet runs on Windows, Linux, and Mac.
 
+<div align="center">
+<img src="Images/Cover.jpg" alt="The front panel of an MIT DEC KA10 (PDP-10) processor, with its lights and rows of switches" width="600" height="212" />
+
+<sub>The front panel of an MIT KA10, the kind of PDP-10 that Zork was written on. Photo: [J. Noel Chiappa](https://commons.wikimedia.org/wiki/File:KA10FrontPanel.jpg), [GFDL 1.2+](https://www.gnu.org/licenses/old-licenses/fdl-1.2.html).</sub>
+
 </div>
 
-*You are standing in an open field west of a white house.* The Great Underground Empire, with its treasures, grues, and twisty little passages, rebuilt in .NET. One executable, any platform. No pictures. Just words and your imagination.
+
+
+
+
+
 
 ## For players
 
